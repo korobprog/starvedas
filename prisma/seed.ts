@@ -130,19 +130,12 @@ const paymentMethods = [
 
 const paymentProviders = [
   {
-    code: "payform",
-    name: "PayForm",
-    description: "Платежная форма PayForm с переходом на страницу оплаты.",
-    active: true,
-    sortOrder: 10
-  },
-  {
     code: "prodamus",
     name: "Prodamus",
     description:
       "Платежная система Prodamus с базовым адресом https://prodamus.ru.",
     active: true,
-    sortOrder: 20
+    sortOrder: 10
   },
   {
     code: "custom_card",
@@ -150,7 +143,7 @@ const paymentProviders = [
     description:
       "Резервная ручная оплата переводом на карту по реквизитам администратора или куратора.",
     active: true,
-    sortOrder: 30
+    sortOrder: 20
   },
   {
     code: "custom_phone",
@@ -158,7 +151,7 @@ const paymentProviders = [
     description:
       "Резервная ручная оплата переводом по номеру телефона по инструкциям администратора или куратора.",
     active: true,
-    sortOrder: 40
+    sortOrder: 30
   }
 ];
 
@@ -358,7 +351,7 @@ async function main() {
           enabled,
           instructions:
             isCustom && curator.isSystem
-              ? "Используйте резервный перевод только если не получается оплатить через PayForm или Prodamus. После перевода нажмите «Сообщить об оплате» и отправьте чек."
+              ? "Используйте резервный перевод только если не получается оплатить через Prodamus. После перевода нажмите «Сообщить об оплате» и отправьте чек."
               : null,
           providerCode: provider.code,
           verificationPeriod:

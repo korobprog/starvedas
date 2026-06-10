@@ -1,6 +1,19 @@
 import { PriceUnit } from "@prisma/client";
 import { z } from "zod";
+import {
+  invalidPhoneMessage,
+  isPhoneCountryCode,
+  isValidPhoneNumberForCountry
+} from "@/lib/phone-validation";
 import { paymentProviderCodes } from "@/server/payment-providers";
+
+const phoneCountrySchema = z
+  .string()
+  .trim()
+  .optional()
+  .refine((country) => !country || isPhoneCountryCode(country), {
+    message: "Некорректная страна телефона"
+  });
 
 export const createOrderSchema = z
   .object({
@@ -10,6 +23,7 @@ export const createOrderSchema = z
     customerName: z.string().trim().min(2).max(120),
     customerTelegram: z.string().trim().max(120).optional(),
     customerPhone: z.string().trim().max(50).optional(),
+    customerPhoneCountry: phoneCountrySchema,
     customerEmail: z
       .union([z.string().trim().email(), z.literal("")])
       .optional(),
@@ -18,18 +32,33 @@ export const createOrderSchema = z
     paymentProvider: z.enum(paymentProviderCodes).optional(),
     referralSlug: z.string().trim().max(120).optional()
   })
-  .refine(
-    (data) =>
-      Boolean(
-        data.customerTelegram?.trim() ||
-        data.customerPhone?.trim() ||
-        data.customerEmail?.trim()
-      ),
-    {
-      message: "Укажите хотя бы один контакт",
-      path: ["customerTelegram"]
+  .superRefine((data, ctx) => {
+    if (
+      data.customerPhone?.trim() &&
+      !isValidPhoneNumberForCountry(
+        data.customerPhone,
+        data.customerPhoneCountry
+      )
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: invalidPhoneMessage,
+        path: ["customerPhone"]
+      });
     }
-  );
+
+    if (
+      !data.customerTelegram?.trim() &&
+      !data.customerPhone?.trim() &&
+      !data.customerEmail?.trim()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Укажите хотя бы один контакт",
+        path: ["customerTelegram"]
+      });
+    }
+  });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 

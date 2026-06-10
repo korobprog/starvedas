@@ -268,7 +268,7 @@ model OrderParticipant {
 
 model Payment {
   id                String        @id @default(cuid())
-  provider          String        @default("payform")
+  provider          String        @default("prodamus")
   amountRub         Int
   currency          String        @default("RUB")
   status            PaymentStatus @default(PENDING)

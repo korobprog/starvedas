@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
 export const paymentProviderCodes = [
-  "payform",
   "prodamus",
   "custom_card",
   "custom_phone"
@@ -45,20 +44,12 @@ export type CuratorPaymentProviderSetting = PublicPaymentProvider & {
 export const defaultPaymentProviders: PublicPaymentProvider[] = [
   {
     active: true,
-    code: "payform",
-    description: "Платежная форма PayForm с переходом на страницу оплаты.",
-    isCustom: false,
-    name: "PayForm",
-    sortOrder: 10
-  },
-  {
-    active: true,
     code: "prodamus",
     description:
       "Платежная система Prodamus с базовым адресом https://prodamus.ru.",
     isCustom: false,
     name: "Prodamus",
-    sortOrder: 20
+    sortOrder: 10
   },
   {
     active: true,
@@ -67,7 +58,7 @@ export const defaultPaymentProviders: PublicPaymentProvider[] = [
       "Резервная ручная оплата переводом на карту по реквизитам администратора или куратора.",
     isCustom: true,
     name: "Перевод на карту",
-    sortOrder: 30
+    sortOrder: 20
   },
   {
     active: true,
@@ -76,19 +67,11 @@ export const defaultPaymentProviders: PublicPaymentProvider[] = [
       "Резервная ручная оплата переводом по номеру телефона по инструкциям администратора или куратора.",
     isCustom: true,
     name: "Перевод по номеру телефона",
-    sortOrder: 40
+    sortOrder: 30
   }
 ];
 
 export const paymentProviderEnvNames: Record<PaymentProviderCode, string[]> = {
-  payform: [
-    "PAYFORM_MERCHANT_ID",
-    "PAYFORM_SECRET_KEY",
-    "PAYFORM_API_URL",
-    "PAYFORM_SUCCESS_URL",
-    "PAYFORM_FAIL_URL",
-    "PAYFORM_WEBHOOK_SECRET"
-  ],
   prodamus: [
     "PRODAMUS_MERCHANT_ID",
     "PRODAMUS_SECRET_KEY",

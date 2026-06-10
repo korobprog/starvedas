@@ -7,10 +7,11 @@ import { getHomeCopy } from "@/i18n/home-copy";
 import { localeCookieName } from "@/i18n/config";
 import { formatLocalizedPrice } from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
-import { services, steps } from "@/lib/site-data";
+import { steps } from "@/lib/site-data";
 import { getPublicOrganizationSettings } from "@/server/organization-settings";
 import { getCheckoutPaymentProvidersForCurator } from "@/server/payment-providers";
 import { getCuratorForReferral } from "@/server/referrals";
+import { getPublicServices } from "@/server/services";
 import Image from "next/image";
 import PayMir from "@/../public/images/pay-card-mir.svg";
 
@@ -60,11 +61,13 @@ export default async function Home({
   const referralSlug = params.ref?.trim() || undefined;
   const locale = cookieStore.get(localeCookieName)?.value;
   const copy = getHomeCopy(locale);
-  const [activeSchedule, assignedCurator, { contact }] = await Promise.all([
-    getActiveSchedule(),
-    getAssignedCurator(referralSlug),
-    getPublicOrganizationSettings()
-  ]);
+  const [activeSchedule, assignedCurator, { contact }, availableServices] =
+    await Promise.all([
+      getActiveSchedule(),
+      getAssignedCurator(referralSlug),
+      getPublicOrganizationSettings(),
+      getPublicServices()
+    ]);
   const paymentProviders = await getCheckoutPaymentProvidersForCurator(
     assignedCurator.id
   );
@@ -124,8 +127,8 @@ export default async function Home({
             <p>{copy.sections.services.lead}</p>
           </div>
           <div className="card-grid">
-            {services.map((service) => (
-              <article className="card" key={service.title}>
+            {availableServices.map((service) => (
+              <a className="card card--link" href="#signup" key={service.title}>
                 <h3>{service.title}</h3>
                 <p>{service.description}</p>
                 <span className="price">
@@ -133,7 +136,7 @@ export default async function Home({
                     perParticipant: service.priceUnit === "PER_NAME"
                   })}
                 </span>
-              </article>
+              </a>
             ))}
           </div>
           <SupportCta
@@ -213,6 +216,7 @@ export default async function Home({
               locale={locale}
               paymentProviders={paymentProviders}
               referralSlug={referralSlug ?? assignedCurator.slug}
+              services={availableServices}
             />
           </div>
         </div>

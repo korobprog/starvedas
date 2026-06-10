@@ -14,6 +14,17 @@ export const curators = [
 
 export type PriceUnit = "PER_ORDER" | "PER_PARTICIPANT" | "PER_NAME";
 
+export type SiteService = {
+  description: string;
+  priceLabel: string;
+  priceRub: number;
+  priceUnit: PriceUnit;
+  slug: string;
+  title: string;
+};
+
+export type SiteServiceList = [SiteService, ...SiteService[]];
+
 export const services = [
   {
     title: "Абонемент на месяц",
@@ -74,7 +85,7 @@ export const services = [
     priceLabel: "250 руб. за участника",
     priceUnit: "PER_NAME" satisfies PriceUnit
   }
-];
+] satisfies SiteServiceList;
 
 export const steps = [
   "Выберите церемонию",

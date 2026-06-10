@@ -25,7 +25,7 @@ const copies: Record<Locale, PaymentMethodsCopy> = {
     beforeTitle: "Перед оплатой",
     beforeText:
       "Форма заказа показывает выбранную услугу, количество участников и итоговую сумму. Backend повторно рассчитывает сумму и не доверяет цене, пришедшей с frontend.",
-    lead: "Доступные способы оплаты зависят от настроек PayForm или Prodamus. Итоговый список будет проверен перед запуском боевых оплат.",
+    lead: "Доступные способы оплаты зависят от настроек Prodamus. Итоговый список будет проверен перед запуском боевых оплат.",
     pageTitle: "Способы оплаты"
   },
   en: {
@@ -39,7 +39,7 @@ const copies: Record<Locale, PaymentMethodsCopy> = {
     beforeTitle: "Before payment",
     beforeText:
       "The order form shows the selected service, participant count and total amount. The backend recalculates the amount and does not trust the price sent from the frontend.",
-    lead: "Available payment methods depend on the PayForm or Prodamus settings. The final list will be checked before live payments start.",
+    lead: "Available payment methods depend on the Prodamus settings. The final list will be checked before live payments start.",
     pageTitle: "Payment methods"
   },
   hi: {
@@ -53,7 +53,7 @@ const copies: Record<Locale, PaymentMethodsCopy> = {
     beforeTitle: "भुगतान से पहले",
     beforeText:
       "ऑर्डर फ़ॉर्म चुनी गई सेवा, प्रतिभागियों की संख्या और कुल राशि दिखाता है. Backend राशि को फिर से गणना करता है और frontend द्वारा भेजी गई कीमत पर भरोसा नहीं करता.",
-    lead: "उपलब्ध भुगतान तरीके PayForm या Prodamus सेटिंग्स पर निर्भर करते हैं. लाइव भुगतान शुरू होने से पहले अंतिम सूची की जाँच की जाएगी.",
+    lead: "उपलब्ध भुगतान तरीके Prodamus सेटिंग्स पर निर्भर करते हैं. लाइव भुगतान शुरू होने से पहले अंतिम सूची की जाँच की जाएगी.",
     pageTitle: "भुगतान तरीके"
   }
 };

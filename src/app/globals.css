@@ -669,8 +669,17 @@ select {
     box-shadow 0.18s ease;
 }
 
+.card--link {
+  cursor: pointer;
+}
+
 .card:hover {
   transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: 0 18px 44px rgb(86 48 13 / 12%);
+}
+
+.card--link:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 18px 44px rgb(86 48 13 / 12%);
 }
@@ -1051,6 +1060,18 @@ select {
 
 .field textarea {
   resize: vertical;
+}
+
+.phone-input-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.9fr) minmax(0, 1.4fr);
+  gap: 8px;
+}
+
+.field-error {
+  color: #9d2500;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .checkbox-field input[type="checkbox"] {
@@ -1760,6 +1781,7 @@ select {
   .curator-list,
   .option-grid,
   .field-grid,
+  .phone-input-row,
   .participant-row,
   .payment-option-row,
   .method-grid,

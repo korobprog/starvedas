@@ -23,6 +23,7 @@ type SignupCopy = {
     participantNumber: string;
     primaryParticipant: string;
     phone: string;
+    phoneCountry: string;
     telegram: string;
   };
   legend: {
@@ -62,6 +63,7 @@ type SignupCopy = {
   warnings: {
     countMismatch: string;
     incompleteParticipants: string;
+    invalidPhone: string;
   };
   placeholders: {
     participants: string;
@@ -96,6 +98,7 @@ const copies: Record<Locale, SignupCopy> = {
       participantNumber: "Участник {{number}}",
       primaryParticipant: "Участник 1 (заказчик)",
       phone: "Телефон",
+      phoneCountry: "Страна телефона",
       telegram: "Telegram"
     },
     legend: {
@@ -139,13 +142,14 @@ const copies: Record<Locale, SignupCopy> = {
       countMismatch:
         "Количество строк в списке сейчас: {{count}}. Укажите столько строк, сколько участников выбрано.",
       incompleteParticipants:
-        "Заполните имя и фамилию для каждого участника. Сейчас заполнено: {{count}}."
+        "Заполните имя и фамилию для каждого участника. Сейчас заполнено: {{count}}.",
+      invalidPhone: "Введите корректный телефон для выбранной страны."
     },
     placeholders: {
       participants:
         "Первая запись: тот, кто оформляет заказ. Нажмите плюс, чтобы добавить еще участника. Тариф считается за каждого заполненного участника.",
       telegram: "@username",
-      phone: "+7...",
+      phone: "+{{code}}...",
       email: "mail@example.com"
     }
   },
@@ -172,6 +176,7 @@ const copies: Record<Locale, SignupCopy> = {
       participantNumber: "Participant {{number}}",
       primaryParticipant: "Participant 1 (customer)",
       phone: "Phone",
+      phoneCountry: "Phone country",
       telegram: "Telegram"
     },
     legend: {
@@ -215,13 +220,14 @@ const copies: Record<Locale, SignupCopy> = {
       countMismatch:
         "Current number of lines in the list: {{count}}. Add the same number of lines as selected participants.",
       incompleteParticipants:
-        "Fill in first and last name for each participant. Completed: {{count}}."
+        "Fill in first and last name for each participant. Completed: {{count}}.",
+      invalidPhone: "Enter a valid phone for the selected country."
     },
     placeholders: {
       participants:
         "First participant: the person placing the order. Click plus to add another participant. The price is counted for each completed participant.",
       telegram: "@username",
-      phone: "+7...",
+      phone: "+{{code}}...",
       email: "mail@example.com"
     }
   },
@@ -248,6 +254,7 @@ const copies: Record<Locale, SignupCopy> = {
       participantNumber: "प्रतिभागी {{number}}",
       primaryParticipant: "प्रतिभागी 1 (ग्राहक)",
       phone: "फोन",
+      phoneCountry: "फोन का देश",
       telegram: "Telegram"
     },
     legend: {
@@ -291,13 +298,14 @@ const copies: Record<Locale, SignupCopy> = {
       countMismatch:
         "सूची में वर्तमान पंक्तियों की संख्या: {{count}}. चयनित प्रतिभागियों के बराबर पंक्तियाँ जोड़ें.",
       incompleteParticipants:
-        "हर प्रतिभागी का नाम और उपनाम भरें. पूरे भरे गए: {{count}}."
+        "हर प्रतिभागी का नाम और उपनाम भरें. पूरे भरे गए: {{count}}.",
+      invalidPhone: "चुने गए देश के लिए सही फोन नंबर डालें."
     },
     placeholders: {
       participants:
         "पहला प्रतिभागी: ऑर्डर करने वाला व्यक्ति. दूसरा प्रतिभागी जोड़ने के लिए प्लस दबाएँ. हर भरे गए प्रतिभागी के लिए कीमत गिनी जाएगी.",
       telegram: "@username",
-      phone: "+7...",
+      phone: "+{{code}}...",
       email: "mail@example.com"
     }
   }

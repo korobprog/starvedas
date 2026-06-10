@@ -10,6 +10,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { localeCookieName } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
+import { normalizePhoneNumber } from "@/lib/phone-validation";
 import {
   calculateOrderAmount,
   createOrderSchema,
@@ -17,15 +18,13 @@ import {
   normalizeOptional
 } from "@/server/order-validation";
 import { upsertClientProfileForFunnel } from "@/server/client-profiles";
-import {
-  createPayformPaymentUrl,
-  createProdamusPaymentUrl
-} from "@/server/payform";
+import { createProdamusPaymentUrl } from "@/server/payform";
 import {
   getPaymentProviderForCheckout,
   isCustomPaymentProviderCode
 } from "@/server/payment-providers";
 import { getCuratorForReferral } from "@/server/referrals";
+import { getServiceForOrder } from "@/server/services";
 import { sendOrderCreatedTelegramNotification } from "@/server/telegram-notifications";
 
 function createProviderPaymentUrl({
@@ -49,18 +48,11 @@ function createProviderPaymentUrl({
   provider: string;
   successUrl?: string;
 }) {
-  if (provider === "prodamus") {
-    return createProdamusPaymentUrl({
-      amountRub,
-      customer,
-      description,
-      failUrl,
-      orderNumber,
-      successUrl
-    });
+  if (provider !== "prodamus") {
+    throw new Error("Unsupported payment provider");
   }
 
-  return createPayformPaymentUrl({
+  return createProdamusPaymentUrl({
     amountRub,
     customer,
     description,
@@ -94,7 +86,9 @@ export async function POST(request: Request) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { message: "Некорректные данные заказа" },
+      {
+        message: parsed.error.issues[0]?.message ?? "Некорректные данные заказа"
+      },
       { status: 400 }
     );
   }
@@ -112,12 +106,7 @@ export async function POST(request: Request) {
   try {
     const [curator, service] = await Promise.all([
       getCuratorForReferral(data.referralSlug),
-      prisma.service.findFirst({
-        where: {
-          active: true,
-          slug: data.serviceSlug
-        }
-      })
+      getServiceForOrder(data.serviceSlug)
     ]);
 
     if (!curator || !service) {
@@ -180,7 +169,10 @@ export async function POST(request: Request) {
       priceUnit: service.priceUnit
     });
     const customerEmail = normalizeOptional(data.customerEmail);
-    const customerPhone = normalizeOptional(data.customerPhone);
+    const customerPhone = normalizePhoneNumber(
+      data.customerPhone,
+      data.customerPhoneCountry
+    );
     const customerTelegram = normalizeOptional(data.customerTelegram);
     const referralSlug = data.referralSlug ?? curator.slug;
 

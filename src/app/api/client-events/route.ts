@@ -5,6 +5,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
+  invalidPhoneMessage,
+  isPhoneCountryCode,
+  isValidPhoneNumberForCountry,
+  normalizePhoneNumber
+} from "@/lib/phone-validation";
+import {
   recordClientFunnelEvent,
   upsertClientProfileForFunnel
 } from "@/server/client-profiles";
@@ -13,16 +19,39 @@ import { getCuratorForReferral, referralCookieName } from "@/server/referrals";
 const visitorCookieName = "starvedas_visitor";
 const visitorCookieMaxAge = 60 * 60 * 24 * 180;
 
-const clientEventSchema = z.object({
-  consentMailings: z.boolean().default(false),
-  consentPersonalData: z.boolean().default(false),
-  customerEmail: z.string().trim().max(200).optional(),
-  customerName: z.string().trim().max(120).optional(),
-  customerPhone: z.string().trim().max(50).optional(),
-  customerTelegram: z.string().trim().max(120).optional(),
-  referralSlug: z.string().trim().max(120).optional(),
-  status: z.enum(["VISITED", "STARTED_CHECKOUT"])
-});
+const clientEventSchema = z
+  .object({
+    consentMailings: z.boolean().default(false),
+    consentPersonalData: z.boolean().default(false),
+    customerEmail: z.string().trim().max(200).optional(),
+    customerName: z.string().trim().max(120).optional(),
+    customerPhone: z.string().trim().max(50).optional(),
+    customerPhoneCountry: z
+      .string()
+      .trim()
+      .optional()
+      .refine((country) => !country || isPhoneCountryCode(country), {
+        message: "Некорректная страна телефона"
+      }),
+    customerTelegram: z.string().trim().max(120).optional(),
+    referralSlug: z.string().trim().max(120).optional(),
+    status: z.enum(["VISITED", "STARTED_CHECKOUT"])
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.customerPhone?.trim() &&
+      !isValidPhoneNumberForCountry(
+        data.customerPhone,
+        data.customerPhoneCountry
+      )
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: invalidPhoneMessage,
+        path: ["customerPhone"]
+      });
+    }
+  });
 
 function hasContact(data: z.infer<typeof clientEventSchema>) {
   return Boolean(
@@ -63,7 +92,10 @@ export async function POST(request: Request) {
         curatorId: curator.id,
         email: parsed.data.customerEmail,
         name: parsed.data.customerName,
-        phone: parsed.data.customerPhone,
+        phone: normalizePhoneNumber(
+          parsed.data.customerPhone,
+          parsed.data.customerPhoneCountry
+        ),
         referralSlug,
         source: "site",
         status: ClientFunnelStatus.STARTED_CHECKOUT,

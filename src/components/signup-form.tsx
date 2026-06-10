@@ -11,7 +11,15 @@ import {
 import { SupportCta } from "@/components/support-cta";
 import { formatLocalizedPrice } from "@/i18n/pricing";
 import { getSignupCopy } from "@/i18n/signup-copy";
-import { services } from "@/lib/site-data";
+import {
+  getDefaultPhoneCountry,
+  getPhoneCountryCallingCode,
+  getPhoneCountryOptions,
+  isPhoneCountryCode,
+  isValidPhoneNumberForCountry,
+  type PhoneCountryCode
+} from "@/lib/phone-validation";
+import type { SiteServiceList } from "@/lib/site-data";
 import type {
   PaymentInstructions,
   PaymentProviderCode
@@ -270,18 +278,20 @@ export function SignupForm({
   assignedCurator,
   locale,
   paymentProviders,
-  referralSlug
+  referralSlug,
+  services
 }: {
   assignedCurator: AssignedCurator;
   locale?: string | null;
   paymentProviders: PaymentProviderOption[];
   referralSlug?: string | null;
+  services: SiteServiceList;
 }) {
   const copy = getSignupCopy(locale);
   const [step, setStep] = useState(0);
   const [serviceSlug, setServiceSlug] = useState(services[0].slug);
   const [paymentProvider, setPaymentProvider] = useState(
-    paymentProviders[0]?.code ?? "payform"
+    paymentProviders[0]?.code ?? "prodamus"
   );
   const [participants, setParticipants] = useState<ParticipantInput[]>([
     createParticipant()
@@ -290,6 +300,8 @@ export function SignupForm({
   const [customerNameTouched, setCustomerNameTouched] = useState(false);
   const [customerTelegram, setCustomerTelegram] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerPhoneCountry, setCustomerPhoneCountry] =
+    useState<PhoneCountryCode>(() => getDefaultPhoneCountry(locale));
   const [customerEmail, setCustomerEmail] = useState("");
   const [consentPersonalData, setConsentPersonalData] = useState(false);
   const [consentMailings, setConsentMailings] = useState(false);
@@ -306,7 +318,7 @@ export function SignupForm({
   const selectedService = useMemo(
     () =>
       services.find((service) => service.slug === serviceSlug) ?? services[0],
-    [serviceSlug]
+    [serviceSlug, services]
   );
 
   const participantFullNames = useMemo(
@@ -319,6 +331,18 @@ export function SignupForm({
     [participantFullNames]
   );
   const participantCount = participantFullNames.length;
+  const phoneCountryOptions = useMemo(
+    () => getPhoneCountryOptions(locale),
+    [locale]
+  );
+  const phonePlaceholder = copy.placeholders.phone.replace(
+    "{{code}}",
+    getPhoneCountryCallingCode(customerPhoneCountry)
+  );
+  const isCustomerPhoneValid = isValidPhoneNumberForCountry(
+    customerPhone,
+    customerPhoneCountry
+  );
 
   const estimatedAmount = useMemo(() => {
     if (selectedService.priceUnit === "PER_ORDER") {
@@ -364,6 +388,7 @@ export function SignupForm({
         customerEmail,
         customerName,
         customerPhone,
+        customerPhoneCountry,
         customerTelegram,
         referralSlug,
         status: "STARTED_CHECKOUT"
@@ -403,27 +428,38 @@ export function SignupForm({
   async function submitOrder() {
     setSubmitState({ status: "loading" });
 
-    const response = await fetch("/api/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        serviceSlug,
-        participantCount,
-        participantsText,
-        customerName,
-        customerTelegram,
-        customerPhone,
-        customerEmail,
-        consentPersonalData,
-        consentMailings,
-        paymentProvider,
-        referralSlug
-      })
-    });
+    let response: Response;
 
-    const result = (await response.json()) as
+    try {
+      response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          serviceSlug,
+          participantCount,
+          participantsText,
+          customerName,
+          customerTelegram,
+          customerPhone,
+          customerPhoneCountry,
+          customerEmail,
+          consentPersonalData,
+          consentMailings,
+          paymentProvider,
+          referralSlug
+        })
+      });
+    } catch {
+      setSubmitState({
+        status: "error",
+        message: copy.error
+      });
+      return;
+    }
+
+    const result = (await response.json().catch(() => ({}))) as
       | {
           amountRub: number;
           curatorName: string;
@@ -445,7 +481,8 @@ export function SignupForm({
     if (!response.ok || !("orderNumber" in result)) {
       setSubmitState({
         status: "error",
-        message: copy.error
+        message:
+          "message" in result && result.message ? result.message : copy.error
       });
       return;
     }
@@ -479,6 +516,13 @@ export function SignupForm({
         if (firstParticipantName) {
           setCustomerName(firstParticipantName);
         }
+      }
+
+      if (
+        step === 2 &&
+        (!hasContact || !consentPersonalData || !isCustomerPhoneValid)
+      ) {
+        return;
       }
 
       if (step === 2 && !checkoutStartedRecorded.current) {
@@ -687,15 +731,41 @@ export function SignupForm({
                 value={customerTelegram}
               />
             </label>
-            <label className="field">
+            <div className="field">
               <span>{copy.fields.phone}</span>
-              <input
-                onChange={(event) => setCustomerPhone(event.target.value)}
-                placeholder={copy.placeholders.phone}
-                type="tel"
-                value={customerPhone}
-              />
-            </label>
+              <div className="phone-input-row">
+                <select
+                  aria-label={copy.fields.phoneCountry}
+                  onChange={(event) => {
+                    if (isPhoneCountryCode(event.target.value)) {
+                      setCustomerPhoneCountry(event.target.value);
+                    }
+                  }}
+                  value={customerPhoneCountry}
+                >
+                  {phoneCountryOptions.map((country) => (
+                    <option key={country.code} value={country.code}>
+                      {country.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  aria-describedby={
+                    isCustomerPhoneValid ? undefined : "customer-phone-error"
+                  }
+                  aria-invalid={!isCustomerPhoneValid}
+                  onChange={(event) => setCustomerPhone(event.target.value)}
+                  placeholder={phonePlaceholder}
+                  type="tel"
+                  value={customerPhone}
+                />
+              </div>
+              {!isCustomerPhoneValid && (
+                <small className="field-error" id="customer-phone-error">
+                  {copy.warnings.invalidPhone}
+                </small>
+              )}
+            </div>
             <label className="field">
               <span>{copy.fields.email}</span>
               <input
@@ -863,7 +933,8 @@ export function SignupForm({
             submitState.status === "loading" ||
             (step === 1 &&
               (hasIncompleteParticipants || participantCount < 1)) ||
-            (step === 2 && (!hasContact || !consentPersonalData)) ||
+            (step === 2 &&
+              (!hasContact || !consentPersonalData || !isCustomerPhoneValid)) ||
             (step === 4 && paymentProviders.length === 0)
           }
           type="submit"

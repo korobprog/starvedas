@@ -1,14 +1,14 @@
 import crypto from "node:crypto";
 
-type PayformCustomer = {
+type PaymentCustomer = {
   email?: string | null;
   name: string;
   phone?: string | null;
 };
 
-type PayformPaymentInput = {
+type PaymentUrlInput = {
   amountRub: number;
-  customer: PayformCustomer;
+  customer: PaymentCustomer;
   description: string;
   failUrl?: string;
   orderNumber: number;
@@ -29,16 +29,6 @@ function getSiteUrl() {
   return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ?? "";
 }
 
-function getPayformUrl() {
-  const url = process.env.PAYFORM_API_URL?.trim();
-
-  if (!url) {
-    throw new Error("PAYFORM_API_URL is not configured");
-  }
-
-  return url;
-}
-
 function getProdamusUrl() {
   return process.env.PRODAMUS_API_URL?.trim() || "https://prodamus.ru";
 }
@@ -53,91 +43,7 @@ function appendIfDefined(
   }
 }
 
-export function createPayformPaymentUrl(input: PayformPaymentInput) {
-  const params = new URLSearchParams();
-  const data: PayformData = {
-    customer_extra: input.description,
-    customer_name: input.customer.name,
-    do: "pay",
-    order_id: input.orderNumber,
-    products: [
-      {
-        name: input.description,
-        paymentMethod: "full_payment",
-        paymentObject: "service",
-        price: input.amountRub,
-        quantity: 1
-      }
-    ]
-  };
-  const siteUrl = getSiteUrl();
-  const customerEmail = clean(input.customer.email);
-  const customerPhone = clean(input.customer.phone);
-  const merchantId = clean(process.env.PAYFORM_MERCHANT_ID);
-
-  appendIfDefined(params, "do", "pay");
-  appendIfDefined(params, "order_id", input.orderNumber);
-  appendIfDefined(params, "customer_extra", input.description);
-  appendIfDefined(params, "customer_email", customerEmail);
-  appendIfDefined(params, "customer_phone", customerPhone);
-  appendIfDefined(params, "customer_name", input.customer.name);
-  appendIfDefined(params, "products[0][name]", input.description);
-  appendIfDefined(params, "products[0][price]", input.amountRub);
-  appendIfDefined(params, "products[0][quantity]", 1);
-  appendIfDefined(params, "products[0][paymentMethod]", "full_payment");
-  appendIfDefined(params, "products[0][paymentObject]", "service");
-  appendIfDefined(
-    params,
-    "success_url",
-    input.successUrl ?? process.env.PAYFORM_SUCCESS_URL
-  );
-  appendIfDefined(
-    params,
-    "fail_url",
-    input.failUrl ?? process.env.PAYFORM_FAIL_URL
-  );
-
-  if (customerEmail) {
-    data.customer_email = customerEmail;
-  }
-
-  if (customerPhone) {
-    data.customer_phone = customerPhone;
-  }
-
-  const successUrl = input.successUrl ?? process.env.PAYFORM_SUCCESS_URL;
-  const failUrl = input.failUrl ?? process.env.PAYFORM_FAIL_URL;
-
-  if (successUrl) {
-    data.success_url = successUrl;
-  }
-
-  if (failUrl) {
-    data.fail_url = failUrl;
-  }
-
-  if (siteUrl) {
-    const callbackUrl = `${siteUrl}/api/payform/webhook`;
-
-    appendIfDefined(params, "callback_url", callbackUrl);
-    data.callback_url = callbackUrl;
-  }
-
-  if (merchantId) {
-    appendIfDefined(params, "merchant_id", merchantId);
-    data.merchant_id = merchantId;
-  }
-
-  const secret = clean(process.env.PAYFORM_SECRET_KEY);
-
-  if (secret) {
-    params.set("signature", signPayformData(data, secret));
-  }
-
-  return `${getPayformUrl()}?${params.toString()}`;
-}
-
-export function createProdamusPaymentUrl(input: PayformPaymentInput) {
+export function createProdamusPaymentUrl(input: PaymentUrlInput) {
   const params = new URLSearchParams();
   const data: PayformData = {
     customer_extra: input.description,
