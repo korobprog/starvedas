@@ -548,7 +548,9 @@ export function SignupForm({
             className={
               index === step
                 ? "form-progress__item is-active"
-                : "form-progress__item"
+                : index < step
+                  ? "form-progress__item is-done"
+                  : "form-progress__item"
             }
             aria-current={index === step ? "step" : undefined}
             aria-label={label}
