@@ -29,8 +29,24 @@ const publicCuratorSelect = {
   supportUrl: true
 } as const;
 
+function decodeSlug(slug: string) {
+  try {
+    return decodeURIComponent(slug);
+  } catch {
+    return slug;
+  }
+}
+
 function normalizeSlug(slug: string | undefined) {
-  return slug?.trim().toLocaleLowerCase("ru") || "";
+  return slug
+    ? decodeSlug(slug)
+        .normalize("NFC")
+        .trim()
+        .toLocaleLowerCase("ru")
+        .replaceAll("ё", "е")
+        .replace(/[^a-zа-я0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+    : "";
 }
 
 export function normalizeReferralSlug(slug: string | undefined) {

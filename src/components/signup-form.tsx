@@ -12,6 +12,7 @@ import { SupportCta } from "@/components/support-cta";
 import { formatLocalizedPrice } from "@/i18n/pricing";
 import { getSignupCopy } from "@/i18n/signup-copy";
 import {
+  formatPhoneNumberInput,
   getDefaultPhoneCountry,
   getPhoneCountryCallingCode,
   getPhoneCountryOptions,
@@ -339,6 +340,7 @@ export function SignupForm({
     "{{code}}",
     getPhoneCountryCallingCode(customerPhoneCountry)
   );
+  const customerPhoneErrorId = "customer-phone-error";
   const isCustomerPhoneValid = isValidPhoneNumberForCountry(
     customerPhone,
     customerPhoneCountry
@@ -739,6 +741,9 @@ export function SignupForm({
                   onChange={(event) => {
                     if (isPhoneCountryCode(event.target.value)) {
                       setCustomerPhoneCountry(event.target.value);
+                      setCustomerPhone((currentPhone) =>
+                        formatPhoneNumberInput(currentPhone, event.target.value)
+                      );
                     }
                   }}
                   value={customerPhoneCountry}
@@ -751,20 +756,33 @@ export function SignupForm({
                 </select>
                 <input
                   aria-describedby={
-                    isCustomerPhoneValid ? undefined : "customer-phone-error"
+                    isCustomerPhoneValid ? undefined : customerPhoneErrorId
                   }
                   aria-invalid={!isCustomerPhoneValid}
-                  onChange={(event) => setCustomerPhone(event.target.value)}
+                  onChange={(event) =>
+                    setCustomerPhone(
+                      formatPhoneNumberInput(
+                        event.target.value,
+                        customerPhoneCountry
+                      )
+                    )
+                  }
                   placeholder={phonePlaceholder}
                   type="tel"
                   value={customerPhone}
                 />
               </div>
-              {!isCustomerPhoneValid && (
-                <small className="field-error" id="customer-phone-error">
-                  {copy.warnings.invalidPhone}
-                </small>
-              )}
+              <small
+                aria-hidden={isCustomerPhoneValid}
+                className={
+                  isCustomerPhoneValid
+                    ? "field-error field-error--hidden"
+                    : "field-error"
+                }
+                id={customerPhoneErrorId}
+              >
+                {copy.warnings.invalidPhone}
+              </small>
             </div>
             <label className="field">
               <span>{copy.fields.email}</span>

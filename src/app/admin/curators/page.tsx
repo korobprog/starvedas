@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { CreateCuratorForm } from "@/components/create-curator-form";
+import { CuratorCopyTools } from "@/components/curator-copy-tools";
 import { prisma } from "@/lib/prisma";
 import {
   deactivateCuratorAction,
@@ -362,6 +363,14 @@ export default async function AdminCuratorsPage() {
                     />
                     <span>Может видеть клиентов и покупки</span>
                   </label>
+                  {!curator.isSystem && (
+                    <CuratorCopyTools
+                      fallbackEmail={curator.user?.email ?? ""}
+                      fallbackName={curator.name}
+                      fallbackReferral={referral}
+                      origin={origin}
+                    />
+                  )}
                   <button className="button button--primary" type="submit">
                     Сохранить
                   </button>

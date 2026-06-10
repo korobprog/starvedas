@@ -147,10 +147,12 @@ export function signPayformPayload(payload: string, secret: string) {
 
 export function signPayformData(data: PayformData, secret: string) {
   const prepared = sortPayformData(removeSignature(data));
-  const json = JSON.stringify(prepared);
-  const encoded = Buffer.from(json).toString("base64");
+  // Prodamus signs the result of PHP json_encode($data, JSON_UNESCAPED_UNICODE)
+  // (NOT JSON_UNESCAPED_SLASHES), so forward slashes must be escaped as \/, and
+  // the HMAC is taken over the raw JSON string (no base64).
+  const json = JSON.stringify(prepared).replace(/\//g, "\\/");
 
-  return signPayformPayload(encoded, secret);
+  return signPayformPayload(json, secret);
 }
 
 export function verifyPayformSignature(
@@ -207,7 +209,8 @@ function sortPayformData(
   if (value && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value)
-        .sort(([left], [right]) => left.localeCompare(right))
+        // Match PHP ksort (byte-wise string comparison), not locale-aware order.
+        .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
         .map(([key, item]) => [key, sortPayformData(item)])
     ) as PayformData;
   }

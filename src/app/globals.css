@@ -1072,6 +1072,11 @@ select {
   color: #9d2500;
   font-size: 0.9rem;
   font-weight: 700;
+  line-height: 1.35;
+}
+
+.field-error--hidden {
+  visibility: hidden;
 }
 
 .checkbox-field input[type="checkbox"] {

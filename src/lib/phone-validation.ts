@@ -1,4 +1,5 @@
 import {
+  AsYouType,
   getCountries,
   getCountryCallingCode,
   parsePhoneNumberFromString,
@@ -14,6 +15,10 @@ export const invalidPhoneMessage =
 const phoneInputPattern = /^[+\d\s().-]+$/;
 const phoneDigitPattern = /\d/;
 const phoneCountries = getCountries();
+const countriesWithBracketedAreaCode = new Set<PhoneCountryCode>([
+  "KZ" as PhoneCountryCode,
+  "RU" as PhoneCountryCode
+]);
 
 function getSafeCountry(country?: string | null): PhoneCountryCode {
   return isPhoneCountryCode(country) ? country : defaultPhoneCountry;
@@ -60,6 +65,61 @@ export function getPhoneCountryOptions(locale?: string | null) {
       };
     })
     .sort((left, right) => left.label.localeCompare(right.label));
+}
+
+export function formatPhoneNumberInput(value: string, country?: string | null) {
+  const safeCountry = getSafeCountry(country);
+
+  if (countriesWithBracketedAreaCode.has(safeCountry)) {
+    return formatBracketedAreaCodePhone(value, safeCountry);
+  }
+
+  const cleaned = value.replace(/[^\d+]/g, "");
+
+  return cleaned ? new AsYouType(safeCountry).input(cleaned) : "";
+}
+
+function formatBracketedAreaCodePhone(
+  value: string,
+  country: PhoneCountryCode
+) {
+  const hasInternationalPrefix = value.trimStart().startsWith("+");
+  let digits = value.replace(/\D/g, "");
+  const callingCode = getCountryCallingCode(country);
+
+  if (hasInternationalPrefix && digits.startsWith(callingCode)) {
+    digits = digits.slice(callingCode.length);
+  } else if (digits.length === 11 && /^[78]/.test(digits)) {
+    digits = digits.slice(1);
+  }
+
+  if (!digits) {
+    return "";
+  }
+
+  const areaCode = digits.slice(0, 3);
+  const firstPart = digits.slice(3, 6);
+  const secondPart = digits.slice(6, 8);
+  const thirdPart = digits.slice(8, 10);
+  let formatted = `(${areaCode}`;
+
+  if (areaCode.length === 3) {
+    formatted += ")";
+  }
+
+  if (firstPart) {
+    formatted += ` ${firstPart}`;
+  }
+
+  if (secondPart) {
+    formatted += `-${secondPart}`;
+  }
+
+  if (thirdPart) {
+    formatted += `-${thirdPart}`;
+  }
+
+  return formatted;
 }
 
 export function isValidPhoneNumberForCountry(
