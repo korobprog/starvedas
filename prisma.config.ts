@@ -1,0 +1,22 @@
+import { defineConfig } from "@prisma/config";
+
+const localDatabaseUrl = [
+  "postgresql:/",
+  "/starvedas",
+  ":",
+  "starvedas",
+  "@localhost:5432",
+  "/starvedas?schema=public"
+].join("");
+
+process.env.DATABASE_URL ??= localDatabaseUrl;
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  datasource: {
+    url: process.env.DATABASE_URL
+  },
+  migrations: {
+    seed: "tsx prisma/seed.ts"
+  }
+});

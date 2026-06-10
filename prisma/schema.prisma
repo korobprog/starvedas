@@ -1,0 +1,396 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  CURATOR
+  CLIENT
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING_PAYMENT
+  WAITING_PAYMENT_VERIFICATION
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum LeadStatus {
+  NEW
+  ASSIGNED
+  IN_WORK
+  WAITING_CLIENT
+  WAITING_PAYMENT
+  WAITING_PAYMENT_VERIFICATION
+  PAID
+  COMPLETED
+  LOST
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  AWAITING_VERIFICATION
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum ClientFunnelStatus {
+  VISITED
+  STARTED_CHECKOUT
+  DID_NOT_BUY
+  BOUGHT
+}
+
+enum PriceUnit {
+  PER_ORDER
+  PER_PARTICIPANT
+  PER_NAME
+}
+
+enum SellerType {
+  IP
+  OOO
+  SELF_EMPLOYED
+  OTHER
+}
+
+enum LegalDocumentType {
+  PRIVACY
+  PERSONAL_DATA_CONSENT
+  OFFER
+  PAYMENT_TERMS
+  REFUND_TERMS
+  CONTACTS
+  PAYMENT_SECURITY
+}
+
+enum ParticipantChangeAction {
+  UPDATED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         UserRole @default(CLIENT)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  curator             Curator?
+  changedStatuses     LeadStatusHistory[]
+  changedParticipants ParticipantChangeHistory[]
+}
+
+model Curator {
+  id                  String   @id @default(cuid())
+  name                String
+  slug                String   @unique
+  active              Boolean  @default(true)
+  hidden              Boolean  @default(false)
+  isSystem            Boolean  @default(false)
+  sortOrder           Int      @default(0)
+  description         String?
+  photoUrl            String?
+  postPurchaseTitle   String?
+  postPurchaseText    String?
+  postPurchaseUrl     String?
+  supportButtonLabel  String?
+  supportEnabled      Boolean  @default(true)
+  supportUrl          String?
+  canEditPostPurchase Boolean  @default(true)
+  canEditSupport      Boolean  @default(true)
+  canViewClients      Boolean  @default(true)
+  userId              String?  @unique
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user           User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  clients        ClientProfile[]
+  clientEvents   ClientEvent[]
+  orders         Order[]
+  referralLinks  ReferralLink[]
+  paymentOptions CuratorPaymentOption[]
+}
+
+model ReferralLink {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  active    Boolean  @default(true)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  curatorId String
+  curator   Curator @relation(fields: [curatorId], references: [id], onDelete: Cascade)
+
+  @@index([active])
+  @@index([curatorId])
+}
+
+model Service {
+  id                           String    @id @default(cuid())
+  title                        String
+  slug                         String    @unique
+  description                  String?
+  priceRub                     Int
+  priceUnit                    PriceUnit @default(PER_PARTICIPANT)
+  requiresExactParticipantList Boolean   @default(true)
+  active                       Boolean   @default(true)
+  sortOrder                    Int       @default(0)
+  createdAt                    DateTime  @default(now())
+  updatedAt                    DateTime  @updatedAt
+
+  orders Order[]
+}
+
+model Schedule {
+  id        String   @id @default(cuid())
+  month     String
+  title     String
+  body      String
+  active    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ClientProfile {
+  id                    String             @id @default(cuid())
+  name                  String
+  telegram              String?
+  phone                 String?
+  email                 String?
+  consentPersonalData   Boolean            @default(false)
+  consentMailings       Boolean            @default(false)
+  consentMailingsAt     DateTime?
+  consentMailingsSource String?
+  status                ClientFunnelStatus @default(VISITED)
+  source                String             @default("site")
+  referralSlug          String?
+  lastVisitedAt         DateTime?
+  checkoutStartedAt     DateTime?
+  didNotBuyAt           DateTime?
+  boughtAt              DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  curatorId String?
+
+  curator Curator?      @relation(fields: [curatorId], references: [id], onDelete: SetNull)
+  events  ClientEvent[]
+  orders  Order[]
+
+  @@index([telegram])
+  @@index([phone])
+  @@index([email])
+  @@index([status])
+  @@index([consentMailings])
+  @@index([curatorId])
+  @@index([updatedAt])
+}
+
+model ClientEvent {
+  id           String             @id @default(cuid())
+  status       ClientFunnelStatus
+  source       String             @default("site")
+  referralSlug String?
+  visitorId    String?
+  createdAt    DateTime           @default(now())
+
+  clientId  String?
+  curatorId String?
+
+  client  ClientProfile? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  curator Curator?       @relation(fields: [curatorId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([visitorId])
+  @@index([clientId])
+  @@index([curatorId])
+  @@index([createdAt])
+}
+
+model Order {
+  id                  String      @id @default(cuid())
+  orderNumber         Int         @unique @default(autoincrement())
+  status              OrderStatus @default(DRAFT)
+  leadStatus          LeadStatus  @default(NEW)
+  participantCount    Int
+  participantsText    String
+  amountRub           Int
+  customerName        String
+  customerTelegram    String?
+  customerPhone       String?
+  customerEmail       String?
+  consentPersonalData Boolean     @default(false)
+  publicToken         String      @unique
+  source              String      @default("site")
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  curatorId String
+  serviceId String
+  clientId  String?
+
+  curator       Curator             @relation(fields: [curatorId], references: [id], onDelete: Restrict)
+  service       Service             @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  client        ClientProfile?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  participants  OrderParticipant[]
+  payment       Payment?
+  statusHistory LeadStatusHistory[]
+}
+
+model OrderParticipant {
+  id        String   @id @default(cuid())
+  fullName  String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderId String
+  order   Order                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  history ParticipantChangeHistory[]
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  provider          String        @default("payform")
+  amountRub         Int
+  currency          String        @default("RUB")
+  status            PaymentStatus @default(PENDING)
+  providerPaymentId String?
+  paymentUrl        String?
+  rawPayload        Json?
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrganizationSettings {
+  id                  String     @id @default(cuid())
+  sellerType          SellerType @default(IP)
+  legalName           String?
+  directorName        String?
+  inn                 String?
+  ogrn                String?
+  legalAddress        String?
+  postalAddress       String?
+  clientEmail         String?
+  clientPhone         String?
+  officialTelegram    String?
+  supportHours        String?
+  bankDetails         String?
+  publicRecipientName String?
+  cashboxDetails      String?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+}
+
+model PaymentMethod {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  logoUrl     String?
+  description String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PaymentProvider {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  curatorOptions CuratorPaymentOption[]
+}
+
+model CuratorPaymentOption {
+  id                 String   @id @default(cuid())
+  providerCode       String
+  allowed            Boolean  @default(false)
+  enabled            Boolean  @default(false)
+  instructions       String?
+  bankName           String?
+  recipientName      String?
+  accountNumber      String?
+  phone              String?
+  paymentComment     String?
+  verificationPeriod String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  curatorId String
+  curator   Curator         @relation(fields: [curatorId], references: [id], onDelete: Cascade)
+  provider  PaymentProvider @relation(fields: [providerCode], references: [code], onDelete: Cascade)
+
+  @@unique([curatorId, providerCode])
+  @@index([providerCode])
+}
+
+model LegalDocument {
+  id        String            @id @default(cuid())
+  type      LegalDocumentType
+  title     String
+  slug      String            @unique
+  content   String
+  version   String            @default("1.0")
+  active    Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model LeadStatusHistory {
+  id         String      @id @default(cuid())
+  fromStatus LeadStatus?
+  toStatus   LeadStatus
+  note       String?
+  createdAt  DateTime    @default(now())
+
+  orderId     String
+  changedById String?
+
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedBy User? @relation(fields: [changedById], references: [id], onDelete: SetNull)
+}
+
+model ParticipantChangeHistory {
+  id           String                  @id @default(cuid())
+  action       ParticipantChangeAction @default(UPDATED)
+  fromFullName String?
+  toFullName   String?
+  note         String?
+  createdAt    DateTime                @default(now())
+
+  participantId String
+  changedById   String?
+
+  participant OrderParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  changedBy   User?            @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([participantId])
+  @@index([changedById])
+}

@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+build
+coverage
+.playwright-mcp
+package-lock.json
+plan.md
+README.md

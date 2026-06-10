@@ -1,0 +1,68 @@
+import { PriceUnit } from "@prisma/client";
+import { z } from "zod";
+import { paymentProviderCodes } from "@/server/payment-providers";
+
+export const createOrderSchema = z
+  .object({
+    serviceSlug: z.string().trim().min(2).max(120),
+    participantCount: z.number().int().min(1).max(200),
+    participantsText: z.string().trim().min(2).max(5000),
+    customerName: z.string().trim().min(2).max(120),
+    customerTelegram: z.string().trim().max(120).optional(),
+    customerPhone: z.string().trim().max(50).optional(),
+    customerEmail: z
+      .union([z.string().trim().email(), z.literal("")])
+      .optional(),
+    consentPersonalData: z.literal(true),
+    consentMailings: z.boolean().default(false),
+    paymentProvider: z.enum(paymentProviderCodes).optional(),
+    referralSlug: z.string().trim().max(120).optional()
+  })
+  .refine(
+    (data) =>
+      Boolean(
+        data.customerTelegram?.trim() ||
+        data.customerPhone?.trim() ||
+        data.customerEmail?.trim()
+      ),
+    {
+      message: "Укажите хотя бы один контакт",
+      path: ["customerTelegram"]
+    }
+  );
+
+export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+
+export function getParticipantNames(participantsText: string) {
+  return participantsText
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function calculateOrderAmount({
+  participantCount,
+  participantNames,
+  priceRub,
+  priceUnit
+}: {
+  participantCount: number;
+  participantNames: string[];
+  priceRub: number;
+  priceUnit: PriceUnit;
+}) {
+  if (priceUnit === PriceUnit.PER_ORDER) {
+    return priceRub;
+  }
+
+  if (priceUnit === PriceUnit.PER_NAME) {
+    return priceRub * participantNames.length;
+  }
+
+  return priceRub * participantCount;
+}
+
+export function normalizeOptional(value?: string) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
