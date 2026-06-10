@@ -78,12 +78,12 @@ export function createProdamusPaymentUrl(input: PaymentUrlInput) {
   appendIfDefined(params, "products[0][paymentObject]", "service");
   appendIfDefined(
     params,
-    "success_url",
+    "urlSuccess",
     input.successUrl ?? process.env.PRODAMUS_SUCCESS_URL
   );
   appendIfDefined(
     params,
-    "fail_url",
+    "urlReturn",
     input.failUrl ?? process.env.PRODAMUS_FAIL_URL
   );
 
@@ -99,18 +99,18 @@ export function createProdamusPaymentUrl(input: PaymentUrlInput) {
   const failUrl = input.failUrl ?? process.env.PRODAMUS_FAIL_URL;
 
   if (successUrl) {
-    data.success_url = successUrl;
+    data.urlSuccess = successUrl;
   }
 
   if (failUrl) {
-    data.fail_url = failUrl;
+    data.urlReturn = failUrl;
   }
 
   if (siteUrl) {
     const callbackUrl = `${siteUrl}/api/prodamus/webhook`;
 
-    appendIfDefined(params, "callback_url", callbackUrl);
-    data.callback_url = callbackUrl;
+    appendIfDefined(params, "urlNotification", callbackUrl);
+    data.urlNotification = callbackUrl;
   }
 
   if (merchantId) {
@@ -210,6 +210,10 @@ function sortPayformData(
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([key, item]) => [key, sortPayformData(item)])
     ) as PayformData;
+  }
+
+  if (typeof value === "boolean" || typeof value === "number") {
+    return String(value);
   }
 
   return value;

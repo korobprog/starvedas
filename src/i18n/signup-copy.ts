@@ -149,7 +149,7 @@ const copies: Record<Locale, SignupCopy> = {
       participants:
         "Первая запись: тот, кто оформляет заказ. Нажмите плюс, чтобы добавить еще участника. Тариф считается за каждого заполненного участника.",
       telegram: "@username",
-      phone: "+{{code}}...",
+      phone: "(777) ...",
       email: "mail@example.com"
     }
   },

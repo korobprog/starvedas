@@ -182,6 +182,7 @@ async function main() {
           update: {
             active: true,
             name: adminName,
+            passwordHash: await hashPassword(adminPassword),
             role: UserRole.SUPER_ADMIN
           }
         })
