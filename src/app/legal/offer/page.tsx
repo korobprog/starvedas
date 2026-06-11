@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatLocalizedPrice } from "@/i18n/pricing";
 import { getOfferCopy } from "@/i18n/offer-copy";
 import { localeCookieName } from "@/i18n/config";
+import { applyLegalPlaceholders } from "@/lib/legal-content";
 import { services } from "@/lib/site-data";
 import { getPublicOrganizationSettings } from "@/server/organization-settings";
 
@@ -26,18 +27,19 @@ export default async function OfferPage() {
       <article className="legal-card">
         <p className="eyebrow">Юридические документы</p>
         <h1>{copy.pageTitle}</h1>
-        <p className="legal-lead">{copy.lead}</p>
+        <p className="legal-lead">{applyLegalPlaceholders(copy.lead, contact)}</p>
 
         <div className="legal-sections">
           <section>
+            <h2>{copy.sections.general.title}</h2>
+            {copy.sections.general.body.map((paragraph) => (
+              <p key={paragraph}>{applyLegalPlaceholders(paragraph, contact)}</p>
+            ))}
+          </section>
+
+          <section>
             <h2>{copy.sections.provider.title}</h2>
-            <p>
-              {copy.sections.provider.body
-                .replace("{{seller}}", contact.seller)
-                .replace("{{inn}}", contact.inn)
-                .replace("{{ogrnip}}", contact.ogrnip)
-                .replace("{{email}}", contact.email)}
-            </p>
+            <p>{applyLegalPlaceholders(copy.sections.provider.body, contact)}</p>
             {settings?.bankDetails && <p>{settings.bankDetails}</p>}
             {settings?.publicRecipientName && (
               <p>
@@ -51,8 +53,9 @@ export default async function OfferPage() {
 
           <section>
             <h2>{copy.sections.subject.title}</h2>
-            <p>{copy.sections.subject.body1}</p>
-            <p>{copy.sections.subject.body2}</p>
+            {copy.sections.subject.body.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
           </section>
 
           <section>
@@ -72,18 +75,44 @@ export default async function OfferPage() {
 
           <section>
             <h2>{copy.sections.order.title}</h2>
-            <p>{copy.sections.order.body1}</p>
-            <p>{copy.sections.order.body2}</p>
+            {copy.sections.order.body.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
           </section>
 
           <section>
             <h2>{copy.sections.payment.title}</h2>
-            <p>{copy.sections.payment.body}</p>
+            {copy.sections.payment.body.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </section>
+
+          <section>
+            <h2>{copy.sections.specialConditions.title}</h2>
+            {copy.sections.specialConditions.body.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </section>
+
+          <section>
+            <h2>{copy.sections.liability.title}</h2>
+            {copy.sections.liability.body.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
           </section>
 
           <section>
             <h2>{copy.sections.refund.title}</h2>
-            <p>{copy.sections.refund.body}</p>
+            {copy.sections.refund.body.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </section>
+
+          <section>
+            <h2>{copy.sections.term.title}</h2>
+            {copy.sections.term.body.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
           </section>
         </div>
 

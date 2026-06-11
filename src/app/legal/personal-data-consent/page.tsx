@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getConsentCopy } from "@/i18n/consent-copy";
 import { localeCookieName } from "@/i18n/config";
+import { applyLegalPlaceholders } from "@/lib/legal-content";
 import { getPublicOrganizationSettings } from "@/server/organization-settings";
 
 export const metadata: Metadata = {
@@ -29,13 +30,7 @@ export default async function PersonalDataConsentPage() {
           {copy.sections.map((section) => (
             <section key={section.title}>
               <h2>{section.title}</h2>
-              <p>
-                {section.body
-                  .replace("{{seller}}", contact.seller)
-                  .replace("{{inn}}", contact.inn)
-                  .replace("{{ogrnip}}", contact.ogrnip)
-                  .replace("{{email}}", contact.email)}
-              </p>
+              <p>{applyLegalPlaceholders(section.body, contact)}</p>
             </section>
           ))}
         </div>

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getPrivacyCopy } from "@/i18n/privacy-copy";
 import { localeCookieName } from "@/i18n/config";
+import { applyLegalPlaceholders } from "@/lib/legal-content";
 import { getPublicOrganizationSettings } from "@/server/organization-settings";
 
 export const metadata: Metadata = {
@@ -30,9 +31,7 @@ export default async function PrivacyPage() {
               <h2>{section.title}</h2>
               {section.body.map((paragraph) => (
                 <p key={paragraph}>
-                  {paragraph
-                    .replace("{{seller}}", contact.seller)
-                    .replace("{{email}}", contact.email)}
+                  {applyLegalPlaceholders(paragraph, contact)}
                 </p>
               ))}
             </section>

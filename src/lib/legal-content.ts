@@ -22,6 +22,19 @@ export const defaultLegalContact: LegalContact = {
 
 export const legalContact = defaultLegalContact;
 
+export function applyLegalPlaceholders(
+  text: string,
+  contact: LegalContact
+): string {
+  return text
+    .replaceAll("{{seller}}", contact.seller)
+    .replaceAll("{{inn}}", contact.inn)
+    .replaceAll("{{ogrnip}}", contact.ogrnip)
+    .replaceAll("{{address}}", contact.address)
+    .replaceAll("{{email}}", contact.email)
+    .replaceAll("{{phone}}", contact.phone);
+}
+
 export type PaymentMethodInfo = {
   code: string;
   description: string;

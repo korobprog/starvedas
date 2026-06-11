@@ -41,7 +41,6 @@ type SignupCopy = {
   progressAria: string;
   review: {
     amount: string;
-    backendNote: string;
     ceremony: string;
     curator: string;
     participants: string;
@@ -117,8 +116,6 @@ const copies: Record<Locale, SignupCopy> = {
     progressAria: "Шаги записи",
     review: {
       amount: "Итоговая сумма",
-      backendNote:
-        "Итоговая сумма будет пересчитана на backend перед созданием заказа.",
       ceremony: "Церемония",
       curator: "Куратор",
       participants: "Участников",
@@ -195,8 +192,6 @@ const copies: Record<Locale, SignupCopy> = {
     progressAria: "Signup steps",
     review: {
       amount: "Total amount",
-      backendNote:
-        "The final amount will be recalculated on the backend before the order is created.",
       ceremony: "Ceremony",
       curator: "Curator",
       participants: "Participants",
@@ -273,8 +268,6 @@ const copies: Record<Locale, SignupCopy> = {
     progressAria: "बुकिंग चरण",
     review: {
       amount: "कुल राशि",
-      backendNote:
-        "ऑर्डर बनाने से पहले अंतिम राशि backend पर पुनर्गणना की जाएगी.",
       ceremony: "समारोह",
       curator: "क्यूरेटर",
       participants: "प्रतिभागी",

@@ -217,6 +217,20 @@ function getInstructionRows(instructions?: PaymentInstructions | null) {
   ].filter((row): row is [string, string] => Boolean(row[1]?.trim()));
 }
 
+function getFormScrollBehavior(): ScrollBehavior {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? "auto"
+    : "smooth";
+}
+
+function scrollAndFocusForm(target: HTMLElement | null) {
+  target?.scrollIntoView({
+    behavior: getFormScrollBehavior(),
+    block: "start"
+  });
+  target?.focus({ preventScroll: true });
+}
+
 function PaymentInstructionsBox({
   instructions,
   providerName,
@@ -309,6 +323,9 @@ export function SignupForm({
   const [submitState, setSubmitState] = useState<SubmitState>({
     status: "idle"
   });
+  const formRef = useRef<HTMLFormElement>(null);
+  const resultRef = useRef<HTMLDivElement>(null);
+  const stepHasRendered = useRef(false);
   const checkoutStartedRecorded = useRef(false);
   const selectedPaymentProvider = useMemo(
     () =>
@@ -377,6 +394,21 @@ export function SignupForm({
       })
     }).catch(() => undefined);
   }, [referralSlug]);
+
+  useEffect(() => {
+    if (!stepHasRendered.current) {
+      stepHasRendered.current = true;
+      return;
+    }
+
+    scrollAndFocusForm(formRef.current);
+  }, [step]);
+
+  useEffect(() => {
+    if (submitState.status === "success") {
+      scrollAndFocusForm(resultRef.current);
+    }
+  }, [submitState.status]);
 
   async function recordCheckoutStarted() {
     await fetch("/api/client-events", {
@@ -543,7 +575,12 @@ export function SignupForm({
     const amount = formatLocalizedPrice(submitState.amountRub, locale);
 
     return (
-      <div className="form-result form-result--success" role="status">
+      <div
+        className="form-result form-result--success"
+        ref={resultRef}
+        role="status"
+        tabIndex={-1}
+      >
         <h3>{copy.success.title}</h3>
         <p>
           {copy.success.text
@@ -587,7 +624,12 @@ export function SignupForm({
   }
 
   return (
-    <form className="signup-form" onSubmit={handleSubmit}>
+    <form
+      className="signup-form"
+      onSubmit={handleSubmit}
+      ref={formRef}
+      tabIndex={-1}
+    >
       <ol className="form-progress" aria-label={copy.progressAria}>
         {formSteps.map(({ Icon, label }, index) => (
           <li
@@ -862,7 +904,6 @@ export function SignupForm({
               <dd>{formatLocalizedPrice(estimatedAmount, locale)}</dd>
             </div>
           </dl>
-          <p className="form-note">{copy.review.backendNote}</p>
         </div>
       )}
 
