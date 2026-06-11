@@ -262,7 +262,9 @@ export default async function Home({
             <a href="/legal/personal-data-consent">
               {copy.footer.personalData}
             </a>
-            <a href="/legal/offer">{copy.footer.offer}</a>
+            <a href="/docks/oferta.pdf" rel="noreferrer" target="_blank">
+              {copy.footer.offer}
+            </a>
             <a href="/payment">{copy.footer.payment}</a>
             <a href="/payment/methods">{copy.footer.methods}</a>
             <a href="/payment/security">{copy.footer.security}</a>

@@ -862,7 +862,7 @@ export function SignupForm({
                 {copy.consent.payment}
               </a>
               ,{" "}
-              <a href="/legal/offer" rel="noreferrer" target="_blank">
+              <a href="/docks/oferta.pdf" rel="noreferrer" target="_blank">
                 {copy.consent.offer}
               </a>{" "}
               и{" "}
@@ -946,7 +946,7 @@ export function SignupForm({
             />
           )}
           <div className="legal-inline-links" aria-label={copy.documentsAria}>
-            <a href="/legal/offer" rel="noreferrer" target="_blank">
+            <a href="/docks/oferta.pdf" rel="noreferrer" target="_blank">
               {copy.consent.offer}
             </a>
             <a href="/payment" rel="noreferrer" target="_blank">
