@@ -19,12 +19,33 @@ const orderServiceSelect = {
   id: true
 } satisfies Prisma.ServiceSelect;
 
+const managedServiceSelect = {
+  _count: {
+    select: {
+      orders: true
+    }
+  },
+  active: true,
+  description: true,
+  id: true,
+  priceRub: true,
+  priceUnit: true,
+  requiresExactParticipantList: true,
+  slug: true,
+  sortOrder: true,
+  title: true
+} satisfies Prisma.ServiceSelect;
+
 type PublicServiceRow = Prisma.ServiceGetPayload<{
   select: typeof publicServiceSelect;
 }>;
 
 export type OrderService = Prisma.ServiceGetPayload<{
   select: typeof orderServiceSelect;
+}>;
+
+export type ManagedService = Prisma.ServiceGetPayload<{
+  select: typeof managedServiceSelect;
 }>;
 
 const defaultServiceBySlug = new Map(
@@ -86,6 +107,20 @@ export async function getPublicServices(): Promise<SiteServiceList> {
   }
 
   return defaultServices;
+}
+
+export async function getManagedServices(): Promise<ManagedService[]> {
+  return prisma.service.findMany({
+    orderBy: [
+      {
+        sortOrder: "asc"
+      },
+      {
+        title: "asc"
+      }
+    ],
+    select: managedServiceSelect
+  });
 }
 
 export async function getServiceForOrder(

@@ -70,3 +70,24 @@ export async function saveOrganizationSettings(formData: FormData) {
   revalidatePath("/legal/privacy");
   revalidatePath("/refund");
 }
+
+export async function setCuratorServicePermission(formData: FormData) {
+  await requireSuperAdminUser("/admin/organization");
+
+  const allowCuratorManageServices =
+    formData.get("allowCuratorManageServices") === "on";
+
+  await prisma.organizationSettings.upsert({
+    where: { id: organizationSettingsId },
+    create: {
+      allowCuratorManageServices,
+      id: organizationSettingsId
+    },
+    update: {
+      allowCuratorManageServices
+    }
+  });
+
+  revalidatePath("/admin/organization");
+  revalidatePath("/cabinet");
+}

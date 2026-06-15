@@ -284,23 +284,24 @@ model Payment {
 }
 
 model OrganizationSettings {
-  id                  String     @id @default(cuid())
-  sellerType          SellerType @default(IP)
-  legalName           String?
-  directorName        String?
-  inn                 String?
-  ogrn                String?
-  legalAddress        String?
-  postalAddress       String?
-  clientEmail         String?
-  clientPhone         String?
-  officialTelegram    String?
-  supportHours        String?
-  bankDetails         String?
-  publicRecipientName String?
-  cashboxDetails      String?
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  id                         String     @id @default(cuid())
+  sellerType                 SellerType @default(IP)
+  legalName                  String?
+  directorName               String?
+  inn                        String?
+  ogrn                       String?
+  legalAddress               String?
+  postalAddress              String?
+  clientEmail                String?
+  clientPhone                String?
+  officialTelegram           String?
+  supportHours               String?
+  bankDetails                String?
+  publicRecipientName        String?
+  cashboxDetails             String?
+  allowCuratorManageServices Boolean    @default(false)
+  createdAt                  DateTime   @default(now())
+  updatedAt                  DateTime   @updatedAt
 }
 
 model PaymentMethod {

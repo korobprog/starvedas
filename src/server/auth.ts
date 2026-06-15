@@ -3,6 +3,7 @@ import { UserRole } from "@prisma/client";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { organizationSettingsId } from "@/server/organization-settings";
 
 export const authSessionCookieName = "starvedas_session";
 
@@ -114,6 +115,42 @@ export async function getCurrentUser() {
   });
 }
 
+export type SessionUser = NonNullable<
+  Awaited<ReturnType<typeof getCurrentUser>>
+>;
+
+export async function canManageServices(): Promise<{
+  user: SessionUser;
+  reason: "admin" | "curator-allowed";
+} | null> {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return null;
+  }
+
+  if (isAdminRole(user.role)) {
+    return { reason: "admin", user };
+  }
+
+  if (user.role !== UserRole.CURATOR) {
+    return null;
+  }
+
+  const settings = await prisma.organizationSettings.findUnique({
+    where: { id: organizationSettingsId },
+    select: {
+      allowCuratorManageServices: true
+    }
+  });
+
+  if (!settings?.allowCuratorManageServices) {
+    return null;
+  }
+
+  return { reason: "curator-allowed", user };
+}
+
 export async function requireUser(
   roles: UserRole[],
   nextPath = "/admin/curators"
@@ -145,6 +182,22 @@ export async function requireAdminUser(nextPath = "/admin/curators") {
 
 export async function requireSuperAdminUser(nextPath = "/admin/curators") {
   return requireUser([UserRole.SUPER_ADMIN], nextPath);
+}
+
+export async function requireServiceManager(nextPath = "/cabinet") {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+  }
+
+  const access = await canManageServices();
+
+  if (!access) {
+    throw new Error("Недостаточно прав");
+  }
+
+  return access;
 }
 
 export function getDefaultUserPath(role: UserRole) {

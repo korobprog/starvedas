@@ -38,6 +38,7 @@ export default async function AdminLayout({
             <AdminNav
               items={[
                 { href: "/admin/curators", label: "Кураторы" },
+                { href: "/admin/products", label: "Продукты" },
                 { href: "/admin/participants", label: "Участники" },
                 { href: "/admin/clients", label: "Клиенты" },
                 { href: "/admin/schedule", label: copy.layout.schedule },

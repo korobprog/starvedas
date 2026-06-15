@@ -6,7 +6,10 @@ import {
   getPublicOrganizationSettings,
   sellerTypeOptions
 } from "@/server/organization-settings";
-import { saveOrganizationSettings } from "@/server/organization-actions";
+import {
+  saveOrganizationSettings,
+  setCuratorServicePermission
+} from "@/server/organization-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -190,6 +193,30 @@ export default async function AdminOrganizationPage() {
 
           <button className="button button--primary" type="submit">
             {copy.organization.save}
+          </button>
+        </form>
+      </section>
+
+      <section className="admin-card">
+        <h2>Права агентов</h2>
+        <form action={setCuratorServicePermission} className="admin-form">
+          <label className="checkbox-field">
+            <input
+              defaultChecked={settings?.allowCuratorManageServices ?? false}
+              name="allowCuratorManageServices"
+              type="checkbox"
+            />
+            <span>
+              Разрешить агентам создавать и редактировать продукты/абонементы в
+              их кабинетах
+            </span>
+          </label>
+          <p className="admin-muted">
+            По умолчанию продуктами управляет только администратор. Отключение
+            тумблера сразу убирает доступ у агентов.
+          </p>
+          <button className="button button--primary" type="submit">
+            Сохранить
           </button>
         </form>
       </section>

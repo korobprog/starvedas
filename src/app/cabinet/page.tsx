@@ -9,9 +9,16 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { ClientsTable } from "@/components/clients-table";
 import { ParticipantsTable } from "@/components/participants-table";
+import {
+  CreateServiceForm,
+  ServiceEditorList
+} from "@/components/service-form";
 import { formatStatus } from "@/lib/status-labels";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/server/auth";
+import {
+  canManageServices as getServiceManagementAccess,
+  requireUser
+} from "@/server/auth";
 import { logoutAction } from "@/server/auth-actions";
 import { saveCabinetCuratorSettings } from "@/server/curator-actions";
 import { saveCabinetPaymentSettings } from "@/server/curator-payment-actions";
@@ -25,6 +32,7 @@ import {
   buildReferralUrl,
   ensureSystemCurator
 } from "@/server/referrals";
+import { getManagedServices } from "@/server/services";
 
 export const dynamic = "force-dynamic";
 
@@ -474,11 +482,13 @@ export default async function CabinetPage({
     [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.CURATOR],
     "/cabinet"
   );
-  const [curator, origin, rawSearchParams] = await Promise.all([
-    getCabinetCurator(user),
-    getOrigin(),
-    searchParams
-  ]);
+  const [curator, origin, rawSearchParams, serviceManagementAccess] =
+    await Promise.all([
+      getCabinetCurator(user),
+      getOrigin(),
+      searchParams,
+      getServiceManagementAccess()
+    ]);
 
   if (!curator) {
     return (
@@ -509,21 +519,27 @@ export default async function CabinetPage({
     (total, order) => total + order.amountRub,
     0
   );
-  const [paymentSettings, participantData, clientData, awaitingCustomOrders] =
-    await Promise.all([
-      getCuratorPaymentProviderSettings(curator.id),
-      canViewClients
-        ? getCabinetParticipantData(curator.id, participantFilters)
-        : Promise.resolve([[], []] as Awaited<
-            ReturnType<typeof getCabinetParticipantData>
-          >),
-      canViewClients
-        ? getCabinetClientData(curator.id, clientFilters)
-        : Promise.resolve([[], []] as Awaited<
-            ReturnType<typeof getCabinetClientData>
-          >),
-      canViewClients ? getAwaitingCustomOrders(curator.id) : Promise.resolve([])
-    ]);
+  const [
+    paymentSettings,
+    participantData,
+    clientData,
+    awaitingCustomOrders,
+    managedServices
+  ] = await Promise.all([
+    getCuratorPaymentProviderSettings(curator.id),
+    canViewClients
+      ? getCabinetParticipantData(curator.id, participantFilters)
+      : Promise.resolve([[], []] as Awaited<
+          ReturnType<typeof getCabinetParticipantData>
+        >),
+    canViewClients
+      ? getCabinetClientData(curator.id, clientFilters)
+      : Promise.resolve([[], []] as Awaited<
+          ReturnType<typeof getCabinetClientData>
+        >),
+    canViewClients ? getAwaitingCustomOrders(curator.id) : Promise.resolve([]),
+    serviceManagementAccess ? getManagedServices() : Promise.resolve([])
+  ]);
   const enabledPaymentSettings = paymentSettings.filter(
     (provider) => provider.active && provider.allowed
   );
@@ -668,6 +684,26 @@ export default async function CabinetPage({
               </button>
             </form>
           </section>
+
+          {serviceManagementAccess ? (
+            <section className="admin-card admin-card--wide">
+              <h2>Продукты и абонементы</h2>
+              <p className="admin-muted">
+                Управляйте продуктами, которые доступны клиентам на сайте.
+              </p>
+              <CreateServiceForm />
+              <ServiceEditorList services={managedServices} />
+            </section>
+          ) : (
+            user.role === UserRole.CURATOR && (
+              <section className="admin-card admin-card--wide">
+                <h2>Продукты и абонементы</h2>
+                <p className="admin-muted">
+                  Управление продуктами отключено администратором.
+                </p>
+              </section>
+            )
+          )}
 
           <section className="admin-card admin-card--wide">
             <h2>Способы оплаты и реквизиты</h2>
