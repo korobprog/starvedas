@@ -1818,12 +1818,44 @@ select {
   }
 
   .form-actions {
-    flex-direction: row-reverse;
+    align-items: stretch;
+    flex-wrap: nowrap;
     justify-content: flex-end;
   }
 
   .form-actions .button--primary {
     flex: 1 1 auto;
+  }
+
+  .signup-form--actions-visible {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .signup-form--actions-visible .form-actions {
+    position: fixed;
+    right: max(14px, env(safe-area-inset-right, 0px));
+    bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    left: max(14px, env(safe-area-inset-left, 0px));
+    z-index: 40;
+    padding: 10px;
+    border: 1px solid rgb(216 154 43 / 34%);
+    border-radius: 22px;
+    background: rgb(255 250 242 / 94%);
+    box-shadow:
+      0 18px 44px rgb(86 48 13 / 22%),
+      0 2px 10px rgb(163 82 25 / 14%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .signup-form--actions-visible .form-actions .button {
+    min-height: 52px;
+    box-shadow: none;
+  }
+
+  .signup-form--actions-visible .form-actions .button:not(.button--primary) {
+    flex: 0 0 auto;
+    padding-inline: 16px;
   }
 
   .form-progress {

@@ -323,6 +323,7 @@ export function SignupForm({
   const [submitState, setSubmitState] = useState<SubmitState>({
     status: "idle"
   });
+  const [isFormInView, setIsFormInView] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const stepHasRendered = useRef(false);
@@ -381,6 +382,18 @@ export function SignupForm({
   const hasIncompleteParticipants = participants.some(
     (participant) => !isParticipantComplete(participant)
   );
+  const isSubmitDisabled =
+    submitState.status === "loading" ||
+    (step === 1 && (hasIncompleteParticipants || participantCount < 1)) ||
+    (step === 2 &&
+      (!hasContact || !consentPersonalData || !isCustomerPhoneValid)) ||
+    (step === 4 && paymentProviders.length === 0);
+  const submitButtonLabel =
+    step === formSteps.length - 1
+      ? submitState.status === "loading"
+        ? copy.actions.creating
+        : copy.actions.pay
+      : copy.actions.continue;
 
   useEffect(() => {
     void fetch("/api/client-events", {
@@ -409,6 +422,28 @@ export function SignupForm({
       scrollAndFocusForm(resultRef.current);
     }
   }, [submitState.status]);
+
+  useEffect(() => {
+    const formElement = formRef.current;
+
+    if (!formElement) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsFormInView(entry.isIntersecting);
+      },
+      {
+        rootMargin: "0px 0px -72px 0px",
+        threshold: 0.01
+      }
+    );
+
+    observer.observe(formElement);
+
+    return () => observer.disconnect();
+  }, []);
 
   async function recordCheckoutStarted() {
     await fetch("/api/client-events", {
@@ -625,7 +660,9 @@ export function SignupForm({
 
   return (
     <form
-      className="signup-form"
+      className={
+        isFormInView ? "signup-form signup-form--actions-visible" : "signup-form"
+      }
       onSubmit={handleSubmit}
       ref={formRef}
       tabIndex={-1}
@@ -988,21 +1025,10 @@ export function SignupForm({
         )}
         <button
           className="button button--primary"
-          disabled={
-            submitState.status === "loading" ||
-            (step === 1 &&
-              (hasIncompleteParticipants || participantCount < 1)) ||
-            (step === 2 &&
-              (!hasContact || !consentPersonalData || !isCustomerPhoneValid)) ||
-            (step === 4 && paymentProviders.length === 0)
-          }
+          disabled={isSubmitDisabled}
           type="submit"
         >
-          {step === formSteps.length - 1
-            ? submitState.status === "loading"
-              ? copy.actions.creating
-              : copy.actions.pay
-            : copy.actions.continue}
+          {submitButtonLabel}
         </button>
       </div>
     </form>
