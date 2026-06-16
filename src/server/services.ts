@@ -1,4 +1,11 @@
 import { PriceUnit as PrismaPriceUnit, type Prisma } from "@prisma/client";
+import { normalizeLocale, type Locale } from "@/i18n/config";
+import {
+  convertRubToCurrency,
+  formatMoney,
+  getCurrencyForLocale,
+  type Currency
+} from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
 import {
   services as defaultServices,
@@ -8,10 +15,16 @@ import {
 
 const publicServiceSelect = {
   description: true,
+  descriptionEn: true,
+  descriptionHi: true,
+  priceInr: true,
   priceRub: true,
   priceUnit: true,
+  priceUsd: true,
   slug: true,
-  title: true
+  title: true,
+  titleEn: true,
+  titleHi: true
 } satisfies Prisma.ServiceSelect;
 
 const orderServiceSelect = {
@@ -27,13 +40,19 @@ const managedServiceSelect = {
   },
   active: true,
   description: true,
+  descriptionEn: true,
+  descriptionHi: true,
   id: true,
+  priceInr: true,
   priceRub: true,
   priceUnit: true,
+  priceUsd: true,
   requiresExactParticipantList: true,
   slug: true,
   sortOrder: true,
-  title: true
+  title: true,
+  titleEn: true,
+  titleHi: true
 } satisfies Prisma.ServiceSelect;
 
 type PublicServiceRow = Prisma.ServiceGetPayload<{
@@ -42,7 +61,12 @@ type PublicServiceRow = Prisma.ServiceGetPayload<{
 
 export type OrderService = Prisma.ServiceGetPayload<{
   select: typeof orderServiceSelect;
-}>;
+}> & {
+  currency: Currency;
+  localizedDescription: string;
+  localizedPrice: number;
+  localizedTitle: string;
+};
 
 export type ManagedService = Prisma.ServiceGetPayload<{
   select: typeof managedServiceSelect;
@@ -62,27 +86,103 @@ function toPrismaPriceUnit(priceUnit: SiteService["priceUnit"]) {
   return PrismaPriceUnit[priceUnit];
 }
 
-function createPriceLabel(
-  priceRub: number,
-  priceUnit: SiteService["priceUnit"]
-) {
-  return priceUnit === "PER_NAME"
-    ? `${priceRub} руб. за участника`
-    : `${priceRub} руб.`;
+function getLocalizedTitle(service: PublicServiceRow, locale: Locale) {
+  if (locale === "en") {
+    return service.titleEn?.trim() || service.title;
+  }
+
+  if (locale === "hi") {
+    return service.titleHi?.trim() || service.titleEn?.trim() || service.title;
+  }
+
+  return service.title;
 }
 
-function toSiteService(service: PublicServiceRow): SiteService {
+function getLocalizedDescription(service: PublicServiceRow, locale: Locale) {
+  if (locale === "en") {
+    return service.descriptionEn?.trim() || service.description || "";
+  }
+
+  if (locale === "hi") {
+    return (
+      service.descriptionHi?.trim() ||
+      service.descriptionEn?.trim() ||
+      service.description ||
+      ""
+    );
+  }
+
+  return service.description || "";
+}
+
+function getLocalizedPrice(service: PublicServiceRow, currency: Currency) {
+  if (currency === "USD") {
+    return (
+      service.priceUsd ??
+      Math.round(convertRubToCurrency(service.priceRub, currency))
+    );
+  }
+
+  if (currency === "INR") {
+    return (
+      service.priceInr ??
+      Math.round(convertRubToCurrency(service.priceRub, currency))
+    );
+  }
+
+  return service.priceRub;
+}
+
+function createPriceLabel(
+  priceAmount: number,
+  currency: Currency,
+  priceUnit: SiteService["priceUnit"]
+) {
+  return formatMoney(priceAmount, currency, {
+    perName: priceUnit === "PER_NAME",
+    perParticipant: priceUnit === "PER_PARTICIPANT" || priceUnit === "PER_NAME"
+  });
+}
+
+function toSiteService(
+  service: PublicServiceRow,
+  localeValue?: string | null
+): SiteService {
+  const locale = normalizeLocale(localeValue);
+  const currency = getCurrencyForLocale(locale);
+  const priceAmount = getLocalizedPrice(service, currency);
+
   return {
-    description: service.description ?? "",
-    priceLabel: createPriceLabel(service.priceRub, service.priceUnit),
+    currency,
+    description: getLocalizedDescription(service, locale),
+    priceAmount,
+    priceLabel: createPriceLabel(priceAmount, currency, service.priceUnit),
     priceRub: service.priceRub,
     priceUnit: service.priceUnit,
     slug: service.slug,
-    title: service.title
+    title: getLocalizedTitle(service, locale)
   };
 }
 
-export async function getPublicServices(): Promise<SiteServiceList> {
+function withOrderLocale(
+  service: Prisma.ServiceGetPayload<{ select: typeof orderServiceSelect }>,
+  localeValue?: string | null
+): OrderService {
+  const locale = normalizeLocale(localeValue);
+  const currency = getCurrencyForLocale(locale);
+
+  return {
+    ...service,
+    currency,
+    localizedDescription: getLocalizedDescription(service, locale),
+    localizedPrice: getLocalizedPrice(service, currency),
+    localizedTitle: getLocalizedTitle(service, locale)
+  };
+}
+
+export async function getPublicServices(
+  locale?: string | null
+): Promise<SiteServiceList> {
   try {
     const services = await prisma.service.findMany({
       where: {
@@ -100,7 +200,9 @@ export async function getPublicServices(): Promise<SiteServiceList> {
     });
 
     if (services.length > 0) {
-      return services.map(toSiteService) as SiteServiceList;
+      return services.map((service) =>
+        toSiteService(service, locale)
+      ) as SiteServiceList;
     }
   } catch {
     return defaultServices;
@@ -124,7 +226,8 @@ export async function getManagedServices(): Promise<ManagedService[]> {
 }
 
 export async function getServiceForOrder(
-  slug: string
+  slug: string,
+  locale?: string | null
 ): Promise<OrderService | null> {
   const normalizedSlug = slug.trim();
 
@@ -141,7 +244,7 @@ export async function getServiceForOrder(
   });
 
   if (service) {
-    return service;
+    return withOrderLocale(service, locale);
   }
 
   const defaultService = defaultServiceBySlug.get(normalizedSlug);
@@ -150,7 +253,7 @@ export async function getServiceForOrder(
     return null;
   }
 
-  return prisma.service.upsert({
+  const createdService = await prisma.service.upsert({
     where: {
       slug: defaultService.slug
     },
@@ -175,4 +278,6 @@ export async function getServiceForOrder(
     },
     select: orderServiceSelect
   });
+
+  return withOrderLocale(createdService, locale);
 }

@@ -15,7 +15,9 @@ export const curators = [
 export type PriceUnit = "PER_ORDER" | "PER_PARTICIPANT" | "PER_NAME";
 
 export type SiteService = {
+  currency: "RUB" | "USD" | "INR";
   description: string;
+  priceAmount: number;
   priceLabel: string;
   priceRub: number;
   priceUnit: PriceUnit;
@@ -31,6 +33,8 @@ export const services = [
     slug: "monthly-pass",
     description: "Регулярное участие в церемониях в течение месяца.",
     priceRub: 6000,
+    currency: "RUB",
+    priceAmount: 6000,
     priceLabel: "6000 руб.",
     priceUnit: "PER_PARTICIPANT" satisfies PriceUnit
   },
@@ -40,6 +44,8 @@ export const services = [
     description:
       "Формат участия в серии практик. Названия тарифов будут уточнены.",
     priceRub: 2500,
+    currency: "RUB",
+    priceAmount: 2500,
     priceLabel: "2500 руб.",
     priceUnit: "PER_PARTICIPANT" satisfies PriceUnit
   },
@@ -49,6 +55,8 @@ export const services = [
     description:
       "Формат участия в серии практик. Названия тарифов будут уточнены.",
     priceRub: 3500,
+    currency: "RUB",
+    priceAmount: 3500,
     priceLabel: "3500 руб.",
     priceUnit: "PER_PARTICIPANT" satisfies PriceUnit
   },
@@ -58,6 +66,8 @@ export const services = [
     description:
       "Формат участия в серии практик. Названия тарифов будут уточнены.",
     priceRub: 4500,
+    currency: "RUB",
+    priceAmount: 4500,
     priceLabel: "4500 руб.",
     priceUnit: "PER_PARTICIPANT" satisfies PriceUnit
   },
@@ -66,6 +76,8 @@ export const services = [
     slug: "single-rite",
     description: "Разовое участие в выбранной церемонии.",
     priceRub: 1200,
+    currency: "RUB",
+    priceAmount: 1200,
     priceLabel: "1200 руб.",
     priceUnit: "PER_PARTICIPANT" satisfies PriceUnit
   },
@@ -74,6 +86,8 @@ export const services = [
     slug: "abhisheka",
     description: "Участие в абхишеке с указанием списка участников.",
     priceRub: 1000,
+    currency: "RUB",
+    priceAmount: 1000,
     priceLabel: "1000 руб.",
     priceUnit: "PER_PARTICIPANT" satisfies PriceUnit
   },
@@ -82,6 +96,8 @@ export const services = [
     slug: "shraddha-name",
     description: "Стоимость рассчитывается за каждого участника.",
     priceRub: 250,
+    currency: "RUB",
+    priceAmount: 250,
     priceLabel: "250 руб. за участника",
     priceUnit: "PER_NAME" satisfies PriceUnit
   }

@@ -135,6 +135,7 @@ export default async function AdminClientsPage({
           },
           select: {
             amountRub: true,
+            currency: true,
             createdAt: true,
             orderNumber: true,
             payment: {

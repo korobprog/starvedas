@@ -13,6 +13,7 @@ import {
   CreateServiceForm,
   ServiceEditorList
 } from "@/components/service-form";
+import { formatMoney } from "@/i18n/pricing";
 import { formatStatus } from "@/lib/status-labels";
 import { prisma } from "@/lib/prisma";
 import {
@@ -50,6 +51,7 @@ async function getOrigin() {
 const cabinetOrderSelect = Prisma.validator<Prisma.OrderSelect>()({
   amountRub: true,
   createdAt: true,
+  currency: true,
   customerEmail: true,
   customerName: true,
   customerPhone: true,
@@ -391,6 +393,7 @@ async function getCabinetClientData(
           },
           select: {
             amountRub: true,
+            currency: true,
             createdAt: true,
             orderNumber: true,
             payment: {
@@ -440,6 +443,7 @@ async function getAwaitingCustomOrders(curatorId: string) {
     },
     select: {
       amountRub: true,
+      currency: true,
       createdAt: true,
       customerEmail: true,
       customerName: true,
@@ -516,7 +520,7 @@ export default async function CabinetPage({
   const clientFilters = parseClientFilters(rawSearchParams);
   const paidOrders = curator.orders.filter((order) => order.status === "PAID");
   const paidAmount = paidOrders.reduce(
-    (total, order) => total + order.amountRub,
+    (total, order) => total + (order.currency === "RUB" ? order.amountRub : 0),
     0
   );
   const [
@@ -857,7 +861,7 @@ export default async function CabinetPage({
                           </td>
                           <td>{order.service.title}</td>
                           <td>
-                            {order.amountRub.toLocaleString("ru-RU")} руб.
+                            {formatMoney(order.amountRub, order.currency)}
                           </td>
                           <td>
                             {order.payment?.provider} /{" "}
@@ -1057,7 +1061,7 @@ export default async function CabinetPage({
                         <td>#{order.orderNumber}</td>
                         <td>{order.customerName}</td>
                         <td>{order.service.title}</td>
-                        <td>{order.amountRub.toLocaleString("ru-RU")} руб.</td>
+                        <td>{formatMoney(order.amountRub, order.currency)}</td>
                         <td>
                           {formatStatus(order.status)} /{" "}
                           {formatStatus(order.leadStatus)}

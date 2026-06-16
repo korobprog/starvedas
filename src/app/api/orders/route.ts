@@ -8,7 +8,7 @@ import {
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { localeCookieName } from "@/i18n/config";
+import { localeCookieName, normalizeLocale } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneNumber } from "@/lib/phone-validation";
 import {
@@ -80,7 +80,7 @@ function createResultUrl(
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
-  const locale = cookieStore.get(localeCookieName)?.value;
+  const locale = normalizeLocale(cookieStore.get(localeCookieName)?.value);
   const json = await request.json().catch(() => null);
   const parsed = createOrderSchema.safeParse(json);
 
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
   try {
     const [curator, service] = await Promise.all([
       getCuratorForReferral(data.referralSlug),
-      getServiceForOrder(data.serviceSlug)
+      getServiceForOrder(data.serviceSlug, locale)
     ]);
 
     if (!curator || !service) {
@@ -118,7 +118,8 @@ export async function POST(request: Request) {
 
     const paymentProvider = await getPaymentProviderForCheckout(
       data.paymentProvider,
-      curator.id
+      curator.id,
+      locale
     );
 
     if (!paymentProvider) {
@@ -165,7 +166,7 @@ export async function POST(request: Request) {
     const amountRub = calculateOrderAmount({
       participantCount: data.participantCount,
       participantNames: names,
-      priceRub: service.priceRub,
+      priceRub: service.localizedPrice,
       priceUnit: service.priceUnit
     });
     const customerEmail = normalizeOptional(data.customerEmail);
@@ -194,6 +195,7 @@ export async function POST(request: Request) {
       return tx.order.create({
         data: {
           amountRub,
+          currency: service.currency,
           consentPersonalData: true,
           customerEmail,
           customerName: data.customerName,
@@ -228,6 +230,7 @@ export async function POST(request: Request) {
           payment: {
             create: {
               amountRub,
+              currency: service.currency,
               provider: paymentProvider.code,
               rawPayload: customPaymentPayload,
               status: initialPaymentStatus
@@ -260,7 +263,7 @@ export async function POST(request: Request) {
             name: data.customerName,
             phone: customerPhone
           },
-          description: service.title,
+          description: service.localizedTitle,
           failUrl: createResultUrl(
             request.url,
             "/payment/fail",
@@ -298,7 +301,7 @@ export async function POST(request: Request) {
         participantCount: data.participantCount,
         participantNames: names,
         locale,
-        serviceTitle: service.title,
+        serviceTitle: service.localizedTitle,
         statusText: isCustomPayment
           ? "ожидает проверки оплаты"
           : "ожидает оплаты"
@@ -309,6 +312,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       amountRub: order.amountRub,
+      currency: service.currency,
       curatorName: curator.name,
       isCustomPayment,
       orderNumber: order.orderNumber,

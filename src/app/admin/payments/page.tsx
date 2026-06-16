@@ -77,6 +77,29 @@ export default async function AdminPaymentsPage() {
                 </span>
               </label>
               <div>
+                <p className="admin-muted">????? / ?????? ??? ????? ?????</p>
+                <div className="checkbox-grid">
+                  {[
+                    ["ru", "RU / RUB"],
+                    ["en", "EN / USD"],
+                    ["hi", "HI / INR"]
+                  ].map(([locale, label]) => (
+                    <label className="checkbox-field" key={locale}>
+                      <input
+                        defaultChecked={provider.supportedLocales.includes(
+                          locale as "ru" | "en" | "hi"
+                        )}
+                        name="supportedLocales"
+                        type="checkbox"
+                        value={locale}
+                      />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
                 <p className="admin-muted">{copy.payments.envTitle}</p>
                 {paymentProviderEnvNames[provider.code].length > 0 ? (
                   <ul className="admin-env-list">

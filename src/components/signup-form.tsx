@@ -9,7 +9,7 @@ import {
   useState
 } from "react";
 import { SupportCta } from "@/components/support-cta";
-import { formatLocalizedPrice } from "@/i18n/pricing";
+import { formatMoney } from "@/i18n/pricing";
 import { getSignupCopy } from "@/i18n/signup-copy";
 import {
   formatPhoneNumberInput,
@@ -154,6 +154,7 @@ type SubmitState =
   | {
       status: "success";
       amountRub: number;
+      currency: string;
       curatorName: string;
       isCustomPayment?: boolean;
       orderNumber: number;
@@ -366,14 +367,14 @@ export function SignupForm({
 
   const estimatedAmount = useMemo(() => {
     if (selectedService.priceUnit === "PER_ORDER") {
-      return selectedService.priceRub;
+      return selectedService.priceAmount;
     }
 
     if (selectedService.priceUnit === "PER_NAME") {
-      return selectedService.priceRub * participantCount;
+      return selectedService.priceAmount * participantCount;
     }
 
-    return selectedService.priceRub * participantCount;
+    return selectedService.priceAmount * participantCount;
   }, [participantCount, selectedService]);
 
   const hasContact = Boolean(
@@ -531,6 +532,7 @@ export function SignupForm({
     const result = (await response.json().catch(() => ({}))) as
       | {
           amountRub: number;
+          currency: string;
           curatorName: string;
           isCustomPayment?: boolean;
           orderNumber: number;
@@ -561,6 +563,7 @@ export function SignupForm({
       curatorName: result.curatorName,
       orderNumber: result.orderNumber,
       amountRub: result.amountRub,
+      currency: result.currency,
       isCustomPayment: result.isCustomPayment,
       paymentInstructions: result.paymentInstructions,
       paymentProviderName: result.paymentProviderName,
@@ -607,7 +610,7 @@ export function SignupForm({
   }
 
   if (submitState.status === "success") {
-    const amount = formatLocalizedPrice(submitState.amountRub, locale);
+    const amount = formatMoney(submitState.amountRub, submitState.currency);
 
     return (
       <div
@@ -661,7 +664,9 @@ export function SignupForm({
   return (
     <form
       className={
-        isFormInView ? "signup-form signup-form--actions-visible" : "signup-form"
+        isFormInView
+          ? "signup-form signup-form--actions-visible"
+          : "signup-form"
       }
       onSubmit={handleSubmit}
       ref={formRef}
@@ -706,11 +711,7 @@ export function SignupForm({
                   value={service.slug}
                 />
                 <span>{service.title}</span>
-                <small>
-                  {formatLocalizedPrice(service.priceRub, locale, {
-                    perParticipant: service.priceUnit === "PER_NAME"
-                  })}
-                </small>
+                <small>{service.priceLabel}</small>
               </label>
             ))}
           </div>
@@ -938,7 +939,7 @@ export function SignupForm({
             </div>
             <div>
               <dt>{copy.review.amount}</dt>
-              <dd>{formatLocalizedPrice(estimatedAmount, locale)}</dd>
+              <dd>{formatMoney(estimatedAmount, selectedService.currency)}</dd>
             </div>
           </dl>
         </div>

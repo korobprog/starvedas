@@ -15,12 +15,18 @@ const optionalText = z
 const serviceBaseSchema = z.object({
   active: z.boolean(),
   description: optionalText,
+  descriptionEn: optionalText,
+  descriptionHi: optionalText,
+  priceInr: z.coerce.number().int().min(0).max(100_000_000).nullable(),
   priceRub: z.coerce.number().int().min(0).max(100_000_000),
+  priceUsd: z.coerce.number().int().min(0).max(100_000_000).nullable(),
   priceUnit: z.enum(["PER_ORDER", "PER_PARTICIPANT", "PER_NAME"]),
   requiresExactParticipantList: z.boolean(),
   slug: z.string().trim().min(1).max(120),
   sortOrder: z.coerce.number().int().min(-100_000).max(100_000),
-  title: z.string().trim().min(2).max(200)
+  title: z.string().trim().min(2).max(200),
+  titleEn: optionalText,
+  titleHi: optionalText
 });
 
 const serviceUpdateSchema = serviceBaseSchema.extend({
@@ -45,13 +51,19 @@ function parseServiceFormData(formData: FormData) {
   const parsed = serviceBaseSchema.safeParse({
     active: formData.get("active") === "on",
     description: formData.get("description") ?? "",
+    descriptionEn: formData.get("descriptionEn") ?? "",
+    descriptionHi: formData.get("descriptionHi") ?? "",
+    priceInr: formData.get("priceInr") || null,
     priceRub: formData.get("priceRub") ?? 0,
+    priceUsd: formData.get("priceUsd") || null,
     priceUnit: formData.get("priceUnit") ?? "PER_PARTICIPANT",
     requiresExactParticipantList:
       formData.get("requiresExactParticipantList") === "on",
     slug: formData.get("slug"),
     sortOrder: formData.get("sortOrder") ?? 0,
-    title: formData.get("title")
+    title: formData.get("title"),
+    titleEn: formData.get("titleEn") ?? "",
+    titleHi: formData.get("titleHi") ?? ""
   });
 
   if (!parsed.success) {
@@ -74,14 +86,20 @@ function parseServiceUpdateFormData(formData: FormData) {
   const parsed = serviceUpdateSchema.safeParse({
     active: formData.get("active") === "on",
     description: formData.get("description") ?? "",
+    descriptionEn: formData.get("descriptionEn") ?? "",
+    descriptionHi: formData.get("descriptionHi") ?? "",
     id: formData.get("id"),
+    priceInr: formData.get("priceInr") || null,
     priceRub: formData.get("priceRub") ?? 0,
+    priceUsd: formData.get("priceUsd") || null,
     priceUnit: formData.get("priceUnit") ?? "PER_PARTICIPANT",
     requiresExactParticipantList:
       formData.get("requiresExactParticipantList") === "on",
     slug: formData.get("slug"),
     sortOrder: formData.get("sortOrder") ?? 0,
-    title: formData.get("title")
+    title: formData.get("title"),
+    titleEn: formData.get("titleEn") ?? "",
+    titleHi: formData.get("titleHi") ?? ""
   });
 
   if (!parsed.success) {
@@ -144,12 +162,18 @@ export async function updateService(formData: FormData) {
       data: {
         active: data.active,
         description: data.description,
+        descriptionEn: data.descriptionEn,
+        descriptionHi: data.descriptionHi,
+        priceInr: data.priceInr,
         priceRub: data.priceRub,
+        priceUsd: data.priceUsd,
         priceUnit: data.priceUnit,
         requiresExactParticipantList: data.requiresExactParticipantList,
         slug: data.slug,
         sortOrder: data.sortOrder,
-        title: data.title
+        title: data.title,
+        titleEn: data.titleEn,
+        titleHi: data.titleHi
       }
     });
   } catch (error) {

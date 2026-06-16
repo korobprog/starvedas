@@ -135,6 +135,7 @@ const paymentProviders = [
     description:
       "Платежная система Prodamus с базовым адресом https://prodamus.ru.",
     active: true,
+    supportedLocales: "ru",
     sortOrder: 10
   },
   {
@@ -143,6 +144,7 @@ const paymentProviders = [
     description:
       "Резервная ручная оплата переводом на карту по реквизитам администратора или куратора.",
     active: true,
+    supportedLocales: "ru,en,hi",
     sortOrder: 20
   },
   {
@@ -151,6 +153,7 @@ const paymentProviders = [
     description:
       "Резервная ручная оплата переводом по номеру телефона по инструкциям администратора или куратора.",
     active: true,
+    supportedLocales: "ru,en,hi",
     sortOrder: 30
   }
 ];
@@ -326,7 +329,8 @@ async function main() {
         update: {
           description: provider.description,
           name: provider.name,
-          sortOrder: provider.sortOrder
+          sortOrder: provider.sortOrder,
+          supportedLocales: provider.supportedLocales
         }
       })
     )

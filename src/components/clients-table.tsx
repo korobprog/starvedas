@@ -2,6 +2,7 @@ import {
   MailingExportTools,
   type MailingExportRow
 } from "@/components/mailing-export-tools";
+import { formatMoney } from "@/i18n/pricing";
 import { formatStatus } from "@/lib/status-labels";
 
 export type ClientTableRow = {
@@ -22,6 +23,7 @@ export type ClientTableRow = {
   name: string;
   orders: Array<{
     amountRub: number;
+    currency: string;
     createdAt: Date;
     orderNumber: number;
     payment: {
@@ -138,8 +140,10 @@ export function ClientsTable({
                       <>
                         #{lastOrder.orderNumber}, {lastOrder.service.title}
                         <br />
-                        {lastOrder.amountRub.toLocaleString("ru-RU")} руб. /{" "}
-                        {formatStatus(lastOrder.status)}
+                        {formatMoney(
+                          lastOrder.amountRub,
+                          lastOrder.currency
+                        )} / {formatStatus(lastOrder.status)}
                         {lastOrder.payment?.status
                           ? ` / ${formatStatus(lastOrder.payment.status)}`
                           : ""}

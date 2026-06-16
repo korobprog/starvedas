@@ -7,12 +7,14 @@ import { requireSuperAdminUser } from "@/server/auth";
 import {
   defaultPaymentProviders,
   getDefaultCuratorPaymentProviderState,
-  paymentProviderCodes
+  paymentProviderCodes,
+  serializeSupportedLocales
 } from "@/server/payment-providers";
 
 const paymentProviderSchema = z.object({
   active: z.boolean(),
-  code: z.enum(paymentProviderCodes)
+  code: z.enum(paymentProviderCodes),
+  supportedLocales: z.array(z.enum(["ru", "en", "hi"])).min(1)
 });
 
 const curatorPaymentOptionSchema = z.object({
@@ -26,7 +28,8 @@ export async function savePaymentProviderSettings(formData: FormData) {
 
   const parsed = paymentProviderSchema.safeParse({
     active: formData.get("active") === "on",
-    code: formData.get("code")
+    code: formData.get("code"),
+    supportedLocales: formData.getAll("supportedLocales")
   });
 
   if (!parsed.success) {
@@ -50,10 +53,12 @@ export async function savePaymentProviderSettings(formData: FormData) {
       code: fallback.code,
       description: fallback.description,
       name: fallback.name,
-      sortOrder: fallback.sortOrder
+      sortOrder: fallback.sortOrder,
+      supportedLocales: serializeSupportedLocales(parsed.data.supportedLocales)
     },
     update: {
-      active: parsed.data.active
+      active: parsed.data.active,
+      supportedLocales: serializeSupportedLocales(parsed.data.supportedLocales)
     }
   });
 

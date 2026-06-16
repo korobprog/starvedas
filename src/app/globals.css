@@ -1904,3 +1904,8 @@ select {
     align-items: center;
   }
 }
+
+.checkbox-grid {
+  display: grid;
+  gap: 0.5rem;
+}

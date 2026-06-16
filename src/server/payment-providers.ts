@@ -1,3 +1,4 @@
+import { normalizeLocale, type Locale } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
 
 export const paymentProviderCodes = [
@@ -33,6 +34,7 @@ export type PublicPaymentProvider = {
   isCustom: boolean;
   name: string;
   sortOrder: number;
+  supportedLocales: Locale[];
 };
 
 export type CuratorPaymentProviderSetting = PublicPaymentProvider & {
@@ -49,7 +51,8 @@ export const defaultPaymentProviders: PublicPaymentProvider[] = [
       "Платежная система Prodamus с базовым адресом https://prodamus.ru.",
     isCustom: false,
     name: "Prodamus",
-    sortOrder: 10
+    sortOrder: 10,
+    supportedLocales: ["ru"]
   },
   {
     active: true,
@@ -58,7 +61,8 @@ export const defaultPaymentProviders: PublicPaymentProvider[] = [
       "Резервная ручная оплата переводом на карту по реквизитам администратора или куратора.",
     isCustom: true,
     name: "Перевод на карту",
-    sortOrder: 20
+    sortOrder: 20,
+    supportedLocales: ["ru", "en", "hi"]
   },
   {
     active: true,
@@ -67,7 +71,8 @@ export const defaultPaymentProviders: PublicPaymentProvider[] = [
       "Резервная ручная оплата переводом по номеру телефона по инструкциям администратора или куратора.",
     isCustom: true,
     name: "Перевод по номеру телефона",
-    sortOrder: 30
+    sortOrder: 30,
+    supportedLocales: ["ru", "en", "hi"]
   }
 ];
 
@@ -98,6 +103,28 @@ export function isCustomPaymentProviderCode(
   );
 }
 
+function parseSupportedLocales(value: string) {
+  const locales = value
+    .split(",")
+    .map((item) => normalizeLocale(item.trim()))
+    .filter((locale, index, list) => list.indexOf(locale) === index);
+
+  return locales.length > 0 ? locales : (["ru"] satisfies Locale[]);
+}
+
+function serializeSupportedLocales(locales: readonly Locale[]) {
+  return locales.join(",");
+}
+
+export function isPaymentProviderAvailableForLocale(
+  provider: { supportedLocales: Locale[] },
+  locale: string | null | undefined
+) {
+  return provider.supportedLocales.includes(normalizeLocale(locale));
+}
+
+export { serializeSupportedLocales };
+
 function mergeProviderRows(
   rows: {
     active: boolean;
@@ -105,6 +132,7 @@ function mergeProviderRows(
     description: string | null;
     name: string;
     sortOrder: number;
+    supportedLocales: string;
   }[]
 ): PublicPaymentProvider[] {
   const byCode = new Map(rows.map((row) => [row.code, row]));
@@ -119,7 +147,10 @@ function mergeProviderRows(
         description: row?.description ?? fallback.description,
         isCustom: fallback.isCustom,
         name: row?.name ?? fallback.name,
-        sortOrder: row?.sortOrder ?? fallback.sortOrder
+        sortOrder: row?.sortOrder ?? fallback.sortOrder,
+        supportedLocales: parseSupportedLocales(
+          row?.supportedLocales ?? fallback.supportedLocales.join(",")
+        )
       };
     })
     .sort((left, right) => left.sortOrder - right.sortOrder);
@@ -195,7 +226,8 @@ export async function getPaymentProviders(): Promise<PublicPaymentProvider[]> {
         code: true,
         description: true,
         name: true,
-        sortOrder: true
+        sortOrder: true,
+        supportedLocales: true
       }
     });
 
@@ -263,22 +295,31 @@ export async function getCuratorPaymentProviderSettings(
 }
 
 export async function getCheckoutPaymentProvidersForCurator(
-  curatorId: string
+  curatorId: string,
+  locale?: string | null
 ): Promise<CuratorPaymentProviderSetting[]> {
   const providers = await getCuratorPaymentProviderSettings(curatorId);
 
   return providers.filter(
-    (provider) => provider.active && provider.allowed && provider.enabled
+    (provider) =>
+      provider.active &&
+      provider.allowed &&
+      provider.enabled &&
+      isPaymentProviderAvailableForLocale(provider, locale)
   );
 }
 
 export async function getPaymentProviderForCheckout(
   code?: string,
-  curatorId?: string
+  curatorId?: string,
+  locale?: string | null
 ): Promise<PublicPaymentProvider | CuratorPaymentProviderSetting | null> {
-  const providers = curatorId
-    ? await getCheckoutPaymentProvidersForCurator(curatorId)
+  const allProviders = curatorId
+    ? await getCheckoutPaymentProvidersForCurator(curatorId, locale)
     : await getActivePaymentProviders();
+  const providers = allProviders.filter((provider) =>
+    isPaymentProviderAvailableForLocale(provider, locale)
+  );
 
   if (code && isPaymentProviderCode(code)) {
     return providers.find((provider) => provider.code === code) ?? null;

@@ -5,7 +5,6 @@ import { SiteNav } from "@/components/site-nav";
 import { SupportCta } from "@/components/support-cta";
 import { getHomeCopy } from "@/i18n/home-copy";
 import { localeCookieName } from "@/i18n/config";
-import { formatLocalizedPrice } from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
 import { steps } from "@/lib/site-data";
 import { getPublicOrganizationSettings } from "@/server/organization-settings";
@@ -66,10 +65,11 @@ export default async function Home({
       getActiveSchedule(),
       getAssignedCurator(referralSlug),
       getPublicOrganizationSettings(),
-      getPublicServices()
+      getPublicServices(locale)
     ]);
   const paymentProviders = await getCheckoutPaymentProvidersForCurator(
-    assignedCurator.id
+    assignedCurator.id,
+    locale
   );
 
   return (
@@ -131,11 +131,7 @@ export default async function Home({
               <a className="card card--link" href="#signup" key={service.title}>
                 <h3>{service.title}</h3>
                 <p>{service.description}</p>
-                <span className="price">
-                  {formatLocalizedPrice(service.priceRub, locale, {
-                    perParticipant: service.priceUnit === "PER_NAME"
-                  })}
-                </span>
+                <span className="price">{service.priceLabel}</span>
               </a>
             ))}
           </div>
