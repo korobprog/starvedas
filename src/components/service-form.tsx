@@ -56,7 +56,7 @@ function ServiceFields({
       </div>
 
       <label className="field">
-        <span>Описание</span>
+        <span>Описание RU</span>
         <textarea
           defaultValue={service?.description ?? ""}
           name="description"
@@ -66,12 +66,70 @@ function ServiceFields({
 
       <div className="field-grid">
         <label className="field">
-          <span>Цена, руб.</span>
+          <span>Название EN</span>
+          <input
+            defaultValue={service?.titleEn ?? ""}
+            name="titleEn"
+            type="text"
+          />
+        </label>
+        <label className="field">
+          <span>Название HI</span>
+          <input
+            defaultValue={service?.titleHi ?? ""}
+            name="titleHi"
+            type="text"
+          />
+        </label>
+      </div>
+
+      <div className="field-grid">
+        <label className="field">
+          <span>Описание EN</span>
+          <textarea
+            defaultValue={service?.descriptionEn ?? ""}
+            name="descriptionEn"
+            rows={3}
+          />
+        </label>
+        <label className="field">
+          <span>Описание HI</span>
+          <textarea
+            defaultValue={service?.descriptionHi ?? ""}
+            name="descriptionHi"
+            rows={3}
+          />
+        </label>
+      </div>
+
+      <div className="field-grid">
+        <label className="field">
+          <span>Цена RUB</span>
           <input
             defaultValue={service?.priceRub ?? 0}
             min={0}
             name="priceRub"
             required
+            type="number"
+          />
+        </label>
+        <label className="field">
+          <span>Цена USD</span>
+          <input
+            defaultValue={service?.priceUsd ?? ""}
+            min={0}
+            name="priceUsd"
+            placeholder="если пусто — пересчёт из RUB"
+            type="number"
+          />
+        </label>
+        <label className="field">
+          <span>Цена INR</span>
+          <input
+            defaultValue={service?.priceInr ?? ""}
+            min={0}
+            name="priceInr"
+            placeholder="если пусто — пересчёт из RUB"
             type="number"
           />
         </label>
@@ -142,8 +200,14 @@ export function ServiceEditorList({
             <div>
               <h3>{service.title}</h3>
               <p className="admin-muted">
-                /{service.slug} · {service.priceRub.toLocaleString("ru-RU")}{" "}
-                руб. · {getPriceUnitLabel(service.priceUnit)}
+                /{service.slug} · RUB {service.priceRub.toLocaleString("ru-RU")}
+                {service.priceUsd
+                  ? ` · USD ${service.priceUsd.toLocaleString("en-US")}`
+                  : ""}
+                {service.priceInr
+                  ? ` · INR ${service.priceInr.toLocaleString("hi-IN")}`
+                  : ""}{" "}
+                · {getPriceUnitLabel(service.priceUnit)}
               </p>
             </div>
             <span className="badge">
