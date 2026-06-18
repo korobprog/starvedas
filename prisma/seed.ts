@@ -307,6 +307,61 @@ async function main() {
     )
   );
 
+  const singleRite = await prisma.service.findUnique({
+    where: { slug: "single-rite" },
+    select: { id: true }
+  });
+
+  if (singleRite) {
+    const riteOptions = [
+      {
+        title: "Ганапати пуджа",
+        description:
+          "Обряд для устранения препятствий и благоприятного начала дел.",
+        priceRub: 1200,
+        sortOrder: 10
+      },
+      {
+        title: "Лакшми пуджа",
+        description: "Обряд на процветание, гармонию и благополучие семьи.",
+        priceRub: 1500,
+        sortOrder: 20
+      },
+      {
+        title: "Шани пуджа",
+        description:
+          "Обряд для смягчения сложных периодов и укрепления дисциплины.",
+        priceRub: 2000,
+        sortOrder: 30
+      }
+    ];
+
+    await Promise.all(
+      riteOptions.map((option) =>
+        prisma.serviceOption.upsert({
+          where: { id: `seed-single-rite-${option.sortOrder}` },
+          create: {
+            id: `seed-single-rite-${option.sortOrder}`,
+            active: true,
+            description: option.description,
+            priceRub: option.priceRub,
+            serviceId: singleRite.id,
+            sortOrder: option.sortOrder,
+            title: option.title
+          },
+          update: {
+            active: true,
+            description: option.description,
+            priceRub: option.priceRub,
+            serviceId: singleRite.id,
+            sortOrder: option.sortOrder,
+            title: option.title
+          }
+        })
+      )
+    );
+  }
+
   await prisma.schedule.upsert({
     where: { id: "seed-active-schedule" },
     create: {

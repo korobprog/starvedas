@@ -70,6 +70,14 @@ const cabinetOrderSelect = Prisma.validator<Prisma.OrderSelect>()({
       title: true
     }
   },
+  serviceOptions: {
+    orderBy: { sortOrder: "asc" },
+    select: {
+      priceRubSnapshot: true,
+      titleSnapshot: true
+    }
+  },
+  sourceDomain: true,
   status: true
 });
 
@@ -296,6 +304,14 @@ async function getCabinetParticipantData(
                 title: true
               }
             },
+            serviceOptions: {
+              orderBy: { sortOrder: "asc" },
+              select: {
+                priceRubSnapshot: true,
+                titleSnapshot: true
+              }
+            },
+            sourceDomain: true,
             status: true
           }
         }
@@ -406,6 +422,14 @@ async function getCabinetClientData(
                 title: true
               }
             },
+            serviceOptions: {
+              orderBy: { sortOrder: "asc" },
+              select: {
+                priceRubSnapshot: true,
+                titleSnapshot: true
+              }
+            },
+            sourceDomain: true,
             status: true
           },
           take: 1
@@ -413,6 +437,7 @@ async function getCabinetClientData(
         phone: true,
         referralSlug: true,
         source: true,
+        sourceDomain: true,
         status: true,
         telegram: true,
         updatedAt: true
@@ -462,6 +487,14 @@ async function getAwaitingCustomOrders(curatorId: string) {
           title: true
         }
       },
+      serviceOptions: {
+        orderBy: { sortOrder: "asc" },
+        select: {
+          priceRubSnapshot: true,
+          titleSnapshot: true
+        }
+      },
+      sourceDomain: true,
       status: true
     },
     where: {
@@ -859,7 +892,18 @@ export default async function CabinetPage({
                             <br />
                             {formatContacts(order) || "Контакты не указаны"}
                           </td>
-                          <td>{order.service.title}</td>
+                          <td>
+                            {order.service.title}
+                            {order.serviceOptions.length ? (
+                              <ul className="rite-summary-list">
+                                {order.serviceOptions.map((option) => (
+                                  <li key={option.titleSnapshot}>
+                                    {option.titleSnapshot}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+                          </td>
                           <td>
                             {formatMoney(order.amountRub, order.currency)}
                           </td>
@@ -1060,7 +1104,18 @@ export default async function CabinetPage({
                       <tr key={order.id}>
                         <td>#{order.orderNumber}</td>
                         <td>{order.customerName}</td>
-                        <td>{order.service.title}</td>
+                        <td>
+                          {order.service.title}
+                          {order.serviceOptions.length ? (
+                            <ul className="rite-summary-list">
+                              {order.serviceOptions.map((option) => (
+                                <li key={option.titleSnapshot}>
+                                  {option.titleSnapshot}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </td>
                         <td>{formatMoney(order.amountRub, order.currency)}</td>
                         <td>
                           {formatStatus(order.status)} /{" "}

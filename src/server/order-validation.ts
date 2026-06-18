@@ -18,6 +18,10 @@ const phoneCountrySchema = z
 export const createOrderSchema = z
   .object({
     serviceSlug: z.string().trim().min(2).max(120),
+    selectedServiceOptionIds: z
+      .array(z.string().trim().min(1))
+      .max(100)
+      .default([]),
     participantCount: z.number().int().min(1).max(200),
     participantsText: z.string().trim().min(2).max(5000),
     customerName: z.string().trim().min(2).max(120),
@@ -89,6 +93,16 @@ export function calculateOrderAmount({
   }
 
   return priceRub * participantCount;
+}
+
+export function calculateSelectedOptionsAmount({
+  participantCount,
+  priceRubSum
+}: {
+  participantCount: number;
+  priceRubSum: number;
+}) {
+  return priceRubSum * participantCount;
 }
 
 export function normalizeOptional(value?: string) {

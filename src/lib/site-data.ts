@@ -14,9 +14,20 @@ export const curators = [
 
 export type PriceUnit = "PER_ORDER" | "PER_PARTICIPANT" | "PER_NAME";
 
+export type SiteServiceOption = {
+  currency: "RUB" | "USD" | "INR";
+  description: string;
+  id: string;
+  priceAmount: number;
+  priceLabel: string;
+  priceRub: number;
+  title: string;
+};
+
 export type SiteService = {
   currency: "RUB" | "USD" | "INR";
   description: string;
+  options: SiteServiceOption[];
   priceAmount: number;
   priceLabel: string;
   priceRub: number;
@@ -32,6 +43,7 @@ export const services = [
     title: "Абонемент на месяц",
     slug: "monthly-pass",
     description: "Регулярное участие в онлайн-церемониях в течение месяца.",
+    options: [],
     priceRub: 6000,
     currency: "RUB",
     priceAmount: 6000,
@@ -42,6 +54,7 @@ export const services = [
     title: "Марафон, тариф 2500",
     slug: "marathon-2500",
     description: "Участие в марафоне практик по базовому тарифу.",
+    options: [],
     priceRub: 2500,
     currency: "RUB",
     priceAmount: 2500,
@@ -52,6 +65,7 @@ export const services = [
     title: "Марафон, тариф 3500",
     slug: "marathon-3500",
     description: "Участие в марафоне практик по стандартному тарифу.",
+    options: [],
     priceRub: 3500,
     currency: "RUB",
     priceAmount: 3500,
@@ -62,6 +76,7 @@ export const services = [
     title: "Марафон, тариф 4500",
     slug: "marathon-4500",
     description: "Участие в марафоне практик по расширенному тарифу.",
+    options: [],
     priceRub: 4500,
     currency: "RUB",
     priceAmount: 4500,
@@ -72,6 +87,7 @@ export const services = [
     title: "Один обряд",
     slug: "single-rite",
     description: "Разовое участие в выбранной онлайн-церемонии.",
+    options: [],
     priceRub: 1200,
     currency: "RUB",
     priceAmount: 1200,
@@ -82,6 +98,7 @@ export const services = [
     title: "Абхишека",
     slug: "abhisheka",
     description: "Участие в абхишеке с указанием списка участников.",
+    options: [],
     priceRub: 1000,
     currency: "RUB",
     priceAmount: 1000,
@@ -93,6 +110,7 @@ export const services = [
     slug: "shraddha-name",
     description:
       "Участие в шраддха ягьи, стоимость рассчитывается за каждого участника.",
+    options: [],
     priceRub: 250,
     currency: "RUB",
     priceAmount: 250,

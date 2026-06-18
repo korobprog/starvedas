@@ -55,6 +55,7 @@ function parseFilters(searchParams: SearchParams | undefined) {
     dateFrom: dateFrom || "",
     dateTo: dateTo || "",
     serviceId: firstParam(searchParams?.serviceId) || "",
+    sourceDomain: firstParam(searchParams?.sourceDomain) || "",
     status: parseStatus(firstParam(searchParams?.status))
   };
 }
@@ -87,6 +88,7 @@ function buildClientWhere(filters: ReturnType<typeof parseFilters>) {
           }
         }
       : undefined,
+    sourceDomain: filters.sourceDomain || undefined,
     status: filters.status,
     updatedAt: Object.keys(updatedAt).length ? updatedAt : undefined
   } satisfies Prisma.ClientProfileWhereInput;
@@ -148,6 +150,16 @@ export default async function AdminClientsPage({
                 title: true
               }
             },
+            serviceOptions: {
+              orderBy: {
+                sortOrder: "asc"
+              },
+              select: {
+                priceRubSnapshot: true,
+                titleSnapshot: true
+              }
+            },
+            sourceDomain: true,
             status: true
           },
           take: 1
@@ -155,6 +167,7 @@ export default async function AdminClientsPage({
         phone: true,
         referralSlug: true,
         source: true,
+        sourceDomain: true,
         status: true,
         telegram: true,
         updatedAt: true
@@ -249,6 +262,14 @@ export default async function AdminClientsPage({
                   {service.title}
                 </option>
               ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>????????</span>
+            <select defaultValue={filters.sourceDomain} name="sourceDomain">
+              <option value="">??? ?????????</option>
+              <option value="starvedas.ru">starvedas.ru</option>
+              <option value="chintamanidhama.ru">chintamanidhama.ru</option>
             </select>
           </label>
           <div className="filter-form__actions">

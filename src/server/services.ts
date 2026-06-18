@@ -26,7 +26,21 @@ const publicServiceSelect = {
   slug: true,
   title: true,
   titleEn: true,
-  titleHi: true
+  titleHi: true,
+  options: {
+    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+    select: {
+      description: true,
+      id: true,
+      priceInr: true,
+      priceRub: true,
+      priceUsd: true,
+      title: true
+    },
+    where: {
+      active: true
+    }
+  }
 } satisfies Prisma.ServiceSelect;
 
 const orderServiceSelect = {
@@ -56,7 +70,25 @@ const managedServiceSelect = {
   sortOrder: true,
   title: true,
   titleEn: true,
-  titleHi: true
+  titleHi: true,
+  options: {
+    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+    select: {
+      _count: {
+        select: {
+          orderItems: true
+        }
+      },
+      active: true,
+      description: true,
+      id: true,
+      priceInr: true,
+      priceRub: true,
+      priceUsd: true,
+      sortOrder: true,
+      title: true
+    }
+  }
 } satisfies Prisma.ServiceSelect;
 
 type PublicServiceRow = Prisma.ServiceGetPayload<{
@@ -137,6 +169,27 @@ function getLocalizedPrice(service: PublicServiceRow, currency: Currency) {
   return service.priceRub;
 }
 
+function getLocalizedOptionPrice(
+  option: PublicServiceRow["options"][number],
+  currency: Currency
+) {
+  if (currency === "USD") {
+    return (
+      option.priceUsd ??
+      Math.round(convertRubToCurrency(option.priceRub, currency))
+    );
+  }
+
+  if (currency === "INR") {
+    return (
+      option.priceInr ??
+      Math.round(convertRubToCurrency(option.priceRub, currency))
+    );
+  }
+
+  return option.priceRub;
+}
+
 function createPriceLabel(
   priceAmount: number,
   currency: Currency,
@@ -159,6 +212,23 @@ function toSiteService(
   return {
     currency,
     description: getLocalizedDescription(service, locale),
+    options: service.options.map((option) => {
+      const optionPriceAmount = getLocalizedOptionPrice(option, currency);
+
+      return {
+        currency,
+        description: option.description ?? "",
+        id: option.id,
+        priceAmount: optionPriceAmount,
+        priceLabel: createPriceLabel(
+          optionPriceAmount,
+          currency,
+          "PER_PARTICIPANT"
+        ),
+        priceRub: option.priceRub,
+        title: option.title
+      };
+    }),
     priceAmount,
     priceLabel: createPriceLabel(priceAmount, currency, service.priceUnit),
     priceRub: service.priceRub,

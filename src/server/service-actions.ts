@@ -45,6 +45,20 @@ const toggleServiceSchema = z.object({
   id: z.string().trim().min(1)
 });
 
+const serviceOptionFormSchema = z.object({
+  active: z.boolean(),
+  delete: z.boolean(),
+  description: optionalText,
+  id: z.string().trim().optional(),
+  priceInr: z.coerce.number().int().min(0).max(100_000_000).nullable(),
+  priceRub: z.coerce.number().int().min(0).max(100_000_000),
+  priceUsd: z.coerce.number().int().min(0).max(100_000_000).nullable(),
+  sortOrder: z.coerce.number().int().min(-100_000).max(100_000),
+  title: z.string().trim().min(2).max(200)
+});
+
+type ParsedServiceOption = z.infer<typeof serviceOptionFormSchema>;
+
 function normalizeSlug(value: string) {
   return value
     .trim()
@@ -129,6 +143,107 @@ function parseServiceUpdateFormData(formData: FormData) {
   };
 }
 
+function getAllFormValues(formData: FormData, name: string) {
+  return formData.getAll(name).map((value) => String(value));
+}
+
+function parseServiceOptionsFormData(formData: FormData) {
+  const ids = getAllFormValues(formData, "optionId");
+  const titles = getAllFormValues(formData, "optionTitle");
+  const descriptions = getAllFormValues(formData, "optionDescription");
+  const pricesRub = getAllFormValues(formData, "optionPriceRub");
+  const pricesUsd = getAllFormValues(formData, "optionPriceUsd");
+  const pricesInr = getAllFormValues(formData, "optionPriceInr");
+  const sortOrders = getAllFormValues(formData, "optionSortOrder");
+  const activeFlags = new Set(getAllFormValues(formData, "optionActive"));
+  const deleteFlags = new Set(getAllFormValues(formData, "optionDelete"));
+
+  return titles.map((title, index) => {
+    const parsed = serviceOptionFormSchema.safeParse({
+      active: activeFlags.has(String(index)),
+      delete: deleteFlags.has(String(index)),
+      description: descriptions[index] ?? "",
+      id: ids[index] || undefined,
+      priceInr: pricesInr[index] || null,
+      priceRub: pricesRub[index] ?? 0,
+      priceUsd: pricesUsd[index] || null,
+      sortOrder: sortOrders[index] ?? index + 1,
+      title
+    });
+
+    if (!parsed.success) {
+      throw new Error("Некорректные данные карточки обряда");
+    }
+
+    return parsed.data;
+  });
+}
+
+async function saveServiceOptions(
+  tx: Prisma.TransactionClient,
+  serviceId: string,
+  options: ParsedServiceOption[]
+) {
+  for (const option of options) {
+    if (option.delete) {
+      if (!option.id) {
+        continue;
+      }
+
+      const existing = await tx.serviceOption.findFirst({
+        where: { id: option.id, serviceId },
+        select: {
+          _count: {
+            select: { orderItems: true }
+          },
+          id: true
+        }
+      });
+
+      if (!existing) {
+        continue;
+      }
+
+      if (existing._count.orderItems > 0) {
+        await tx.serviceOption.update({
+          where: { id: existing.id },
+          data: { active: false }
+        });
+      } else {
+        await tx.serviceOption.delete({
+          where: { id: existing.id }
+        });
+      }
+
+      continue;
+    }
+
+    const data = {
+      active: option.active,
+      description: option.description,
+      priceInr: option.priceInr,
+      priceRub: option.priceRub,
+      priceUsd: option.priceUsd,
+      sortOrder: option.sortOrder,
+      title: option.title
+    };
+
+    if (option.id) {
+      await tx.serviceOption.updateMany({
+        where: { id: option.id, serviceId },
+        data
+      });
+    } else {
+      await tx.serviceOption.create({
+        data: {
+          ...data,
+          serviceId
+        }
+      });
+    }
+  }
+}
+
 function revalidateServicePages() {
   revalidatePath("/");
   revalidatePath("/admin/products");
@@ -150,10 +265,16 @@ export async function createService(formData: FormData) {
   await requireServiceManager();
 
   const data = parseServiceFormData(formData);
+  const options = parseServiceOptionsFormData(formData);
 
   try {
-    await prisma.service.create({
-      data
+    await prisma.$transaction(async (tx) => {
+      const service = await tx.service.create({
+        data,
+        select: { id: true }
+      });
+
+      await saveServiceOptions(tx, service.id, options);
     });
   } catch (error) {
     handlePrismaError(error);
@@ -166,28 +287,33 @@ export async function updateService(formData: FormData) {
   await requireServiceManager();
 
   const data = parseServiceUpdateFormData(formData);
+  const options = parseServiceOptionsFormData(formData);
 
   try {
-    await prisma.service.update({
-      where: { id: data.id },
-      data: {
-        active: data.active,
-        description: data.description,
-        descriptionEn: data.descriptionEn,
-        descriptionHi: data.descriptionHi,
-        priceInr: data.priceInr,
-        priceRub: data.priceRub,
-        priceUsd: data.priceUsd,
-        priceUnit: data.priceUnit,
-        receiptName: data.receiptName,
-        requiresExactParticipantList: data.requiresExactParticipantList,
-        slug: data.slug,
-        sortOrder: data.sortOrder,
-        title: data.title,
-        titleEn: data.titleEn,
-        titleHi: data.titleHi,
-        vatTaxType: data.vatTaxType
-      }
+    await prisma.$transaction(async (tx) => {
+      await tx.service.update({
+        where: { id: data.id },
+        data: {
+          active: data.active,
+          description: data.description,
+          descriptionEn: data.descriptionEn,
+          descriptionHi: data.descriptionHi,
+          priceInr: data.priceInr,
+          priceRub: data.priceRub,
+          priceUsd: data.priceUsd,
+          priceUnit: data.priceUnit,
+          receiptName: data.receiptName,
+          requiresExactParticipantList: data.requiresExactParticipantList,
+          slug: data.slug,
+          sortOrder: data.sortOrder,
+          title: data.title,
+          titleEn: data.titleEn,
+          titleHi: data.titleHi,
+          vatTaxType: data.vatTaxType
+        }
+      });
+
+      await saveServiceOptions(tx, data.id, options);
     });
   } catch (error) {
     handlePrismaError(error);

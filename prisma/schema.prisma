@@ -163,7 +163,28 @@ model Service {
   createdAt                    DateTime  @default(now())
   updatedAt                    DateTime  @updatedAt
 
-  orders Order[]
+  orders  Order[]
+  options ServiceOption[]
+}
+
+model ServiceOption {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  priceRub    Int
+  priceUsd    Int?
+  priceInr    Int?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  orderItems OrderServiceOption[]
+
+  @@index([serviceId, active, sortOrder])
 }
 
 model Schedule {
@@ -188,6 +209,7 @@ model ClientProfile {
   consentMailingsSource String?
   status                ClientFunnelStatus @default(VISITED)
   source                String             @default("site")
+  sourceDomain          String             @default("starvedas.ru")
   referralSlug          String?
   lastVisitedAt         DateTime?
   checkoutStartedAt     DateTime?
@@ -206,6 +228,7 @@ model ClientProfile {
   @@index([phone])
   @@index([email])
   @@index([status])
+  @@index([sourceDomain])
   @@index([consentMailings])
   @@index([curatorId])
   @@index([updatedAt])
@@ -248,6 +271,7 @@ model Order {
   consentPersonalData Boolean     @default(false)
   publicToken         String      @unique
   source              String      @default("site")
+  sourceDomain        String      @default("starvedas.ru")
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
@@ -255,12 +279,33 @@ model Order {
   serviceId String
   clientId  String?
 
-  curator       Curator             @relation(fields: [curatorId], references: [id], onDelete: Restrict)
-  service       Service             @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  client        ClientProfile?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  participants  OrderParticipant[]
-  payment       Payment?
-  statusHistory LeadStatusHistory[]
+  curator        Curator              @relation(fields: [curatorId], references: [id], onDelete: Restrict)
+  service        Service              @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  client         ClientProfile?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  participants   OrderParticipant[]
+  serviceOptions OrderServiceOption[]
+  payment        Payment?
+  statusHistory  LeadStatusHistory[]
+
+  @@index([sourceDomain])
+}
+
+model OrderServiceOption {
+  id                  String   @id @default(cuid())
+  titleSnapshot       String
+  descriptionSnapshot String?
+  priceRubSnapshot    Int
+  sortOrder           Int      @default(0)
+  createdAt           DateTime @default(now())
+
+  orderId  String
+  optionId String?
+
+  order  Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  option ServiceOption? @relation(fields: [optionId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, sortOrder])
+  @@index([optionId])
 }
 
 model OrderParticipant {
@@ -333,8 +378,8 @@ model PaymentProvider {
   supportedLocales String   @default("ru,en,hi")
   active           Boolean  @default(true)
   sortOrder        Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   curatorOptions CuratorPaymentOption[]
 }

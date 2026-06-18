@@ -306,6 +306,9 @@ export function SignupForm({
   const copy = getSignupCopy(locale);
   const [step, setStep] = useState(0);
   const [serviceSlug, setServiceSlug] = useState(services[0].slug);
+  const [selectedServiceOptionIds, setSelectedServiceOptionIds] = useState<
+    string[]
+  >([]);
   const [paymentProvider, setPaymentProvider] = useState(
     paymentProviders[0]?.code ?? "prodamus"
   );
@@ -341,6 +344,15 @@ export function SignupForm({
     [serviceSlug, services]
   );
 
+  const selectedServiceOptions = useMemo(
+    () =>
+      selectedService.options.filter((option) =>
+        selectedServiceOptionIds.includes(option.id)
+      ),
+    [selectedService.options, selectedServiceOptionIds]
+  );
+  const isSingleRiteSelected = selectedService.slug === "single-rite";
+
   const participantFullNames = useMemo(
     () =>
       participants.filter(isParticipantComplete).map(getParticipantFullName),
@@ -366,6 +378,15 @@ export function SignupForm({
   );
 
   const estimatedAmount = useMemo(() => {
+    if (isSingleRiteSelected && selectedServiceOptions.length > 0) {
+      return (
+        selectedServiceOptions.reduce(
+          (sum, option) => sum + option.priceAmount,
+          0
+        ) * participantCount
+      );
+    }
+
     if (selectedService.priceUnit === "PER_ORDER") {
       return selectedService.priceAmount;
     }
@@ -375,7 +396,12 @@ export function SignupForm({
     }
 
     return selectedService.priceAmount * participantCount;
-  }, [participantCount, selectedService]);
+  }, [
+    isSingleRiteSelected,
+    participantCount,
+    selectedService,
+    selectedServiceOptions
+  ]);
 
   const hasContact = Boolean(
     customerTelegram.trim() || customerPhone.trim() || customerEmail.trim()
@@ -385,6 +411,9 @@ export function SignupForm({
   );
   const isSubmitDisabled =
     submitState.status === "loading" ||
+    (step === 0 &&
+      isSingleRiteSelected &&
+      selectedServiceOptionIds.length < 1) ||
     (step === 1 && (hasIncompleteParticipants || participantCount < 1)) ||
     (step === 2 &&
       (!hasContact || !consentPersonalData || !isCustomerPhoneValid)) ||
@@ -466,6 +495,19 @@ export function SignupForm({
     });
   }
 
+  function selectService(slug: string) {
+    setServiceSlug(slug);
+    setSelectedServiceOptionIds([]);
+  }
+
+  function toggleServiceOption(optionId: string) {
+    setSelectedServiceOptionIds((current) =>
+      current.includes(optionId)
+        ? current.filter((id) => id !== optionId)
+        : [...current, optionId]
+    );
+  }
+
   function updateParticipant(
     index: number,
     field: keyof ParticipantInput,
@@ -508,6 +550,7 @@ export function SignupForm({
         },
         body: JSON.stringify({
           serviceSlug,
+          selectedServiceOptionIds,
           participantCount,
           participantsText,
           customerName,
@@ -582,6 +625,14 @@ export function SignupForm({
     event.preventDefault();
 
     if (step < formSteps.length - 1) {
+      if (
+        step === 0 &&
+        isSingleRiteSelected &&
+        selectedServiceOptionIds.length < 1
+      ) {
+        return;
+      }
+
       if (step === 1 && (!customerNameTouched || !customerName.trim())) {
         const firstParticipantName = getParticipantFullName(participants[0]);
 
@@ -706,7 +757,7 @@ export function SignupForm({
                 <input
                   checked={serviceSlug === service.slug}
                   name="service"
-                  onChange={() => setServiceSlug(service.slug)}
+                  onChange={() => selectService(service.slug)}
                   type="radio"
                   value={service.slug}
                 />
@@ -715,6 +766,39 @@ export function SignupForm({
               </label>
             ))}
           </div>
+
+          {isSingleRiteSelected && (
+            <div
+              className="rite-choice-list"
+              aria-label="Обряды внутри раздела"
+            >
+              <strong>Выберите один или несколько обрядов</strong>
+              {selectedService.options.length > 0 ? (
+                selectedService.options.map((option) => (
+                  <label
+                    className="choice-card rite-choice-card"
+                    key={option.id}
+                  >
+                    <input
+                      checked={selectedServiceOptionIds.includes(option.id)}
+                      onChange={() => toggleServiceOption(option.id)}
+                      type="checkbox"
+                    />
+                    <span>{option.title}</span>
+                    {option.description && <small>{option.description}</small>}
+                    <small>{option.priceLabel}</small>
+                  </label>
+                ))
+              ) : (
+                <p className="form-warning">
+                  Обряды пока не добавлены администратором.
+                </p>
+              )}
+              {selectedServiceOptionIds.length < 1 && (
+                <p className="form-warning">Выберите хотя бы один обряд.</p>
+              )}
+            </div>
+          )}
         </fieldset>
       )}
 
@@ -931,7 +1015,18 @@ export function SignupForm({
             </div>
             <div>
               <dt>{copy.review.ceremony}</dt>
-              <dd>{selectedService.title}</dd>
+              <dd>
+                {selectedService.title}
+                {selectedServiceOptions.length > 0 && (
+                  <ul className="rite-summary-list">
+                    {selectedServiceOptions.map((option) => (
+                      <li key={option.id}>
+                        {option.title} ? {option.priceLabel}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </dd>
             </div>
             <div>
               <dt>{copy.review.participants}</dt>

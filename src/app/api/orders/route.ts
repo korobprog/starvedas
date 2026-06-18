@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { normalizePhoneNumber } from "@/lib/phone-validation";
 import {
   calculateOrderAmount,
+  calculateSelectedOptionsAmount,
   createOrderSchema,
   getParticipantNames,
   normalizeOptional
@@ -25,6 +26,7 @@ import {
 } from "@/server/payment-providers";
 import { getCuratorForReferral } from "@/server/referrals";
 import { getServiceForOrder } from "@/server/services";
+import { getSourceDomainFromHeaders } from "@/server/source-domain";
 import { sendOrderCreatedTelegramNotification } from "@/server/telegram-notifications";
 
 function createProviderPaymentUrl({
@@ -100,6 +102,7 @@ export async function POST(request: Request) {
   }
 
   const data = parsed.data;
+  const sourceDomain = getSourceDomainFromHeaders(request.headers);
   const names = getParticipantNames(data.participantsText);
 
   if (names.length !== data.participantCount) {
@@ -169,12 +172,70 @@ export async function POST(request: Request) {
           }
         : undefined;
 
-    const amountRub = calculateOrderAmount({
-      participantCount: data.participantCount,
-      participantNames: names,
-      priceRub: service.localizedPrice,
-      priceUnit: service.priceUnit
-    });
+    const selectedServiceOptionIds = Array.from(
+      new Set(data.selectedServiceOptionIds)
+    );
+
+    if (
+      service.slug === "single-rite" &&
+      selectedServiceOptionIds.length === 0
+    ) {
+      return NextResponse.json(
+        { message: "Выберите хотя бы один обряд" },
+        { status: 400 }
+      );
+    }
+
+    const selectedOptions = selectedServiceOptionIds.length
+      ? await prisma.serviceOption.findMany({
+          orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+          select: {
+            description: true,
+            id: true,
+            priceRub: true,
+            sortOrder: true,
+            title: true
+          },
+          where: {
+            active: true,
+            id: { in: selectedServiceOptionIds },
+            serviceId: service.id
+          }
+        })
+      : [];
+
+    if (selectedOptions.length !== selectedServiceOptionIds.length) {
+      return NextResponse.json(
+        { message: "Некоторые выбранные обряды недоступны" },
+        { status: 400 }
+      );
+    }
+
+    if (service.slug !== "single-rite" && selectedOptions.length > 0) {
+      return NextResponse.json(
+        { message: "Карточки обрядов доступны только для раздела Один обряд" },
+        { status: 400 }
+      );
+    }
+
+    const selectedOptionsPriceRub = selectedOptions.reduce(
+      (sum, option) => sum + option.priceRub,
+      0
+    );
+    const amountRub = selectedOptions.length
+      ? calculateSelectedOptionsAmount({
+          participantCount: data.participantCount,
+          priceRubSum: selectedOptionsPriceRub
+        })
+      : calculateOrderAmount({
+          participantCount: data.participantCount,
+          participantNames: names,
+          priceRub: service.localizedPrice,
+          priceUnit: service.priceUnit
+        });
+    const paymentDescription = selectedOptions.length
+      ? `${service.localizedTitle}: ${selectedOptions.map((option) => option.title).join(", ")}`
+      : service.localizedTitle;
     const customerEmail = normalizeOptional(data.customerEmail);
     const customerPhone = normalizePhoneNumber(
       data.customerPhone,
@@ -194,6 +255,7 @@ export async function POST(request: Request) {
         phone: customerPhone,
         referralSlug,
         source: "site",
+        sourceDomain,
         status: ClientFunnelStatus.DID_NOT_BUY,
         telegram: customerTelegram
       });
@@ -211,6 +273,7 @@ export async function POST(request: Request) {
           participantCount: data.participantCount,
           participantsText: data.participantsText,
           publicToken: createOrderPublicToken(),
+          sourceDomain,
           status: initialOrderStatus,
           curator: {
             connect: {
@@ -233,6 +296,17 @@ export async function POST(request: Request) {
               sortOrder: index + 1
             }))
           },
+          serviceOptions: selectedOptions.length
+            ? {
+                create: selectedOptions.map((option, index) => ({
+                  descriptionSnapshot: option.description,
+                  optionId: option.id,
+                  priceRubSnapshot: option.priceRub,
+                  sortOrder: index + 1,
+                  titleSnapshot: option.title
+                }))
+              }
+            : undefined,
           payment: {
             create: {
               amountRub,
@@ -269,7 +343,7 @@ export async function POST(request: Request) {
             name: data.customerName,
             phone: customerPhone
           },
-          description: service.localizedTitle,
+          description: paymentDescription,
           failUrl: createResultUrl(
             request.url,
             "/payment/fail",
@@ -309,7 +383,12 @@ export async function POST(request: Request) {
         participantCount: data.participantCount,
         participantNames: names,
         locale,
+        selectedOptions: selectedOptions.map((option) => ({
+          priceRub: option.priceRub,
+          title: option.title
+        })),
         serviceTitle: service.localizedTitle,
+        sourceDomain,
         statusText: isCustomPayment
           ? "ожидает проверки оплаты"
           : "ожидает оплаты"
