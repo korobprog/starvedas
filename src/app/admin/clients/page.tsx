@@ -265,9 +265,9 @@ export default async function AdminClientsPage({
             </select>
           </label>
           <label className="field">
-            <span>????????</span>
+            <span>Источник</span>
             <select defaultValue={filters.sourceDomain} name="sourceDomain">
-              <option value="">??? ?????????</option>
+              <option value="">Все источники</option>
               <option value="starvedas.ru">starvedas.ru</option>
               <option value="chintamanidhama.ru">chintamanidhama.ru</option>
             </select>

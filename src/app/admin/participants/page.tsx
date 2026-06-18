@@ -54,6 +54,7 @@ function parseFilters(searchParams: SearchParams | undefined) {
     dateFrom: dateFrom || "",
     dateTo: dateTo || "",
     serviceId: firstParam(searchParams?.serviceId) || "",
+    sourceDomain: firstParam(searchParams?.sourceDomain) || "",
     status: parseStatus(firstParam(searchParams?.status))
   };
 }
@@ -75,6 +76,7 @@ function buildOrderWhere(filters: ReturnType<typeof parseFilters>) {
     createdAt: Object.keys(createdAt).length ? createdAt : undefined,
     curatorId: filters.curatorId || undefined,
     serviceId: filters.serviceId || undefined,
+    sourceDomain: filters.sourceDomain || undefined,
     status: filters.status
   } satisfies Prisma.OrderWhereInput;
 }
@@ -227,6 +229,7 @@ export default async function AdminParticipantsPage({
           },
           status: PaymentStatus.AWAITING_VERIFICATION
         },
+        sourceDomain: filters.sourceDomain || undefined,
         status: OrderStatus.WAITING_PAYMENT_VERIFICATION
       }
     })
@@ -349,6 +352,14 @@ export default async function AdminParticipantsPage({
                   {formatStatus(status)}
                 </option>
               ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Источник</span>
+            <select defaultValue={filters.sourceDomain} name="sourceDomain">
+              <option value="">Все источники</option>
+              <option value="starvedas.ru">starvedas.ru</option>
+              <option value="chintamanidhama.ru">chintamanidhama.ru</option>
             </select>
           </label>
           <div className="filter-form__actions">

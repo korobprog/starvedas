@@ -49,12 +49,17 @@ const serviceOptionFormSchema = z.object({
   active: z.boolean(),
   delete: z.boolean(),
   description: optionalText,
+  descriptionEn: optionalText,
+  descriptionHi: optionalText,
   id: z.string().trim().optional(),
   priceInr: z.coerce.number().int().min(0).max(100_000_000).nullable(),
   priceRub: z.coerce.number().int().min(0).max(100_000_000),
+  priceUnit: z.enum(["PER_ORDER", "PER_PARTICIPANT", "PER_NAME"]),
   priceUsd: z.coerce.number().int().min(0).max(100_000_000).nullable(),
   sortOrder: z.coerce.number().int().min(-100_000).max(100_000),
-  title: z.string().trim().min(2).max(200)
+  title: z.string().trim().min(2).max(200),
+  titleEn: optionalText,
+  titleHi: optionalText
 });
 
 type ParsedServiceOption = z.infer<typeof serviceOptionFormSchema>;
@@ -151,10 +156,15 @@ function parseServiceOptionsFormData(formData: FormData) {
   const ids = getAllFormValues(formData, "optionId");
   const titles = getAllFormValues(formData, "optionTitle");
   const descriptions = getAllFormValues(formData, "optionDescription");
+  const descriptionsEn = getAllFormValues(formData, "optionDescriptionEn");
+  const descriptionsHi = getAllFormValues(formData, "optionDescriptionHi");
   const pricesRub = getAllFormValues(formData, "optionPriceRub");
   const pricesUsd = getAllFormValues(formData, "optionPriceUsd");
   const pricesInr = getAllFormValues(formData, "optionPriceInr");
+  const priceUnits = getAllFormValues(formData, "optionPriceUnit");
   const sortOrders = getAllFormValues(formData, "optionSortOrder");
+  const titlesEn = getAllFormValues(formData, "optionTitleEn");
+  const titlesHi = getAllFormValues(formData, "optionTitleHi");
   const activeFlags = new Set(getAllFormValues(formData, "optionActive"));
   const deleteFlags = new Set(getAllFormValues(formData, "optionDelete"));
 
@@ -163,12 +173,17 @@ function parseServiceOptionsFormData(formData: FormData) {
       active: activeFlags.has(String(index)),
       delete: deleteFlags.has(String(index)),
       description: descriptions[index] ?? "",
+      descriptionEn: descriptionsEn[index] ?? "",
+      descriptionHi: descriptionsHi[index] ?? "",
       id: ids[index] || undefined,
       priceInr: pricesInr[index] || null,
       priceRub: pricesRub[index] ?? 0,
+      priceUnit: priceUnits[index] || "PER_PARTICIPANT",
       priceUsd: pricesUsd[index] || null,
       sortOrder: sortOrders[index] ?? index + 1,
-      title
+      title,
+      titleEn: titlesEn[index] ?? "",
+      titleHi: titlesHi[index] ?? ""
     });
 
     if (!parsed.success) {
@@ -221,11 +236,16 @@ async function saveServiceOptions(
     const data = {
       active: option.active,
       description: option.description,
+      descriptionEn: option.descriptionEn,
+      descriptionHi: option.descriptionHi,
       priceInr: option.priceInr,
       priceRub: option.priceRub,
+      priceUnit: option.priceUnit,
       priceUsd: option.priceUsd,
       sortOrder: option.sortOrder,
-      title: option.title
+      title: option.title,
+      titleEn: option.titleEn,
+      titleHi: option.titleHi
     };
 
     if (option.id) {

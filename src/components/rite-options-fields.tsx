@@ -8,12 +8,17 @@ type RiteOptionInput = {
   };
   active: boolean;
   description: string | null;
+  descriptionEn: string | null;
+  descriptionHi: string | null;
   id: string;
   priceInr: number | null;
   priceRub: number;
+  priceUnit: "PER_ORDER" | "PER_PARTICIPANT" | "PER_NAME";
   priceUsd: number | null;
   sortOrder: number;
   title: string;
+  titleEn: string | null;
+  titleHi: string | null;
 };
 
 type EditableRiteOption = Partial<RiteOptionInput> & {
@@ -26,6 +31,7 @@ function createEmptyOption(index: number): EditableRiteOption {
     active: true,
     key: `new-${Date.now()}-${index}`,
     priceRub: 0,
+    priceUnit: "PER_PARTICIPANT",
     sortOrder: index + 1,
     title: ""
   };
@@ -68,6 +74,27 @@ export function RiteOptionsFields({
     );
   }
 
+  function moveOption(sourceKey: string, targetKey: string) {
+    if (sourceKey === targetKey) {
+      return;
+    }
+
+    setItems((current) => {
+      const sourceIndex = current.findIndex((item) => item.key === sourceKey);
+      const targetIndex = current.findIndex((item) => item.key === targetKey);
+
+      if (sourceIndex < 0 || targetIndex < 0) {
+        return current;
+      }
+
+      const next = [...current];
+      const [source] = next.splice(sourceIndex, 1);
+      next.splice(targetIndex, 0, source);
+
+      return next;
+    });
+  }
+
   const visibleItems = items.filter((item) => !item.markedForDelete);
 
   return (
@@ -101,6 +128,26 @@ export function RiteOptionsFields({
                 value={option.description ?? ""}
               />
               <input
+                name="optionDescriptionEn"
+                type="hidden"
+                value={option.descriptionEn ?? ""}
+              />
+              <input
+                name="optionDescriptionHi"
+                type="hidden"
+                value={option.descriptionHi ?? ""}
+              />
+              <input
+                name="optionTitleEn"
+                type="hidden"
+                value={option.titleEn ?? ""}
+              />
+              <input
+                name="optionTitleHi"
+                type="hidden"
+                value={option.titleHi ?? ""}
+              />
+              <input
                 name="optionPriceRub"
                 type="hidden"
                 value={option.priceRub ?? 0}
@@ -109,6 +156,11 @@ export function RiteOptionsFields({
                 name="optionPriceUsd"
                 type="hidden"
                 value={option.priceUsd ?? ""}
+              />
+              <input
+                name="optionPriceUnit"
+                type="hidden"
+                value={option.priceUnit ?? "PER_PARTICIPANT"}
               />
               <input
                 name="optionPriceInr"
@@ -137,7 +189,19 @@ export function RiteOptionsFields({
         }
 
         return (
-          <article className="rite-option-card" key={option.key}>
+          <article
+            className="rite-option-card"
+            draggable
+            key={option.key}
+            onDragOver={(event) => event.preventDefault()}
+            onDragStart={(event) => {
+              event.dataTransfer.setData("text/plain", option.key);
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              moveOption(event.dataTransfer.getData("text/plain"), option.key);
+            }}
+          >
             <input name="optionId" type="hidden" value={option.id ?? ""} />
             <div className="field-grid">
               <label className="field">

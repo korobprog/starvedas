@@ -31,11 +31,16 @@ const publicServiceSelect = {
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     select: {
       description: true,
+      descriptionEn: true,
+      descriptionHi: true,
       id: true,
       priceInr: true,
       priceRub: true,
+      priceUnit: true,
       priceUsd: true,
-      title: true
+      title: true,
+      titleEn: true,
+      titleHi: true
     },
     where: {
       active: true
@@ -81,12 +86,17 @@ const managedServiceSelect = {
       },
       active: true,
       description: true,
+      descriptionEn: true,
+      descriptionHi: true,
       id: true,
       priceInr: true,
       priceRub: true,
+      priceUnit: true,
       priceUsd: true,
       sortOrder: true,
-      title: true
+      title: true,
+      titleEn: true,
+      titleHi: true
     }
   }
 } satisfies Prisma.ServiceSelect;
@@ -149,6 +159,41 @@ function getLocalizedDescription(service: PublicServiceRow, locale: Locale) {
   }
 
   return service.description || "";
+}
+
+function getLocalizedOptionTitle(
+  option: PublicServiceRow["options"][number],
+  locale: Locale
+) {
+  if (locale === "en") {
+    return option.titleEn?.trim() || option.title;
+  }
+
+  if (locale === "hi") {
+    return option.titleHi?.trim() || option.titleEn?.trim() || option.title;
+  }
+
+  return option.title;
+}
+
+function getLocalizedOptionDescription(
+  option: PublicServiceRow["options"][number],
+  locale: Locale
+) {
+  if (locale === "en") {
+    return option.descriptionEn?.trim() || option.description || "";
+  }
+
+  if (locale === "hi") {
+    return (
+      option.descriptionHi?.trim() ||
+      option.descriptionEn?.trim() ||
+      option.description ||
+      ""
+    );
+  }
+
+  return option.description || "";
 }
 
 function getLocalizedPrice(service: PublicServiceRow, currency: Currency) {
@@ -217,16 +262,17 @@ function toSiteService(
 
       return {
         currency,
-        description: option.description ?? "",
+        description: getLocalizedOptionDescription(option, locale),
         id: option.id,
         priceAmount: optionPriceAmount,
         priceLabel: createPriceLabel(
           optionPriceAmount,
           currency,
-          "PER_PARTICIPANT"
+          option.priceUnit
         ),
         priceRub: option.priceRub,
-        title: option.title
+        priceUnit: option.priceUnit,
+        title: getLocalizedOptionTitle(option, locale)
       };
     }),
     priceAmount,

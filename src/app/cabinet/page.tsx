@@ -191,7 +191,8 @@ function parseParticipantFilters(searchParams: SearchParams | undefined) {
   return {
     dateFrom: dateFrom || "",
     dateTo: dateTo || "",
-    serviceId: firstParam(searchParams?.serviceId) || ""
+    serviceId: firstParam(searchParams?.serviceId) || "",
+    sourceDomain: firstParam(searchParams?.sourceDomain) || ""
   };
 }
 
@@ -219,6 +220,7 @@ function parseClientFilters(searchParams: SearchParams | undefined) {
     dateFrom: dateFrom || "",
     dateTo: dateTo || "",
     serviceId: firstParam(searchParams?.clientServiceId) || "",
+    sourceDomain: firstParam(searchParams?.clientSourceDomain) || "",
     status: parseClientStatus(firstParam(searchParams?.clientStatus))
   };
 }
@@ -243,6 +245,7 @@ function buildParticipantOrderWhere(
     createdAt: Object.keys(createdAt).length ? createdAt : undefined,
     curatorId,
     serviceId: filters.serviceId || undefined,
+    sourceDomain: filters.sourceDomain || undefined,
     status: OrderStatus.PAID
   } satisfies Prisma.OrderWhereInput;
 }
@@ -369,6 +372,7 @@ function buildClientWhere(
           }
         }
       : undefined,
+    sourceDomain: filters.sourceDomain || undefined,
     status: filters.status,
     updatedAt: Object.keys(updatedAt).length ? updatedAt : undefined
   } satisfies Prisma.ClientProfileWhereInput;
@@ -461,7 +465,10 @@ async function getCabinetClientData(
   ]);
 }
 
-async function getAwaitingCustomOrders(curatorId: string) {
+async function getAwaitingCustomOrders(
+  curatorId: string,
+  filters: ReturnType<typeof parseParticipantFilters>
+) {
   return prisma.order.findMany({
     orderBy: {
       createdAt: "desc"
@@ -505,6 +512,7 @@ async function getAwaitingCustomOrders(curatorId: string) {
         },
         status: PaymentStatus.AWAITING_VERIFICATION
       },
+      sourceDomain: filters.sourceDomain || undefined,
       status: OrderStatus.WAITING_PAYMENT_VERIFICATION
     }
   });
@@ -574,7 +582,9 @@ export default async function CabinetPage({
       : Promise.resolve([[], []] as Awaited<
           ReturnType<typeof getCabinetClientData>
         >),
-    canViewClients ? getAwaitingCustomOrders(curator.id) : Promise.resolve([]),
+    canViewClients
+      ? getAwaitingCustomOrders(curator.id, participantFilters)
+      : Promise.resolve([]),
     serviceManagementAccess ? getManagedServices() : Promise.resolve([])
   ]);
   const enabledPaymentSettings = paymentSettings.filter(
@@ -984,6 +994,19 @@ export default async function CabinetPage({
                     </option>
                   </select>
                 </label>
+                <label className="field">
+                  <span>Источник</span>
+                  <select
+                    defaultValue={participantFilters.sourceDomain}
+                    name="sourceDomain"
+                  >
+                    <option value="">Все источники</option>
+                    <option value="starvedas.ru">starvedas.ru</option>
+                    <option value="chintamanidhama.ru">
+                      chintamanidhama.ru
+                    </option>
+                  </select>
+                </label>
                 <div className="filter-form__actions">
                   <button className="button button--primary" type="submit">
                     Применить фильтры
@@ -1061,6 +1084,19 @@ export default async function CabinetPage({
                         {service.title}
                       </option>
                     ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Источник</span>
+                  <select
+                    defaultValue={clientFilters.sourceDomain}
+                    name="clientSourceDomain"
+                  >
+                    <option value="">Все источники</option>
+                    <option value="starvedas.ru">starvedas.ru</option>
+                    <option value="chintamanidhama.ru">
+                      chintamanidhama.ru
+                    </option>
                   </select>
                 </label>
                 <div className="filter-form__actions">

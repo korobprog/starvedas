@@ -21,6 +21,7 @@ export type SiteServiceOption = {
   priceAmount: number;
   priceLabel: string;
   priceRub: number;
+  priceUnit: PriceUnit;
   title: string;
 };
 

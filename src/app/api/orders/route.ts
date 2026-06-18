@@ -16,6 +16,7 @@ import {
   calculateSelectedOptionsAmount,
   createOrderSchema,
   getParticipantNames,
+  getPriceUnitQuantity,
   normalizeOptional
 } from "@/server/order-validation";
 import { upsertClientProfileForFunnel } from "@/server/client-profiles";
@@ -35,6 +36,7 @@ function createProviderPaymentUrl({
   description,
   failUrl,
   orderNumber,
+  products,
   provider,
   receiptName,
   successUrl,
@@ -49,6 +51,12 @@ function createProviderPaymentUrl({
   description: string;
   failUrl?: string;
   orderNumber: number;
+  products?: Array<{
+    name: string;
+    priceRub: number;
+    quantity: number;
+    vatTaxType?: number;
+  }>;
   provider: string;
   receiptName: string;
   successUrl?: string;
@@ -64,6 +72,7 @@ function createProviderPaymentUrl({
     description,
     failUrl,
     orderNumber,
+    products,
     receiptName,
     successUrl,
     vatTaxType
@@ -193,6 +202,7 @@ export async function POST(request: Request) {
             description: true,
             id: true,
             priceRub: true,
+            priceUnit: true,
             sortOrder: true,
             title: true
           },
@@ -218,14 +228,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const selectedOptionsPriceRub = selectedOptions.reduce(
-      (sum, option) => sum + option.priceRub,
-      0
-    );
     const amountRub = selectedOptions.length
       ? calculateSelectedOptionsAmount({
+          options: selectedOptions,
           participantCount: data.participantCount,
-          priceRubSum: selectedOptionsPriceRub
+          participantNames: names
         })
       : calculateOrderAmount({
           participantCount: data.participantCount,
@@ -298,13 +305,24 @@ export async function POST(request: Request) {
           },
           serviceOptions: selectedOptions.length
             ? {
-                create: selectedOptions.map((option, index) => ({
-                  descriptionSnapshot: option.description,
-                  optionId: option.id,
-                  priceRubSnapshot: option.priceRub,
-                  sortOrder: index + 1,
-                  titleSnapshot: option.title
-                }))
+                create: selectedOptions.map((option, index) => {
+                  const quantity = getPriceUnitQuantity({
+                    participantCount: data.participantCount,
+                    participantNames: names,
+                    priceUnit: option.priceUnit
+                  });
+
+                  return {
+                    descriptionSnapshot: option.description,
+                    optionId: option.id,
+                    priceRubSnapshot: option.priceRub,
+                    priceUnitSnapshot: option.priceUnit,
+                    quantitySnapshot: quantity,
+                    sortOrder: index + 1,
+                    titleSnapshot: option.title,
+                    totalRubSnapshot: option.priceRub * quantity
+                  };
+                })
               }
             : undefined,
           payment: {
@@ -350,6 +368,18 @@ export async function POST(request: Request) {
             order.publicToken
           ),
           orderNumber: order.orderNumber,
+          products: selectedOptions.length
+            ? selectedOptions.map((option) => ({
+                name: option.title,
+                priceRub: option.priceRub,
+                quantity: getPriceUnitQuantity({
+                  participantCount: data.participantCount,
+                  participantNames: names,
+                  priceUnit: option.priceUnit
+                }),
+                vatTaxType: service.vatTaxType
+              }))
+            : undefined,
           provider: paymentProvider.code,
           receiptName: service.receiptName?.trim() || service.localizedTitle,
           successUrl: createResultUrl(

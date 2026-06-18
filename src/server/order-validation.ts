@@ -95,14 +95,49 @@ export function calculateOrderAmount({
   return priceRub * participantCount;
 }
 
-export function calculateSelectedOptionsAmount({
+export function getPriceUnitQuantity({
   participantCount,
-  priceRubSum
+  participantNames,
+  priceUnit
 }: {
   participantCount: number;
-  priceRubSum: number;
+  participantNames: string[];
+  priceUnit: PriceUnit;
 }) {
-  return priceRubSum * participantCount;
+  if (priceUnit === PriceUnit.PER_ORDER) {
+    return 1;
+  }
+
+  if (priceUnit === PriceUnit.PER_NAME) {
+    return participantNames.length;
+  }
+
+  return participantCount;
+}
+
+export function calculateSelectedOptionsAmount({
+  options,
+  participantCount,
+  participantNames
+}: {
+  options: Array<{
+    priceRub: number;
+    priceUnit: PriceUnit;
+  }>;
+  participantCount: number;
+  participantNames: string[];
+}) {
+  return options.reduce(
+    (sum, option) =>
+      sum +
+      option.priceRub *
+        getPriceUnitQuantity({
+          participantCount,
+          participantNames,
+          priceUnit: option.priceUnit
+        }),
+    0
+  );
 }
 
 export function normalizeOptional(value?: string) {

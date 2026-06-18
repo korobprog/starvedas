@@ -218,6 +218,17 @@ function getInstructionRows(instructions?: PaymentInstructions | null) {
   ].filter((row): row is [string, string] => Boolean(row[1]?.trim()));
 }
 
+function getOptionQuantity(
+  priceUnit: "PER_ORDER" | "PER_PARTICIPANT" | "PER_NAME",
+  participantCount: number
+) {
+  if (priceUnit === "PER_ORDER") {
+    return 1;
+  }
+
+  return participantCount;
+}
+
 function getFormScrollBehavior(): ScrollBehavior {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ? "auto"
@@ -379,11 +390,12 @@ export function SignupForm({
 
   const estimatedAmount = useMemo(() => {
     if (isSingleRiteSelected && selectedServiceOptions.length > 0) {
-      return (
-        selectedServiceOptions.reduce(
-          (sum, option) => sum + option.priceAmount,
-          0
-        ) * participantCount
+      return selectedServiceOptions.reduce(
+        (sum, option) =>
+          sum +
+          option.priceAmount *
+            getOptionQuantity(option.priceUnit, participantCount),
+        0
       );
     }
 

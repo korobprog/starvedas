@@ -168,16 +168,21 @@ model Service {
 }
 
 model ServiceOption {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  priceRub    Int
-  priceUsd    Int?
-  priceInr    Int?
-  active      Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String    @id @default(cuid())
+  title         String
+  titleEn       String?
+  titleHi       String?
+  description   String?
+  descriptionEn String?
+  descriptionHi String?
+  priceRub      Int
+  priceUsd      Int?
+  priceInr      Int?
+  priceUnit     PriceUnit @default(PER_PARTICIPANT)
+  active        Boolean   @default(true)
+  sortOrder     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   serviceId String
   service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
@@ -291,12 +296,15 @@ model Order {
 }
 
 model OrderServiceOption {
-  id                  String   @id @default(cuid())
+  id                  String    @id @default(cuid())
   titleSnapshot       String
   descriptionSnapshot String?
   priceRubSnapshot    Int
-  sortOrder           Int      @default(0)
-  createdAt           DateTime @default(now())
+  priceUnitSnapshot   PriceUnit @default(PER_PARTICIPANT)
+  quantitySnapshot    Int       @default(1)
+  totalRubSnapshot    Int
+  sortOrder           Int       @default(0)
+  createdAt           DateTime  @default(now())
 
   orderId  String
   optionId String?

@@ -6,11 +6,19 @@ type PaymentCustomer = {
   phone?: string | null;
 };
 
+type PaymentProduct = {
+  name: string;
+  priceRub: number;
+  quantity: number;
+  vatTaxType?: number;
+};
+
 type PaymentUrlInput = {
   amountRub: number;
   customer: PaymentCustomer;
   description: string;
   failUrl?: string;
+  products?: PaymentProduct[];
   receiptName: string;
   orderNumber: number;
   successUrl?: string;
@@ -47,22 +55,33 @@ function appendIfDefined(
 
 export function createProdamusPaymentUrl(input: PaymentUrlInput) {
   const params = new URLSearchParams();
-  const product = {
-    name: input.receiptName,
+  const products = (
+    input.products?.length
+      ? input.products
+      : [
+          {
+            name: input.receiptName,
+            priceRub: input.amountRub,
+            quantity: 1,
+            vatTaxType: input.vatTaxType
+          }
+        ]
+  ).map((product) => ({
+    name: product.name,
     paymentMethod: 4,
     paymentObject: 4,
-    price: input.amountRub,
-    quantity: 1,
+    price: product.priceRub,
+    quantity: product.quantity,
     tax: {
-      tax_type: input.vatTaxType
+      tax_type: product.vatTaxType ?? input.vatTaxType
     }
-  };
+  }));
   const data: PayformData = {
     customer_extra: input.description,
     customer_name: input.customer.name,
     do: "pay",
     order_id: input.orderNumber,
-    products: [product]
+    products
   };
   const siteUrl = getSiteUrl();
   const customerEmail = clean(input.customer.email);
@@ -75,12 +94,26 @@ export function createProdamusPaymentUrl(input: PaymentUrlInput) {
   appendIfDefined(params, "customer_email", customerEmail);
   appendIfDefined(params, "customer_phone", customerPhone);
   appendIfDefined(params, "customer_name", input.customer.name);
-  appendIfDefined(params, "products[0][name]", product.name);
-  appendIfDefined(params, "products[0][price]", product.price);
-  appendIfDefined(params, "products[0][quantity]", product.quantity);
-  appendIfDefined(params, "products[0][paymentMethod]", product.paymentMethod);
-  appendIfDefined(params, "products[0][paymentObject]", product.paymentObject);
-  appendIfDefined(params, "products[0][tax][tax_type]", product.tax.tax_type);
+  products.forEach((product, index) => {
+    appendIfDefined(params, `products[${index}][name]`, product.name);
+    appendIfDefined(params, `products[${index}][price]`, product.price);
+    appendIfDefined(params, `products[${index}][quantity]`, product.quantity);
+    appendIfDefined(
+      params,
+      `products[${index}][paymentMethod]`,
+      product.paymentMethod
+    );
+    appendIfDefined(
+      params,
+      `products[${index}][paymentObject]`,
+      product.paymentObject
+    );
+    appendIfDefined(
+      params,
+      `products[${index}][tax][tax_type]`,
+      product.tax.tax_type
+    );
+  });
   appendIfDefined(
     params,
     "urlSuccess",
