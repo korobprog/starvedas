@@ -12,6 +12,21 @@ const priceUnitOptions: Array<{ label: string; value: PriceUnit }> = [
   { label: "За имя", value: "PER_NAME" }
 ];
 
+const vatTaxTypeOptions = [
+  { label: "Без НДС", value: 0 },
+  { label: "НДС 0%", value: 1 },
+  { label: "НДС 10%", value: 2 },
+  { label: "НДС 20%", value: 6 },
+  { label: "НДС 10/110", value: 4 },
+  { label: "НДС 20/120", value: 7 },
+  { label: "НДС 5%", value: 10 },
+  { label: "НДС 7%", value: 11 },
+  { label: "НДС 5/105", value: 12 },
+  { label: "НДС 7/107", value: 13 },
+  { label: "НДС 22%", value: 14 },
+  { label: "НДС 22/122", value: 15 }
+];
+
 function getPriceUnitLabel(value: PriceUnit) {
   return (
     priceUnitOptions.find((option) => option.value === value)?.label ?? value
@@ -54,6 +69,17 @@ function ServiceFields({
           />
         </label>
       </div>
+
+      <label className="field">
+        <span>Наименование для чека</span>
+        <input
+          defaultValue={service?.receiptName ?? service?.title ?? ""}
+          name="receiptName"
+          placeholder="Например: Участие в онлайн-церемонии"
+          required
+          type="text"
+        />
+      </label>
 
       <label className="field">
         <span>Описание RU</span>
@@ -147,6 +173,20 @@ function ServiceFields({
             ))}
           </select>
         </label>
+        <label className="field">
+          <span>НДС для чека</span>
+          <select
+            defaultValue={service?.vatTaxType ?? 0}
+            name="vatTaxType"
+            required
+          >
+            {vatTaxTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <label className="checkbox-field">
@@ -207,7 +247,8 @@ export function ServiceEditorList({
                 {service.priceInr
                   ? ` · INR ${service.priceInr.toLocaleString("hi-IN")}`
                   : ""}{" "}
-                · {getPriceUnitLabel(service.priceUnit)}
+                · {getPriceUnitLabel(service.priceUnit)} · чек:{" "}
+                {service.receiptName ?? service.title}
               </p>
             </div>
             <span className="badge">

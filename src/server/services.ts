@@ -21,6 +21,8 @@ const publicServiceSelect = {
   priceRub: true,
   priceUnit: true,
   priceUsd: true,
+  receiptName: true,
+  vatTaxType: true,
   slug: true,
   title: true,
   titleEn: true,
@@ -47,6 +49,8 @@ const managedServiceSelect = {
   priceRub: true,
   priceUnit: true,
   priceUsd: true,
+  receiptName: true,
+  vatTaxType: true,
   requiresExactParticipantList: true,
   slug: true,
   sortOrder: true,
@@ -262,19 +266,23 @@ export async function getServiceForOrder(
       description: defaultService.description,
       priceRub: defaultService.priceRub,
       priceUnit: toPrismaPriceUnit(defaultService.priceUnit),
+      receiptName: defaultService.title,
       requiresExactParticipantList: true,
       slug: defaultService.slug,
       sortOrder: defaultService.sortOrder,
-      title: defaultService.title
+      title: defaultService.title,
+      vatTaxType: 0
     },
     update: {
       active: true,
       description: defaultService.description,
       priceRub: defaultService.priceRub,
       priceUnit: toPrismaPriceUnit(defaultService.priceUnit),
+      receiptName: defaultService.title,
       requiresExactParticipantList: true,
       sortOrder: defaultService.sortOrder,
-      title: defaultService.title
+      title: defaultService.title,
+      vatTaxType: 0
     },
     select: orderServiceSelect
   });
