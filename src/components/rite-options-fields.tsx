@@ -10,6 +10,7 @@ type RiteOptionInput = {
   description: string | null;
   descriptionEn: string | null;
   descriptionHi: string | null;
+  eventStartsAt: Date | string | null;
   id: string;
   priceInr: number | null;
   priceRub: number;
@@ -30,11 +31,28 @@ function createEmptyOption(index: number): EditableRiteOption {
   return {
     active: true,
     key: `new-${Date.now()}-${index}`,
+    eventStartsAt: null,
     priceRub: 0,
     priceUnit: "PER_PARTICIPANT",
     sortOrder: index + 1,
     title: ""
   };
+}
+
+function formatMoscowDateTimeInput(value: Date | string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const moscowTime = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+
+  return moscowTime.toISOString().slice(0, 16);
 }
 
 export function RiteOptionsFields({
@@ -138,6 +156,11 @@ export function RiteOptionsFields({
                 value={option.descriptionHi ?? ""}
               />
               <input
+                name="optionEventStartsAt"
+                type="hidden"
+                value={formatMoscowDateTimeInput(option.eventStartsAt)}
+              />
+              <input
                 name="optionTitleEn"
                 type="hidden"
                 value={option.titleEn ?? ""}
@@ -230,6 +253,19 @@ export function RiteOptionsFields({
                 name="optionDescription"
                 rows={3}
               />
+            </label>
+
+            <label className="field">
+              <span>Дата и время мероприятия (МСК)</span>
+              <input
+                defaultValue={formatMoscowDateTimeInput(option.eventStartsAt)}
+                name="optionEventStartsAt"
+                type="datetime-local"
+              />
+              <small>
+                Если дата и время уже прошли по Москве, карточка автоматически
+                скрывается для клиентов.
+              </small>
             </label>
 
             <div className="field-grid">

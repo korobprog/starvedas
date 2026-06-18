@@ -51,6 +51,7 @@ const serviceOptionFormSchema = z.object({
   description: optionalText,
   descriptionEn: optionalText,
   descriptionHi: optionalText,
+  eventStartsAt: z.date().nullable(),
   id: z.string().trim().optional(),
   priceInr: z.coerce.number().int().min(0).max(100_000_000).nullable(),
   priceRub: z.coerce.number().int().min(0).max(100_000_000),
@@ -152,12 +153,46 @@ function getAllFormValues(formData: FormData, name: string) {
   return formData.getAll(name).map((value) => String(value));
 }
 
+function parseMoscowDateTime(value: string | undefined) {
+  const normalized = value?.trim();
+
+  if (!normalized) {
+    return null;
+  }
+
+  const match = normalized.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/
+  );
+
+  if (!match) {
+    throw new Error("Некорректная дата мероприятия");
+  }
+
+  const [, year, month, day, hour, minute] = match;
+  const date = new Date(
+    Date.UTC(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour) - 3,
+      Number(minute)
+    )
+  );
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Некорректная дата мероприятия");
+  }
+
+  return date;
+}
+
 function parseServiceOptionsFormData(formData: FormData) {
   const ids = getAllFormValues(formData, "optionId");
   const titles = getAllFormValues(formData, "optionTitle");
   const descriptions = getAllFormValues(formData, "optionDescription");
   const descriptionsEn = getAllFormValues(formData, "optionDescriptionEn");
   const descriptionsHi = getAllFormValues(formData, "optionDescriptionHi");
+  const eventStartsAt = getAllFormValues(formData, "optionEventStartsAt");
   const pricesRub = getAllFormValues(formData, "optionPriceRub");
   const pricesUsd = getAllFormValues(formData, "optionPriceUsd");
   const pricesInr = getAllFormValues(formData, "optionPriceInr");
@@ -175,6 +210,7 @@ function parseServiceOptionsFormData(formData: FormData) {
       description: descriptions[index] ?? "",
       descriptionEn: descriptionsEn[index] ?? "",
       descriptionHi: descriptionsHi[index] ?? "",
+      eventStartsAt: parseMoscowDateTime(eventStartsAt[index]),
       id: ids[index] || undefined,
       priceInr: pricesInr[index] || null,
       priceRub: pricesRub[index] ?? 0,
@@ -238,6 +274,7 @@ async function saveServiceOptions(
       description: option.description,
       descriptionEn: option.descriptionEn,
       descriptionHi: option.descriptionHi,
+      eventStartsAt: option.eventStartsAt,
       priceInr: option.priceInr,
       priceRub: option.priceRub,
       priceUnit: option.priceUnit,

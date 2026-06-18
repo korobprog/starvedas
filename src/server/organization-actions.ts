@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireSuperAdminUser } from "@/server/auth";
 import { organizationSettingsId } from "@/server/organization-settings";
+import { offerDocumentSlug } from "@/server/legal-documents";
 
 const nullableText = z
   .string()
@@ -18,6 +19,7 @@ const organizationSettingsSchema = z.object({
   clientEmail: nullableText,
   clientPhone: nullableText,
   directorName: nullableText,
+  hideChintamaniAdminSupportButtons: z.boolean(),
   inn: nullableText,
   legalAddress: nullableText,
   legalName: nullableText,
@@ -29,6 +31,10 @@ const organizationSettingsSchema = z.object({
   supportHours: nullableText
 });
 
+const offerMarkdownSchema = z.object({
+  content: z.string().max(100_000)
+});
+
 export async function saveOrganizationSettings(formData: FormData) {
   await requireSuperAdminUser("/admin/organization");
 
@@ -38,6 +44,8 @@ export async function saveOrganizationSettings(formData: FormData) {
     clientEmail: formData.get("clientEmail") ?? "",
     clientPhone: formData.get("clientPhone") ?? "",
     directorName: formData.get("directorName") ?? "",
+    hideChintamaniAdminSupportButtons:
+      formData.get("hideChintamaniAdminSupportButtons") === "on",
     inn: formData.get("inn") ?? "",
     legalAddress: formData.get("legalAddress") ?? "",
     legalName: formData.get("legalName") ?? "",
@@ -63,6 +71,8 @@ export async function saveOrganizationSettings(formData: FormData) {
   });
 
   revalidatePath("/");
+  revalidatePath("/payment/success");
+  revalidatePath("/payment/fail");
   revalidatePath("/admin/organization");
   revalidatePath("/contacts");
   revalidatePath("/legal/offer");
@@ -90,4 +100,38 @@ export async function setCuratorServicePermission(formData: FormData) {
 
   revalidatePath("/admin/organization");
   revalidatePath("/cabinet");
+}
+
+export async function saveOfferMarkdown(formData: FormData) {
+  await requireSuperAdminUser("/admin/organization");
+
+  const parsed = offerMarkdownSchema.safeParse({
+    content: formData.get("offerMarkdown") ?? ""
+  });
+
+  if (!parsed.success) {
+    throw new Error("Некорректный Markdown оферты");
+  }
+
+  await prisma.legalDocument.upsert({
+    where: { slug: offerDocumentSlug },
+    create: {
+      active: true,
+      content: parsed.data.content,
+      slug: offerDocumentSlug,
+      title: "Публичная оферта",
+      type: "OFFER",
+      version: new Date().toISOString()
+    },
+    update: {
+      active: true,
+      content: parsed.data.content,
+      title: "Публичная оферта",
+      type: "OFFER",
+      version: new Date().toISOString()
+    }
+  });
+
+  revalidatePath("/admin/organization");
+  revalidatePath("/legal/offer");
 }

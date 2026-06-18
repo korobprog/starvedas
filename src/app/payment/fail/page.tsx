@@ -1,10 +1,12 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { SupportCta } from "@/components/support-cta";
 import { getPaymentResultCopy } from "@/i18n/payment-result-copy";
 import { localeCookieName } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
+import { shouldHideAdminSupportButtonsOnSourceDomain } from "@/server/organization-settings";
 import { getAssignedCuratorFromCookie } from "@/server/referrals";
+import { getSourceDomainFromHeaders } from "@/server/source-domain";
 
 async function getOrderSupport(publicToken?: string) {
   if (!publicToken) {
@@ -20,11 +22,13 @@ async function getOrderSupport(publicToken?: string) {
         curator: {
           select: {
             name: true,
+            slug: true,
             supportButtonLabel: true,
             supportEnabled: true,
             supportUrl: true
           }
-        }
+        },
+        sourceDomain: true
       }
     });
   } catch {
@@ -43,6 +47,14 @@ export default async function PaymentFailPage({
   const order = await getOrderSupport(params.order);
   const supportCurator =
     order?.curator ?? (await getAssignedCuratorFromCookie().catch(() => null));
+  const sourceDomain =
+    order?.sourceDomain ?? getSourceDomainFromHeaders(await headers());
+  const hideAdminSupportButtons = supportCurator
+    ? await shouldHideAdminSupportButtonsOnSourceDomain({
+        curatorSlug: supportCurator.slug,
+        sourceDomain
+      })
+    : false;
 
   return (
     <main className="simple-page">
@@ -55,7 +67,9 @@ export default async function PaymentFailPage({
             curatorName={supportCurator.name}
             note="Если оплата не прошла или нужен другой способ, напишите куратору."
             supportButtonLabel={supportCurator.supportButtonLabel}
-            supportEnabled={supportCurator.supportEnabled}
+            supportEnabled={
+              supportCurator.supportEnabled && !hideAdminSupportButtons
+            }
             supportUrl={supportCurator.supportUrl}
           />
         )}

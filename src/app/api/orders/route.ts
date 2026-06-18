@@ -26,6 +26,7 @@ import {
   isCustomPaymentProviderCode
 } from "@/server/payment-providers";
 import { getCuratorForReferral } from "@/server/referrals";
+import { shouldHideAdminSupportButtonsOnSourceDomain } from "@/server/organization-settings";
 import { getServiceForOrder } from "@/server/services";
 import { getSourceDomainFromHeaders } from "@/server/source-domain";
 import { sendOrderCreatedTelegramNotification } from "@/server/telegram-notifications";
@@ -134,6 +135,13 @@ export async function POST(request: Request) {
       );
     }
 
+    const hideAdminSupportButtons =
+      await shouldHideAdminSupportButtonsOnSourceDomain({
+        curatorSlug: curator.slug,
+        sourceDomain
+      });
+    const supportEnabled = curator.supportEnabled && !hideAdminSupportButtons;
+
     const paymentProvider = await getPaymentProviderForCheckout(
       data.paymentProvider,
       curator.id,
@@ -209,6 +217,7 @@ export async function POST(request: Request) {
           where: {
             active: true,
             id: { in: selectedServiceOptionIds },
+            OR: [{ eventStartsAt: null }, { eventStartsAt: { gt: new Date() } }],
             serviceId: service.id
           }
         })
@@ -441,7 +450,7 @@ export async function POST(request: Request) {
       postPurchaseTitle: curator.postPurchaseTitle,
       postPurchaseUrl: curator.postPurchaseUrl,
       supportButtonLabel: curator.supportButtonLabel,
-      supportEnabled: curator.supportEnabled,
+      supportEnabled,
       supportUrl: curator.supportUrl
     });
   } catch {

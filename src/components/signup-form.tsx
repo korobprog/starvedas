@@ -825,6 +825,9 @@ export function SignupForm({
                     />
                     <span>{option.title}</span>
                     {option.description && <small>{option.description}</small>}
+                    {option.eventStartsAtLabel && (
+                      <small>Дата и время: {option.eventStartsAtLabel} МСК</small>
+                    )}
                     <small>{option.priceLabel}</small>
                   </label>
                 ))
@@ -1023,7 +1026,7 @@ export function SignupForm({
                 {copy.consent.payment}
               </a>
               ,{" "}
-              <a href="/docks/oferta.pdf" rel="noreferrer" target="_blank">
+              <a href="/legal/offer" rel="noreferrer" target="_blank">
                 {copy.consent.offer}
               </a>{" "}
               и{" "}
@@ -1118,7 +1121,7 @@ export function SignupForm({
             />
           )}
           <div className="legal-inline-links" aria-label={copy.documentsAria}>
-            <a href="/docks/oferta.pdf" rel="noreferrer" target="_blank">
+            <a href="/legal/offer" rel="noreferrer" target="_blank">
               {copy.consent.offer}
             </a>
             <a href="/payment" rel="noreferrer" target="_blank">

@@ -33,6 +33,7 @@ const publicServiceSelect = {
       description: true,
       descriptionEn: true,
       descriptionHi: true,
+      eventStartsAt: true,
       id: true,
       priceInr: true,
       priceRub: true,
@@ -88,6 +89,7 @@ const managedServiceSelect = {
       description: true,
       descriptionEn: true,
       descriptionHi: true,
+      eventStartsAt: true,
       id: true,
       priceInr: true,
       priceRub: true,
@@ -246,6 +248,21 @@ function createPriceLabel(
   });
 }
 
+function formatMoscowEventLabel(value: Date | null) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    timeZone: "Europe/Moscow",
+    year: "numeric"
+  }).format(value);
+}
+
 function toSiteService(
   service: PublicServiceRow,
   localeValue?: string | null
@@ -257,12 +274,14 @@ function toSiteService(
   return {
     currency,
     description: getLocalizedDescription(service, locale),
-    options: service.options.map((option) => {
+    options: service.options.filter(isUpcomingOption).map((option) => {
       const optionPriceAmount = getLocalizedOptionPrice(option, currency);
 
       return {
         currency,
         description: getLocalizedOptionDescription(option, locale),
+        eventStartsAt: option.eventStartsAt?.toISOString() ?? null,
+        eventStartsAtLabel: formatMoscowEventLabel(option.eventStartsAt),
         id: option.id,
         priceAmount: optionPriceAmount,
         priceLabel: createPriceLabel(
@@ -293,11 +312,16 @@ function withOrderLocale(
 
   return {
     ...service,
+    options: service.options.filter(isUpcomingOption),
     currency,
     localizedDescription: getLocalizedDescription(service, locale),
     localizedPrice: getLocalizedPrice(service, currency),
     localizedTitle: getLocalizedTitle(service, locale)
   };
+}
+
+function isUpcomingOption(option: { eventStartsAt: Date | null }) {
+  return !option.eventStartsAt || option.eventStartsAt.getTime() > Date.now();
 }
 
 export async function getPublicServices(

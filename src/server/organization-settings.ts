@@ -42,6 +42,47 @@ function toPublicContact(settings: OrganizationSettings | null): LegalContact {
   };
 }
 
+export function shouldHideAdminSupportButtonsOnSource({
+  curatorSlug,
+  settings,
+  sourceDomain
+}: {
+  curatorSlug?: string | null;
+  settings?: Pick<
+    OrganizationSettings,
+    "hideChintamaniAdminSupportButtons"
+  > | null;
+  sourceDomain?: string | null;
+}) {
+  return (
+    sourceDomain === "chintamanidhama.ru" &&
+    curatorSlug === "administrator" &&
+    Boolean(settings?.hideChintamaniAdminSupportButtons)
+  );
+}
+
+export async function shouldHideAdminSupportButtonsOnSourceDomain({
+  curatorSlug,
+  sourceDomain
+}: {
+  curatorSlug?: string | null;
+  sourceDomain?: string | null;
+}) {
+  if (
+    sourceDomain !== "chintamanidhama.ru" ||
+    curatorSlug !== "administrator"
+  ) {
+    return false;
+  }
+
+  const settings = await prisma.organizationSettings.findFirst({
+    orderBy: { updatedAt: "desc" },
+    select: { hideChintamaniAdminSupportButtons: true }
+  });
+
+  return Boolean(settings?.hideChintamaniAdminSupportButtons);
+}
+
 export async function getPublicOrganizationSettings(): Promise<PublicOrganizationSettings> {
   try {
     const settings = await prisma.organizationSettings.findFirst({

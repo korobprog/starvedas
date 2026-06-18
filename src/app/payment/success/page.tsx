@@ -1,10 +1,12 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { SupportCta } from "@/components/support-cta";
 import { getPaymentResultCopy } from "@/i18n/payment-result-copy";
 import { localeCookieName } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
+import { shouldHideAdminSupportButtonsOnSourceDomain } from "@/server/organization-settings";
 import { getAssignedCuratorFromCookie } from "@/server/referrals";
+import { getSourceDomainFromHeaders } from "@/server/source-domain";
 
 async function getOrderPostPurchase(publicToken?: string) {
   if (!publicToken) {
@@ -20,6 +22,7 @@ async function getOrderPostPurchase(publicToken?: string) {
         curator: {
           select: {
             name: true,
+            slug: true,
             postPurchaseText: true,
             postPurchaseTitle: true,
             postPurchaseUrl: true,
@@ -28,7 +31,8 @@ async function getOrderPostPurchase(publicToken?: string) {
             supportUrl: true
           }
         },
-        orderNumber: true
+        orderNumber: true,
+        sourceDomain: true
       }
     });
   } catch {
@@ -47,6 +51,14 @@ export default async function PaymentSuccessPage({
   const order = await getOrderPostPurchase(params.order);
   const supportCurator =
     order?.curator ?? (await getAssignedCuratorFromCookie().catch(() => null));
+  const sourceDomain =
+    order?.sourceDomain ?? getSourceDomainFromHeaders(await headers());
+  const hideAdminSupportButtons = supportCurator
+    ? await shouldHideAdminSupportButtonsOnSourceDomain({
+        curatorSlug: supportCurator.slug,
+        sourceDomain
+      })
+    : false;
 
   return (
     <main className="simple-page">
@@ -83,7 +95,9 @@ export default async function PaymentSuccessPage({
             curatorName={supportCurator.name}
             note="Если после оплаты остались вопросы, напишите куратору."
             supportButtonLabel={supportCurator.supportButtonLabel}
-            supportEnabled={supportCurator.supportEnabled}
+            supportEnabled={
+              supportCurator.supportEnabled && !hideAdminSupportButtons
+            }
             supportUrl={supportCurator.supportUrl}
           />
         )}

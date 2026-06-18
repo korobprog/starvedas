@@ -8,8 +8,10 @@ import {
 } from "@/server/organization-settings";
 import {
   saveOrganizationSettings,
+  saveOfferMarkdown,
   setCuratorServicePermission
 } from "@/server/organization-actions";
+import { getEditableOfferDocument } from "@/server/legal-documents";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +21,7 @@ export default async function AdminOrganizationPage() {
   const cookieStore = await cookies();
   const copy = getAdminCopy(cookieStore.get(localeCookieName)?.value);
   const { contact, settings } = await getPublicOrganizationSettings();
+  const offerDocument = await getEditableOfferDocument();
 
   return (
     <div className="admin-grid">
@@ -164,6 +167,21 @@ export default async function AdminOrganizationPage() {
             />
           </label>
 
+          <label className="checkbox-field">
+            <input
+              defaultChecked={
+                settings?.hideChintamaniAdminSupportButtons ?? false
+              }
+              name="hideChintamaniAdminSupportButtons"
+              type="checkbox"
+            />
+            <span>
+              Скрыть все кнопки “Написать вопрос администратору” на
+              chintamanidhama.ru. На starvedas.ru кнопки останутся без
+              изменений.
+            </span>
+          </label>
+
           <label className="field">
             <span>{copy.organization.bankDetails}</span>
             <textarea
@@ -193,6 +211,30 @@ export default async function AdminOrganizationPage() {
 
           <button className="button button--primary" type="submit">
             {copy.organization.save}
+          </button>
+        </form>
+      </section>
+
+      <section className="admin-card">
+        <h2>Оферта в Markdown</h2>
+        <p className="admin-muted">
+          Вставьте сюда текст публичной оферты в формате Markdown. Публичная
+          ссылка для клиентов: <a href="/legal/offer">/legal/offer</a>. Доступны
+          плейсхолдеры: {"{{seller}}"}, {"{{inn}}"}, {"{{ogrnip}}"},{" "}
+          {"{{address}}"}, {"{{email}}"}, {"{{phone}}"}, {"{{telegram}}"}.
+        </p>
+        <form action={saveOfferMarkdown} className="admin-form">
+          <label className="field">
+            <span>Markdown-текст оферты</span>
+            <textarea
+              defaultValue={offerDocument?.content ?? ""}
+              name="offerMarkdown"
+              placeholder="# Публичная оферта&#10;&#10;## 1. Общие положения&#10;&#10;Текст оферты..."
+              rows={18}
+            />
+          </label>
+          <button className="button button--primary" type="submit">
+            Сохранить оферту
           </button>
         </form>
       </section>

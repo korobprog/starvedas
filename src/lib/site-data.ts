@@ -17,6 +17,8 @@ export type PriceUnit = "PER_ORDER" | "PER_PARTICIPANT" | "PER_NAME";
 export type SiteServiceOption = {
   currency: "RUB" | "USD" | "INR";
   description: string;
+  eventStartsAt: string | null;
+  eventStartsAtLabel: string;
   id: string;
   priceAmount: number;
   priceLabel: string;
