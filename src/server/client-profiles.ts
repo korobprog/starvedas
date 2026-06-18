@@ -12,6 +12,7 @@ type ClientProfileInput = {
   phone?: string | null;
   referralSlug?: string | null;
   source?: string;
+  sourceDomain?: string;
   telegram?: string | null;
   visitorId?: string | null;
 };
@@ -65,24 +66,26 @@ function getStatusTimestampData(status: ClientFunnelStatus, date: Date) {
 function getIdentityWhere({
   email,
   phone,
+  sourceDomain,
   telegram
 }: {
   email: string | null;
   phone: string | null;
+  sourceDomain: string;
   telegram: string | null;
 }) {
   const identityWhere: Prisma.ClientProfileWhereInput[] = [];
 
   if (telegram) {
-    identityWhere.push({ telegram });
+    identityWhere.push({ telegram, sourceDomain });
   }
 
   if (phone) {
-    identityWhere.push({ phone });
+    identityWhere.push({ phone, sourceDomain });
   }
 
   if (email) {
-    identityWhere.push({ email });
+    identityWhere.push({ email, sourceDomain });
   }
 
   return identityWhere;
@@ -119,7 +122,13 @@ export async function upsertClientProfileForFunnel(
   const phone = normalizeText(input.phone);
   const telegram = normalizeText(input.telegram);
   const name = normalizeText(input.name) ?? input.fallbackName ?? "Клиент";
-  const identityWhere = getIdentityWhere({ email, phone, telegram });
+  const sourceDomain = input.sourceDomain ?? "starvedas.ru";
+  const identityWhere = getIdentityWhere({
+    email,
+    phone,
+    sourceDomain,
+    telegram
+  });
   const existing = identityWhere.length
     ? await tx.clientProfile.findFirst({
         orderBy: {
@@ -152,6 +161,7 @@ export async function upsertClientProfileForFunnel(
     phone,
     referralSlug: normalizeText(input.referralSlug),
     source: input.source ?? "site",
+    sourceDomain,
     status: nextStatus,
     telegram,
     ...getStatusTimestampData(input.status, now)
@@ -198,7 +208,8 @@ export async function markOrderClientBought(
     select: {
       clientId: true,
       curatorId: true,
-      source: true
+      source: true,
+      sourceDomain: true
     }
   });
 

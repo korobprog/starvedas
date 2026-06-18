@@ -34,6 +34,11 @@ type ParticipantRow = {
     service: {
       title: string;
     };
+    serviceOptions?: Array<{
+      priceRubSnapshot: number;
+      titleSnapshot: string;
+    }>;
+    sourceDomain?: string | null;
     status: string;
   };
 };
@@ -63,7 +68,12 @@ function toExportRows(participants: ParticipantRow[]): ParticipantExportRow[] {
     paymentStatus: participant.order.payment?.status
       ? formatStatus(participant.order.payment.status)
       : formatStatus(participant.order.status),
-    serviceTitle: participant.order.service.title
+    serviceTitle: [
+      participant.order.service.title,
+      ...(participant.order.serviceOptions?.map(
+        (option) => option.titleSnapshot
+      ) ?? [])
+    ].join(" / ")
   }));
 }
 
@@ -122,7 +132,18 @@ export function ParticipantsTable({
                     </button>
                   </form>
                 </td>
-                <td>{participant.order.service.title}</td>
+                <td>
+                  {participant.order.service.title}
+                  {participant.order.serviceOptions?.length ? (
+                    <ul className="rite-summary-list">
+                      {participant.order.serviceOptions.map((option) => (
+                        <li key={option.titleSnapshot}>
+                          {option.titleSnapshot}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </td>
                 <td>#{participant.order.orderNumber}</td>
                 <td>
                   <strong>{participant.order.customerName}</strong>

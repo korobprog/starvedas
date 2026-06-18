@@ -15,6 +15,7 @@ import {
   upsertClientProfileForFunnel
 } from "@/server/client-profiles";
 import { getCuratorForReferral, referralCookieName } from "@/server/referrals";
+import { getSourceDomainFromHeaders } from "@/server/source-domain";
 
 const visitorCookieName = "starvedas_visitor";
 const visitorCookieMaxAge = 60 * 60 * 24 * 180;
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
     );
   }
 
+  const sourceDomain = getSourceDomainFromHeaders(request.headers);
   const cookieStore = await cookies();
   const visitorId =
     cookieStore.get(visitorCookieName)?.value || crypto.randomUUID();
@@ -98,6 +100,7 @@ export async function POST(request: Request) {
         ),
         referralSlug,
         source: "site",
+        sourceDomain,
         status: ClientFunnelStatus.STARTED_CHECKOUT,
         telegram: parsed.data.customerTelegram,
         visitorId

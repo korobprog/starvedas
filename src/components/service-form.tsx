@@ -1,4 +1,5 @@
 import type { PriceUnit } from "@prisma/client";
+import { RiteOptionsFields } from "@/components/rite-options-fields";
 import {
   createService,
   toggleServiceActive,
@@ -206,6 +207,11 @@ function ServiceFields({
         />
         <span>Активен и показывается клиентам</span>
       </label>
+
+      <RiteOptionsFields
+        options={service?.options ?? []}
+        serviceSlug={service?.slug}
+      />
     </>
   );
 }

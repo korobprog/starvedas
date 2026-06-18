@@ -13,8 +13,10 @@ import { prisma } from "@/lib/prisma";
 import { normalizePhoneNumber } from "@/lib/phone-validation";
 import {
   calculateOrderAmount,
+  calculateSelectedOptionsAmount,
   createOrderSchema,
   getParticipantNames,
+  getPriceUnitQuantity,
   normalizeOptional
 } from "@/server/order-validation";
 import { upsertClientProfileForFunnel } from "@/server/client-profiles";
@@ -25,6 +27,7 @@ import {
 } from "@/server/payment-providers";
 import { getCuratorForReferral } from "@/server/referrals";
 import { getServiceForOrder } from "@/server/services";
+import { getSourceDomainFromHeaders } from "@/server/source-domain";
 import { sendOrderCreatedTelegramNotification } from "@/server/telegram-notifications";
 
 function createProviderPaymentUrl({
@@ -33,6 +36,7 @@ function createProviderPaymentUrl({
   description,
   failUrl,
   orderNumber,
+  products,
   provider,
   receiptName,
   successUrl,
@@ -47,6 +51,12 @@ function createProviderPaymentUrl({
   description: string;
   failUrl?: string;
   orderNumber: number;
+  products?: Array<{
+    name: string;
+    priceRub: number;
+    quantity: number;
+    vatTaxType?: number;
+  }>;
   provider: string;
   receiptName: string;
   successUrl?: string;
@@ -62,6 +72,7 @@ function createProviderPaymentUrl({
     description,
     failUrl,
     orderNumber,
+    products,
     receiptName,
     successUrl,
     vatTaxType
@@ -100,6 +111,7 @@ export async function POST(request: Request) {
   }
 
   const data = parsed.data;
+  const sourceDomain = getSourceDomainFromHeaders(request.headers);
   const names = getParticipantNames(data.participantsText);
 
   if (names.length !== data.participantCount) {
@@ -169,12 +181,68 @@ export async function POST(request: Request) {
           }
         : undefined;
 
-    const amountRub = calculateOrderAmount({
-      participantCount: data.participantCount,
-      participantNames: names,
-      priceRub: service.localizedPrice,
-      priceUnit: service.priceUnit
-    });
+    const selectedServiceOptionIds = Array.from(
+      new Set(data.selectedServiceOptionIds)
+    );
+
+    if (
+      service.slug === "single-rite" &&
+      selectedServiceOptionIds.length === 0
+    ) {
+      return NextResponse.json(
+        { message: "Выберите хотя бы один обряд" },
+        { status: 400 }
+      );
+    }
+
+    const selectedOptions = selectedServiceOptionIds.length
+      ? await prisma.serviceOption.findMany({
+          orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+          select: {
+            description: true,
+            id: true,
+            priceRub: true,
+            priceUnit: true,
+            sortOrder: true,
+            title: true
+          },
+          where: {
+            active: true,
+            id: { in: selectedServiceOptionIds },
+            serviceId: service.id
+          }
+        })
+      : [];
+
+    if (selectedOptions.length !== selectedServiceOptionIds.length) {
+      return NextResponse.json(
+        { message: "Некоторые выбранные обряды недоступны" },
+        { status: 400 }
+      );
+    }
+
+    if (service.slug !== "single-rite" && selectedOptions.length > 0) {
+      return NextResponse.json(
+        { message: "Карточки обрядов доступны только для раздела Один обряд" },
+        { status: 400 }
+      );
+    }
+
+    const amountRub = selectedOptions.length
+      ? calculateSelectedOptionsAmount({
+          options: selectedOptions,
+          participantCount: data.participantCount,
+          participantNames: names
+        })
+      : calculateOrderAmount({
+          participantCount: data.participantCount,
+          participantNames: names,
+          priceRub: service.localizedPrice,
+          priceUnit: service.priceUnit
+        });
+    const paymentDescription = selectedOptions.length
+      ? `${service.localizedTitle}: ${selectedOptions.map((option) => option.title).join(", ")}`
+      : service.localizedTitle;
     const customerEmail = normalizeOptional(data.customerEmail);
     const customerPhone = normalizePhoneNumber(
       data.customerPhone,
@@ -194,6 +262,7 @@ export async function POST(request: Request) {
         phone: customerPhone,
         referralSlug,
         source: "site",
+        sourceDomain,
         status: ClientFunnelStatus.DID_NOT_BUY,
         telegram: customerTelegram
       });
@@ -211,6 +280,7 @@ export async function POST(request: Request) {
           participantCount: data.participantCount,
           participantsText: data.participantsText,
           publicToken: createOrderPublicToken(),
+          sourceDomain,
           status: initialOrderStatus,
           curator: {
             connect: {
@@ -233,6 +303,28 @@ export async function POST(request: Request) {
               sortOrder: index + 1
             }))
           },
+          serviceOptions: selectedOptions.length
+            ? {
+                create: selectedOptions.map((option, index) => {
+                  const quantity = getPriceUnitQuantity({
+                    participantCount: data.participantCount,
+                    participantNames: names,
+                    priceUnit: option.priceUnit
+                  });
+
+                  return {
+                    descriptionSnapshot: option.description,
+                    optionId: option.id,
+                    priceRubSnapshot: option.priceRub,
+                    priceUnitSnapshot: option.priceUnit,
+                    quantitySnapshot: quantity,
+                    sortOrder: index + 1,
+                    titleSnapshot: option.title,
+                    totalRubSnapshot: option.priceRub * quantity
+                  };
+                })
+              }
+            : undefined,
           payment: {
             create: {
               amountRub,
@@ -269,13 +361,25 @@ export async function POST(request: Request) {
             name: data.customerName,
             phone: customerPhone
           },
-          description: service.localizedTitle,
+          description: paymentDescription,
           failUrl: createResultUrl(
             request.url,
             "/payment/fail",
             order.publicToken
           ),
           orderNumber: order.orderNumber,
+          products: selectedOptions.length
+            ? selectedOptions.map((option) => ({
+                name: option.title,
+                priceRub: option.priceRub,
+                quantity: getPriceUnitQuantity({
+                  participantCount: data.participantCount,
+                  participantNames: names,
+                  priceUnit: option.priceUnit
+                }),
+                vatTaxType: service.vatTaxType
+              }))
+            : undefined,
           provider: paymentProvider.code,
           receiptName: service.receiptName?.trim() || service.localizedTitle,
           successUrl: createResultUrl(
@@ -309,7 +413,12 @@ export async function POST(request: Request) {
         participantCount: data.participantCount,
         participantNames: names,
         locale,
+        selectedOptions: selectedOptions.map((option) => ({
+          priceRub: option.priceRub,
+          title: option.title
+        })),
         serviceTitle: service.localizedTitle,
+        sourceDomain,
         statusText: isCustomPayment
           ? "ожидает проверки оплаты"
           : "ожидает оплаты"

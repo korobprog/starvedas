@@ -70,6 +70,14 @@ const cabinetOrderSelect = Prisma.validator<Prisma.OrderSelect>()({
       title: true
     }
   },
+  serviceOptions: {
+    orderBy: { sortOrder: "asc" },
+    select: {
+      priceRubSnapshot: true,
+      titleSnapshot: true
+    }
+  },
+  sourceDomain: true,
   status: true
 });
 
@@ -183,7 +191,8 @@ function parseParticipantFilters(searchParams: SearchParams | undefined) {
   return {
     dateFrom: dateFrom || "",
     dateTo: dateTo || "",
-    serviceId: firstParam(searchParams?.serviceId) || ""
+    serviceId: firstParam(searchParams?.serviceId) || "",
+    sourceDomain: firstParam(searchParams?.sourceDomain) || ""
   };
 }
 
@@ -211,6 +220,7 @@ function parseClientFilters(searchParams: SearchParams | undefined) {
     dateFrom: dateFrom || "",
     dateTo: dateTo || "",
     serviceId: firstParam(searchParams?.clientServiceId) || "",
+    sourceDomain: firstParam(searchParams?.clientSourceDomain) || "",
     status: parseClientStatus(firstParam(searchParams?.clientStatus))
   };
 }
@@ -235,6 +245,7 @@ function buildParticipantOrderWhere(
     createdAt: Object.keys(createdAt).length ? createdAt : undefined,
     curatorId,
     serviceId: filters.serviceId || undefined,
+    sourceDomain: filters.sourceDomain || undefined,
     status: OrderStatus.PAID
   } satisfies Prisma.OrderWhereInput;
 }
@@ -296,6 +307,14 @@ async function getCabinetParticipantData(
                 title: true
               }
             },
+            serviceOptions: {
+              orderBy: { sortOrder: "asc" },
+              select: {
+                priceRubSnapshot: true,
+                titleSnapshot: true
+              }
+            },
+            sourceDomain: true,
             status: true
           }
         }
@@ -353,6 +372,7 @@ function buildClientWhere(
           }
         }
       : undefined,
+    sourceDomain: filters.sourceDomain || undefined,
     status: filters.status,
     updatedAt: Object.keys(updatedAt).length ? updatedAt : undefined
   } satisfies Prisma.ClientProfileWhereInput;
@@ -406,6 +426,14 @@ async function getCabinetClientData(
                 title: true
               }
             },
+            serviceOptions: {
+              orderBy: { sortOrder: "asc" },
+              select: {
+                priceRubSnapshot: true,
+                titleSnapshot: true
+              }
+            },
+            sourceDomain: true,
             status: true
           },
           take: 1
@@ -413,6 +441,7 @@ async function getCabinetClientData(
         phone: true,
         referralSlug: true,
         source: true,
+        sourceDomain: true,
         status: true,
         telegram: true,
         updatedAt: true
@@ -436,7 +465,10 @@ async function getCabinetClientData(
   ]);
 }
 
-async function getAwaitingCustomOrders(curatorId: string) {
+async function getAwaitingCustomOrders(
+  curatorId: string,
+  filters: ReturnType<typeof parseParticipantFilters>
+) {
   return prisma.order.findMany({
     orderBy: {
       createdAt: "desc"
@@ -462,6 +494,14 @@ async function getAwaitingCustomOrders(curatorId: string) {
           title: true
         }
       },
+      serviceOptions: {
+        orderBy: { sortOrder: "asc" },
+        select: {
+          priceRubSnapshot: true,
+          titleSnapshot: true
+        }
+      },
+      sourceDomain: true,
       status: true
     },
     where: {
@@ -472,6 +512,7 @@ async function getAwaitingCustomOrders(curatorId: string) {
         },
         status: PaymentStatus.AWAITING_VERIFICATION
       },
+      sourceDomain: filters.sourceDomain || undefined,
       status: OrderStatus.WAITING_PAYMENT_VERIFICATION
     }
   });
@@ -541,7 +582,9 @@ export default async function CabinetPage({
       : Promise.resolve([[], []] as Awaited<
           ReturnType<typeof getCabinetClientData>
         >),
-    canViewClients ? getAwaitingCustomOrders(curator.id) : Promise.resolve([]),
+    canViewClients
+      ? getAwaitingCustomOrders(curator.id, participantFilters)
+      : Promise.resolve([]),
     serviceManagementAccess ? getManagedServices() : Promise.resolve([])
   ]);
   const enabledPaymentSettings = paymentSettings.filter(
@@ -859,7 +902,18 @@ export default async function CabinetPage({
                             <br />
                             {formatContacts(order) || "Контакты не указаны"}
                           </td>
-                          <td>{order.service.title}</td>
+                          <td>
+                            {order.service.title}
+                            {order.serviceOptions.length ? (
+                              <ul className="rite-summary-list">
+                                {order.serviceOptions.map((option) => (
+                                  <li key={option.titleSnapshot}>
+                                    {option.titleSnapshot}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+                          </td>
                           <td>
                             {formatMoney(order.amountRub, order.currency)}
                           </td>
@@ -937,6 +991,19 @@ export default async function CabinetPage({
                   <select defaultValue={OrderStatus.PAID} disabled>
                     <option value={OrderStatus.PAID}>
                       {formatStatus(OrderStatus.PAID)}
+                    </option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Источник</span>
+                  <select
+                    defaultValue={participantFilters.sourceDomain}
+                    name="sourceDomain"
+                  >
+                    <option value="">Все источники</option>
+                    <option value="starvedas.ru">starvedas.ru</option>
+                    <option value="chintamanidhama.ru">
+                      chintamanidhama.ru
                     </option>
                   </select>
                 </label>
@@ -1019,6 +1086,19 @@ export default async function CabinetPage({
                     ))}
                   </select>
                 </label>
+                <label className="field">
+                  <span>Источник</span>
+                  <select
+                    defaultValue={clientFilters.sourceDomain}
+                    name="clientSourceDomain"
+                  >
+                    <option value="">Все источники</option>
+                    <option value="starvedas.ru">starvedas.ru</option>
+                    <option value="chintamanidhama.ru">
+                      chintamanidhama.ru
+                    </option>
+                  </select>
+                </label>
                 <div className="filter-form__actions">
                   <button className="button button--primary" type="submit">
                     Применить фильтры
@@ -1060,7 +1140,18 @@ export default async function CabinetPage({
                       <tr key={order.id}>
                         <td>#{order.orderNumber}</td>
                         <td>{order.customerName}</td>
-                        <td>{order.service.title}</td>
+                        <td>
+                          {order.service.title}
+                          {order.serviceOptions.length ? (
+                            <ul className="rite-summary-list">
+                              {order.serviceOptions.map((option) => (
+                                <li key={option.titleSnapshot}>
+                                  {option.titleSnapshot}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
+                        </td>
                         <td>{formatMoney(order.amountRub, order.currency)}</td>
                         <td>
                           {formatStatus(order.status)} /{" "}

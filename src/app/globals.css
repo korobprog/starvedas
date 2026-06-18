@@ -1909,3 +1909,51 @@ select {
   display: grid;
   gap: 0.5rem;
 }
+
+.rite-options-editor {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(99, 71, 45, 0.16);
+}
+
+.rite-option-card {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  border: 1px solid rgba(99, 71, 45, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.rite-option-card.is-deleted {
+  background: rgba(130, 70, 45, 0.08);
+}
+
+.rite-choice-list {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.rite-choice-card {
+  align-items: flex-start;
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: auto 1fr;
+}
+
+.rite-choice-card input {
+  margin-top: 0.25rem;
+}
+
+.rite-choice-card small,
+.rite-summary-list {
+  grid-column: 2;
+}
+
+.rite-summary-list {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}

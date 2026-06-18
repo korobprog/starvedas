@@ -13,7 +13,12 @@ type OrderCreatedNotificationInput = {
   orderNumber: number;
   participantCount: number;
   participantNames: string[];
+  selectedOptions?: Array<{
+    priceRub: number;
+    title: string;
+  }>;
   serviceTitle: string;
+  sourceDomain?: string;
   statusText?: string;
   locale?: string | null;
 };
@@ -63,7 +68,9 @@ function formatOrderCreatedMessage(input: OrderCreatedNotificationInput) {
     `Telegram: ${formatOptional(input.customerTelegram)}`,
     `Телефон: ${formatOptional(input.customerPhone)}`,
     `Email: ${formatOptional(input.customerEmail)}`
-  ].join("\n");
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
 }
 
 async function sendTelegramMessage(text: string) {

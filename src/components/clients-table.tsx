@@ -32,11 +32,17 @@ export type ClientTableRow = {
     service: {
       title: string;
     };
+    serviceOptions?: Array<{
+      priceRubSnapshot: number;
+      titleSnapshot: string;
+    }>;
+    sourceDomain?: string | null;
     status: string;
   }>;
   phone: string | null;
   referralSlug: string | null;
   source: string;
+  sourceDomain?: string | null;
   status: string;
   telegram: string | null;
   updatedAt: Date;
@@ -139,6 +145,19 @@ export function ClientsTable({
                     {lastOrder ? (
                       <>
                         #{lastOrder.orderNumber}, {lastOrder.service.title}
+                        {lastOrder.serviceOptions?.length ? (
+                          <ul className="rite-summary-list">
+                            {lastOrder.serviceOptions.map((option) => (
+                              <li key={option.titleSnapshot}>
+                                {option.titleSnapshot} ?{" "}
+                                {formatMoney(
+                                  option.priceRubSnapshot,
+                                  lastOrder.currency
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
                         <br />
                         {formatMoney(
                           lastOrder.amountRub,
@@ -155,7 +174,7 @@ export function ClientsTable({
                     )}
                   </td>
                   <td>
-                    {client.source}
+                    {client.sourceDomain ?? client.source}
                     {client.referralSlug ? ` / ${client.referralSlug}` : ""}
                   </td>
                   <td>{formatDate(getStatusDate(client))}</td>

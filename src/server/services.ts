@@ -26,7 +26,26 @@ const publicServiceSelect = {
   slug: true,
   title: true,
   titleEn: true,
-  titleHi: true
+  titleHi: true,
+  options: {
+    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+    select: {
+      description: true,
+      descriptionEn: true,
+      descriptionHi: true,
+      id: true,
+      priceInr: true,
+      priceRub: true,
+      priceUnit: true,
+      priceUsd: true,
+      title: true,
+      titleEn: true,
+      titleHi: true
+    },
+    where: {
+      active: true
+    }
+  }
 } satisfies Prisma.ServiceSelect;
 
 const orderServiceSelect = {
@@ -56,7 +75,30 @@ const managedServiceSelect = {
   sortOrder: true,
   title: true,
   titleEn: true,
-  titleHi: true
+  titleHi: true,
+  options: {
+    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+    select: {
+      _count: {
+        select: {
+          orderItems: true
+        }
+      },
+      active: true,
+      description: true,
+      descriptionEn: true,
+      descriptionHi: true,
+      id: true,
+      priceInr: true,
+      priceRub: true,
+      priceUnit: true,
+      priceUsd: true,
+      sortOrder: true,
+      title: true,
+      titleEn: true,
+      titleHi: true
+    }
+  }
 } satisfies Prisma.ServiceSelect;
 
 type PublicServiceRow = Prisma.ServiceGetPayload<{
@@ -119,6 +161,41 @@ function getLocalizedDescription(service: PublicServiceRow, locale: Locale) {
   return service.description || "";
 }
 
+function getLocalizedOptionTitle(
+  option: PublicServiceRow["options"][number],
+  locale: Locale
+) {
+  if (locale === "en") {
+    return option.titleEn?.trim() || option.title;
+  }
+
+  if (locale === "hi") {
+    return option.titleHi?.trim() || option.titleEn?.trim() || option.title;
+  }
+
+  return option.title;
+}
+
+function getLocalizedOptionDescription(
+  option: PublicServiceRow["options"][number],
+  locale: Locale
+) {
+  if (locale === "en") {
+    return option.descriptionEn?.trim() || option.description || "";
+  }
+
+  if (locale === "hi") {
+    return (
+      option.descriptionHi?.trim() ||
+      option.descriptionEn?.trim() ||
+      option.description ||
+      ""
+    );
+  }
+
+  return option.description || "";
+}
+
 function getLocalizedPrice(service: PublicServiceRow, currency: Currency) {
   if (currency === "USD") {
     return (
@@ -135,6 +212,27 @@ function getLocalizedPrice(service: PublicServiceRow, currency: Currency) {
   }
 
   return service.priceRub;
+}
+
+function getLocalizedOptionPrice(
+  option: PublicServiceRow["options"][number],
+  currency: Currency
+) {
+  if (currency === "USD") {
+    return (
+      option.priceUsd ??
+      Math.round(convertRubToCurrency(option.priceRub, currency))
+    );
+  }
+
+  if (currency === "INR") {
+    return (
+      option.priceInr ??
+      Math.round(convertRubToCurrency(option.priceRub, currency))
+    );
+  }
+
+  return option.priceRub;
 }
 
 function createPriceLabel(
@@ -159,6 +257,24 @@ function toSiteService(
   return {
     currency,
     description: getLocalizedDescription(service, locale),
+    options: service.options.map((option) => {
+      const optionPriceAmount = getLocalizedOptionPrice(option, currency);
+
+      return {
+        currency,
+        description: getLocalizedOptionDescription(option, locale),
+        id: option.id,
+        priceAmount: optionPriceAmount,
+        priceLabel: createPriceLabel(
+          optionPriceAmount,
+          currency,
+          option.priceUnit
+        ),
+        priceRub: option.priceRub,
+        priceUnit: option.priceUnit,
+        title: getLocalizedOptionTitle(option, locale)
+      };
+    }),
     priceAmount,
     priceLabel: createPriceLabel(priceAmount, currency, service.priceUnit),
     priceRub: service.priceRub,
