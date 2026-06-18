@@ -12,6 +12,8 @@ const optionalText = z
   .max(5000)
   .transform((value) => value || null);
 
+const prodamusVatTaxTypes = [0, 1, 2, 4, 6, 7, 10, 11, 12, 13, 14, 15];
+
 const serviceBaseSchema = z.object({
   active: z.boolean(),
   description: optionalText,
@@ -19,6 +21,7 @@ const serviceBaseSchema = z.object({
   descriptionHi: optionalText,
   priceInr: z.coerce.number().int().min(0).max(100_000_000).nullable(),
   priceRub: z.coerce.number().int().min(0).max(100_000_000),
+  receiptName: z.string().trim().min(2).max(200).nullable(),
   priceUsd: z.coerce.number().int().min(0).max(100_000_000).nullable(),
   priceUnit: z.enum(["PER_ORDER", "PER_PARTICIPANT", "PER_NAME"]),
   requiresExactParticipantList: z.boolean(),
@@ -26,7 +29,11 @@ const serviceBaseSchema = z.object({
   sortOrder: z.coerce.number().int().min(-100_000).max(100_000),
   title: z.string().trim().min(2).max(200),
   titleEn: optionalText,
-  titleHi: optionalText
+  titleHi: optionalText,
+  vatTaxType: z.coerce
+    .number()
+    .int()
+    .refine((value) => prodamusVatTaxTypes.includes(value))
 });
 
 const serviceUpdateSchema = serviceBaseSchema.extend({
@@ -56,6 +63,7 @@ function parseServiceFormData(formData: FormData) {
     priceInr: formData.get("priceInr") || null,
     priceRub: formData.get("priceRub") ?? 0,
     priceUsd: formData.get("priceUsd") || null,
+    receiptName: formData.get("receiptName") || formData.get("title"),
     priceUnit: formData.get("priceUnit") ?? "PER_PARTICIPANT",
     requiresExactParticipantList:
       formData.get("requiresExactParticipantList") === "on",
@@ -63,7 +71,8 @@ function parseServiceFormData(formData: FormData) {
     sortOrder: formData.get("sortOrder") ?? 0,
     title: formData.get("title"),
     titleEn: formData.get("titleEn") ?? "",
-    titleHi: formData.get("titleHi") ?? ""
+    titleHi: formData.get("titleHi") ?? "",
+    vatTaxType: formData.get("vatTaxType") ?? 0
   });
 
   if (!parsed.success) {
@@ -92,6 +101,7 @@ function parseServiceUpdateFormData(formData: FormData) {
     priceInr: formData.get("priceInr") || null,
     priceRub: formData.get("priceRub") ?? 0,
     priceUsd: formData.get("priceUsd") || null,
+    receiptName: formData.get("receiptName") || formData.get("title"),
     priceUnit: formData.get("priceUnit") ?? "PER_PARTICIPANT",
     requiresExactParticipantList:
       formData.get("requiresExactParticipantList") === "on",
@@ -99,7 +109,8 @@ function parseServiceUpdateFormData(formData: FormData) {
     sortOrder: formData.get("sortOrder") ?? 0,
     title: formData.get("title"),
     titleEn: formData.get("titleEn") ?? "",
-    titleHi: formData.get("titleHi") ?? ""
+    titleHi: formData.get("titleHi") ?? "",
+    vatTaxType: formData.get("vatTaxType") ?? 0
   });
 
   if (!parsed.success) {
@@ -168,12 +179,14 @@ export async function updateService(formData: FormData) {
         priceRub: data.priceRub,
         priceUsd: data.priceUsd,
         priceUnit: data.priceUnit,
+        receiptName: data.receiptName,
         requiresExactParticipantList: data.requiresExactParticipantList,
         slug: data.slug,
         sortOrder: data.sortOrder,
         title: data.title,
         titleEn: data.titleEn,
-        titleHi: data.titleHi
+        titleHi: data.titleHi,
+        vatTaxType: data.vatTaxType
       }
     });
   } catch (error) {

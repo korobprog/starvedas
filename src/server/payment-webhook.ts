@@ -186,12 +186,21 @@ export async function handlePaymentWebhook({
     select: {
       id: true,
       leadStatus: true,
+      payment: {
+        select: {
+          status: true
+        }
+      },
       status: true
     }
   });
 
   if (!order) {
     return NextResponse.json({ message: "Order not found" }, { status: 404 });
+  }
+
+  if (order.payment?.status === paymentStatus) {
+    return NextResponse.json({ duplicate: true, ok: true });
   }
 
   await prisma.$transaction(async (tx) => {

@@ -21,35 +21,45 @@ const services = [
   {
     title: "Абонемент на месяц",
     slug: "monthly-pass",
-    description: "Регулярное участие в церемониях в течение месяца.",
+    description: "Регулярное участие в онлайн-церемониях в течение месяца.",
+    receiptName: "Абонемент на участие в онлайн-церемониях",
+    vatTaxType: 0,
     priceRub: 6000,
     priceUnit: PriceUnit.PER_PARTICIPANT
   },
   {
     title: "Марафон, тариф 2500",
     slug: "marathon-2500",
-    description: "Название и описание марафона нужно уточнить перед запуском.",
+    description: "Участие в марафоне практик по базовому тарифу.",
+    receiptName: "Участие в марафоне практик",
+    vatTaxType: 0,
     priceRub: 2500,
     priceUnit: PriceUnit.PER_PARTICIPANT
   },
   {
     title: "Марафон, тариф 3500",
     slug: "marathon-3500",
-    description: "Название и описание марафона нужно уточнить перед запуском.",
+    description: "Участие в марафоне практик по стандартному тарифу.",
+    receiptName: "Участие в марафоне практик",
+    vatTaxType: 0,
     priceRub: 3500,
     priceUnit: PriceUnit.PER_PARTICIPANT
   },
   {
     title: "Марафон, тариф 4500",
     slug: "marathon-4500",
-    description: "Название и описание марафона нужно уточнить перед запуском.",
+    description: "Участие в марафоне практик по расширенному тарифу.",
+    receiptName: "Участие в марафоне практик",
+    vatTaxType: 0,
     priceRub: 4500,
     priceUnit: PriceUnit.PER_PARTICIPANT
   },
   {
     title: "Один обряд",
     slug: "single-rite",
-    description: "Разовое участие в выбранной церемонии.",
+    description: "Разовое участие в выбранной онлайн-церемонии.",
+    receiptName: "Разовое участие в онлайн-церемонии",
+    vatTaxType: 0,
     priceRub: 1200,
     priceUnit: PriceUnit.PER_PARTICIPANT
   },
@@ -57,13 +67,18 @@ const services = [
     title: "Абхишека",
     slug: "abhisheka",
     description: "Участие в абхишеке с указанием списка участников.",
+    receiptName: "Участие в онлайн-церемонии абхишека",
+    vatTaxType: 0,
     priceRub: 1000,
     priceUnit: PriceUnit.PER_PARTICIPANT
   },
   {
     title: "Шраддха ягья (за каждого участника)",
     slug: "shraddha-name",
-    description: "Стоимость рассчитывается за каждого участника.",
+    description:
+      "Участие в шраддха ягьи, стоимость рассчитывается за каждого участника.",
+    receiptName: "Участие в онлайн-церемонии шраддха ягья",
+    vatTaxType: 0,
     priceRub: 250,
     priceUnit: PriceUnit.PER_NAME
   }

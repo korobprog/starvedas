@@ -31,7 +31,7 @@ export const services = [
   {
     title: "Абонемент на месяц",
     slug: "monthly-pass",
-    description: "Регулярное участие в церемониях в течение месяца.",
+    description: "Регулярное участие в онлайн-церемониях в течение месяца.",
     priceRub: 6000,
     currency: "RUB",
     priceAmount: 6000,
@@ -41,8 +41,7 @@ export const services = [
   {
     title: "Марафон, тариф 2500",
     slug: "marathon-2500",
-    description:
-      "Формат участия в серии практик. Названия тарифов будут уточнены.",
+    description: "Участие в марафоне практик по базовому тарифу.",
     priceRub: 2500,
     currency: "RUB",
     priceAmount: 2500,
@@ -52,8 +51,7 @@ export const services = [
   {
     title: "Марафон, тариф 3500",
     slug: "marathon-3500",
-    description:
-      "Формат участия в серии практик. Названия тарифов будут уточнены.",
+    description: "Участие в марафоне практик по стандартному тарифу.",
     priceRub: 3500,
     currency: "RUB",
     priceAmount: 3500,
@@ -63,8 +61,7 @@ export const services = [
   {
     title: "Марафон, тариф 4500",
     slug: "marathon-4500",
-    description:
-      "Формат участия в серии практик. Названия тарифов будут уточнены.",
+    description: "Участие в марафоне практик по расширенному тарифу.",
     priceRub: 4500,
     currency: "RUB",
     priceAmount: 4500,
@@ -74,7 +71,7 @@ export const services = [
   {
     title: "Один обряд",
     slug: "single-rite",
-    description: "Разовое участие в выбранной церемонии.",
+    description: "Разовое участие в выбранной онлайн-церемонии.",
     priceRub: 1200,
     currency: "RUB",
     priceAmount: 1200,
@@ -94,7 +91,8 @@ export const services = [
   {
     title: "Шраддха ягья (за каждого участника)",
     slug: "shraddha-name",
-    description: "Стоимость рассчитывается за каждого участника.",
+    description:
+      "Участие в шраддха ягьи, стоимость рассчитывается за каждого участника.",
     priceRub: 250,
     currency: "RUB",
     priceAmount: 250,

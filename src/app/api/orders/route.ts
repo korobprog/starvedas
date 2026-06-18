@@ -34,7 +34,9 @@ function createProviderPaymentUrl({
   failUrl,
   orderNumber,
   provider,
-  successUrl
+  receiptName,
+  successUrl,
+  vatTaxType
 }: {
   amountRub: number;
   customer: {
@@ -46,7 +48,9 @@ function createProviderPaymentUrl({
   failUrl?: string;
   orderNumber: number;
   provider: string;
+  receiptName: string;
   successUrl?: string;
+  vatTaxType: number;
 }) {
   if (provider !== "prodamus") {
     throw new Error("Unsupported payment provider");
@@ -58,7 +62,9 @@ function createProviderPaymentUrl({
     description,
     failUrl,
     orderNumber,
-    successUrl
+    receiptName,
+    successUrl,
+    vatTaxType
   });
 }
 
@@ -271,11 +277,13 @@ export async function POST(request: Request) {
           ),
           orderNumber: order.orderNumber,
           provider: paymentProvider.code,
+          receiptName: service.receiptName?.trim() || service.localizedTitle,
           successUrl: createResultUrl(
             request.url,
             "/payment/success",
             order.publicToken
-          )
+          ),
+          vatTaxType: service.vatTaxType
         });
 
     await prisma.payment.update({
