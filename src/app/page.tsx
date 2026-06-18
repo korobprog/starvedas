@@ -53,7 +53,7 @@ async function getAssignedCurator(referralSlug?: string) {
 export default async function Home({
   searchParams
 }: {
-  searchParams: Promise<{ ref?: string }>;
+  searchParams: Promise<{ ref?: string; service?: string }>;
 }) {
   const cookieStore = await cookies();
   const params = await searchParams;
@@ -71,6 +71,11 @@ export default async function Home({
     assignedCurator.id,
     locale
   );
+  const initialServiceSlug = availableServices.some(
+    (service) => service.slug === params.service
+  )
+    ? params.service
+    : undefined;
 
   return (
     <main className="page-shell">
@@ -216,6 +221,7 @@ export default async function Home({
             </div>
             <SignupForm
               assignedCurator={assignedCurator}
+              initialServiceSlug={initialServiceSlug}
               locale={locale}
               paymentProviders={paymentProviders}
               referralSlug={referralSlug ?? assignedCurator.slug}

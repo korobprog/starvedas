@@ -303,12 +303,14 @@ function PaymentInstructionsBox({
 
 export function SignupForm({
   assignedCurator,
+  initialServiceSlug,
   locale,
   paymentProviders,
   referralSlug,
   services
 }: {
   assignedCurator: AssignedCurator;
+  initialServiceSlug?: string;
   locale?: string | null;
   paymentProviders: PaymentProviderOption[];
   referralSlug?: string | null;
@@ -316,7 +318,9 @@ export function SignupForm({
 }) {
   const copy = getSignupCopy(locale);
   const [step, setStep] = useState(0);
-  const [serviceSlug, setServiceSlug] = useState(services[0].slug);
+  const [serviceSlug, setServiceSlug] = useState(
+    initialServiceSlug ?? services[0].slug
+  );
   const [selectedServiceOptionIds, setSelectedServiceOptionIds] = useState<
     string[]
   >([]);
