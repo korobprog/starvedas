@@ -128,10 +128,17 @@ export default async function Home({
           </div>
           <div className="card-grid">
             {availableServices.map((service) => (
-              <a className="card card--link" href="#signup" key={service.title}>
+              <a
+                className="card card--link"
+                href={`?service=${encodeURIComponent(service.slug)}#signup`}
+                key={service.title}
+              >
                 <h3>{service.title}</h3>
                 <p>{service.description}</p>
                 <span className="price">{service.priceLabel}</span>
+                {service.options.length > 0 && (
+                  <small>Выбрать обряды списком</small>
+                )}
               </a>
             ))}
           </div>

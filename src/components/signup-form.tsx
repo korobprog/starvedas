@@ -438,6 +438,27 @@ export function SignupForm({
       : copy.actions.continue;
 
   useEffect(() => {
+    const requestedServiceSlug = new URLSearchParams(
+      window.location.search
+    ).get("service");
+
+    if (!requestedServiceSlug) {
+      return;
+    }
+
+    if (!services.some((service) => service.slug === requestedServiceSlug)) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setServiceSlug(requestedServiceSlug);
+      setSelectedServiceOptionIds([]);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [services]);
+
+  useEffect(() => {
     void fetch("/api/client-events", {
       method: "POST",
       headers: {
