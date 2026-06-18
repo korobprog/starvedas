@@ -1,4 +1,4 @@
-﻿-- Add editable rite cards inside services and snapshot selected cards in orders.
+-- Add editable rite cards inside services and snapshot selected cards in orders.
 ALTER TABLE "ClientProfile" ADD COLUMN "sourceDomain" TEXT NOT NULL DEFAULT 'starvedas.ru';
 ALTER TABLE "Order" ADD COLUMN "sourceDomain" TEXT NOT NULL DEFAULT 'starvedas.ru';
 
