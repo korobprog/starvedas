@@ -19,7 +19,7 @@ const copies: Record<Locale, PrivacyCopy> = {
       contacts: "Контакты",
       signup: "Вернуться к записи"
     },
-    lead: "Настоящая Политика определяет порядок обработки персональных данных и меры по обеспечению их безопасности при использовании сайта https://starvedas.ru, в том числе при оформлении заявки на участие в церемониях.",
+    lead: "Настоящая Политика определяет порядок обработки персональных данных и меры по обеспечению их безопасности при использовании сайта https://starvedas.ru или https://chintamanidhama.ru, в том числе при оформлении заявки на участие в церемониях.",
     pageTitle: "Политика в отношении обработки персональных данных",
     sections: [
       {
@@ -27,7 +27,7 @@ const copies: Record<Locale, PrivacyCopy> = {
         body: [
           "Настоящая Политика в отношении обработки персональных данных (далее — «Политика») составлена в соответствии с требованиями Федерального закона от 27.07.2006 № 152-ФЗ «О персональных данных» (далее — «Закон о персональных данных») и определяет порядок обработки персональных данных и меры по обеспечению безопасности персональных данных, предпринимаемые {{seller}} (далее — «Оператор»).",
           "Оператор ставит своей важнейшей целью и условием осуществления своей деятельности соблюдение прав и свобод человека и гражданина при обработке его персональных данных, в том числе защиту прав на неприкосновенность частной жизни, личную и семейную тайну.",
-          "Настоящая Политика применяется ко всей информации, которую Оператор может получить о посетителях веб-сайта https://starvedas.ru (далее — «Сайт»), включая лиц, оформляющих заявки на участие в церемониях, лекциях и видеоконсультациях."
+          "Настоящая Политика применяется ко всей информации, которую Оператор может получить о посетителях веб-сайта https://starvedas.ru или https://chintamanidhama.ru (далее — «Сайт»), включая лиц, оформляющих заявки на участие в церемониях, лекциях и видеоконсультациях."
         ]
       },
       {
@@ -35,7 +35,7 @@ const copies: Record<Locale, PrivacyCopy> = {
         body: [
           "Автоматизированная обработка персональных данных — обработка персональных данных с помощью средств вычислительной техники. Блокирование персональных данных — временное прекращение обработки персональных данных (за исключением случаев, если обработка необходима для уточнения персональных данных). Информационная система персональных данных — совокупность содержащихся в базах данных персональных данных и обеспечивающих их обработку информационных технологий и технических средств. Обезличивание персональных данных — действия, в результате которых становится невозможным без использования дополнительной информации определить принадлежность персональных данных конкретному пользователю или иному субъекту персональных данных.",
           "Обработка персональных данных — любое действие (операция) или совокупность действий (операций), совершаемых с использованием средств автоматизации или без использования таких средств с персональными данными, включая сбор, запись, систематизацию, накопление, хранение, уточнение (обновление, изменение), извлечение, использование, передачу (распространение, предоставление, доступ), обезличивание, блокирование, удаление и уничтожение персональных данных. Оператор — лицо, самостоятельно или совместно с другими лицами организующее и (или) осуществляющее обработку персональных данных, а также определяющее цели обработки, состав персональных данных, подлежащих обработке, и совершаемые с ними действия.",
-          "Персональные данные — любая информация, относящаяся прямо или косвенно к определенному или определяемому пользователю Сайта. Пользователь — любой посетитель Сайта https://starvedas.ru, в том числе лицо, оформляющее заявку на участие в церемонии. Предоставление персональных данных — действия, направленные на раскрытие персональных данных определенному лицу или определенному кругу лиц. Распространение персональных данных — любые действия, направленные на раскрытие персональных данных неопределенному кругу лиц.",
+          "Персональные данные — любая информация, относящаяся прямо или косвенно к определенному или определяемому пользователю Сайта. Пользователь — любой посетитель Сайта https://starvedas.ru или https://chintamanidhama.ru, в том числе лицо, оформляющее заявку на участие в церемонии. Предоставление персональных данных — действия, направленные на раскрытие персональных данных определенному лицу или определенному кругу лиц. Распространение персональных данных — любые действия, направленные на раскрытие персональных данных неопределенному кругу лиц.",
           "Трансграничная передача персональных данных — передача персональных данных на территорию иностранного государства органу власти иностранного государства, иностранному физическому или иностранному юридическому лицу. Уничтожение персональных данных — любые действия, в результате которых персональные данные уничтожаются безвозвратно с невозможностью восстановления их содержания в информационной системе персональных данных и (или) уничтожаются материальные носители персональных данных."
         ]
       },
@@ -110,7 +110,7 @@ const copies: Record<Locale, PrivacyCopy> = {
         title: "12. Права пользователя и заключительные положения",
         body: [
           "Пользователь может в любой момент отозвать свое согласие на обработку персональных данных, направив Оператору уведомление по электронной почте на адрес {{email}} с пометкой «Отзыв согласия на обработку персональных данных», а также получить любые разъяснения по интересующим вопросам, касающимся обработки его персональных данных, обратившись к Оператору по тому же адресу.",
-          "Любые изменения настоящей Политики будут отражены в данном документе. Политика действует бессрочно до замены ее новой версией. Актуальная версия Политики в свободном доступе расположена в сети Интернет по адресу https://starvedas.ru/legal/privacy.",
+          "Любые изменения настоящей Политики будут отражены в данном документе. Политика действует бессрочно до замены ее новой версией. Актуальная версия Политики в свободном доступе расположена в сети Интернет по адресу https://starvedas.ru/legal/privacy и https://chintamanidhama.ru/legal/privacy.",
           "Сведения об Операторе: {{seller}}, ИНН {{inn}}, адрес местонахождения: {{address}}. Контактный адрес электронной почты: {{email}}."
         ]
       }
@@ -121,7 +121,7 @@ const copies: Record<Locale, PrivacyCopy> = {
       contacts: "Contacts",
       signup: "Back to signup"
     },
-    lead: "This Policy sets out how personal data is processed and protected when using the website https://starvedas.ru, including when submitting a request to take part in a ceremony.",
+    lead: "This Policy sets out how personal data is processed and protected when using the websites https://starvedas.ru and https://chintamanidhama.ru, including when submitting a request to take part in a ceremony.",
     pageTitle: "Personal data processing policy",
     sections: [
       {
@@ -129,7 +129,7 @@ const copies: Record<Locale, PrivacyCopy> = {
         body: [
           'This personal data processing policy (the "Policy") is prepared in accordance with Federal Law No. 152-FZ of 27.07.2006 "On Personal Data" (the "Personal Data Law") and sets out the procedure for processing personal data and the measures taken by {{seller}} (the "Operator") to ensure their security.',
           "The Operator's most important goal and condition for carrying out its activities is to respect the rights and freedoms of individuals when processing their personal data, including the protection of the right to privacy and personal and family secrets.",
-          "This Policy applies to all information the Operator may obtain about visitors of the website https://starvedas.ru (the \"Site\"), including individuals submitting requests to participate in ceremonies, lectures and video consultations."
+          "This Policy applies to all information the Operator may obtain about visitors of the website https://starvedas.ru or https://chintamanidhama.ru (the \"Site\"), including individuals submitting requests to participate in ceremonies, lectures and video consultations."
         ]
       },
       {
@@ -137,7 +137,7 @@ const copies: Record<Locale, PrivacyCopy> = {
         body: [
           'Automated processing of personal data means processing of personal data using computer technology. Blocking of personal data means temporary suspension of processing (except where processing is required to clarify the data). A personal data information system is a set of personal data contained in databases together with the information technologies and technical means that ensure its processing. De-identification means actions that make it impossible, without additional information, to determine that personal data belongs to a specific user or other data subject.',
           'Processing of personal data means any action or set of actions performed with personal data, with or without automation, including collection, recording, systematization, accumulation, storage, clarification, extraction, use, transfer (distribution, provision, access), de-identification, blocking, deletion and destruction. The Operator is the person who, alone or jointly with others, organizes and/or carries out the processing of personal data and determines the purposes of processing, the categories of personal data to be processed and the actions performed with them.',
-          'Personal data means any information relating directly or indirectly to an identified or identifiable user of the Site. A "User" is any visitor of https://starvedas.ru, including a person submitting a request to participate in a ceremony. "Provision" of personal data means actions aimed at disclosing personal data to a specific person or a specific group of persons. "Distribution" of personal data means any actions aimed at disclosing personal data to an indefinite group of persons.',
+          'Personal data means any information relating directly or indirectly to an identified or identifiable user of the Site. A "User" is any visitor of https://starvedas.ru or https://chintamanidhama.ru, including a person submitting a request to participate in a ceremony. "Provision" of personal data means actions aimed at disclosing personal data to a specific person or a specific group of persons. "Distribution" of personal data means any actions aimed at disclosing personal data to an indefinite group of persons.',
           'Cross-border transfer of personal data means the transfer of personal data to the territory of a foreign state to an authority of a foreign state, a foreign individual or a foreign legal entity. "Destruction" of personal data means any actions as a result of which personal data is irrevocably destroyed with no possibility of restoring its content in the personal data information system and/or the physical media containing personal data are destroyed.'
         ]
       },
@@ -212,7 +212,7 @@ const copies: Record<Locale, PrivacyCopy> = {
         title: "12. User rights and final provisions",
         body: [
           "The user may withdraw their consent to the processing of personal data at any time by sending the Operator a notice by email to {{email}} marked \"Withdrawal of consent to personal data processing\", and may also obtain any clarification regarding the processing of their personal data by contacting the Operator at the same address.",
-          "Any changes to this Policy will be reflected in this document. The Policy is valid indefinitely until replaced by a new version. The current version of the Policy is freely available on the Internet at https://starvedas.ru/legal/privacy.",
+          "Any changes to this Policy will be reflected in this document. The Policy is valid indefinitely until replaced by a new version. The current version of the Policy is freely available on the Internet at https://starvedas.ru/legal/privacy and https://chintamanidhama.ru/legal/privacy.",
           "Operator details: {{seller}}, Tax ID {{inn}}, registered address: {{address}}. Contact email: {{email}}."
         ]
       }
@@ -223,7 +223,7 @@ const copies: Record<Locale, PrivacyCopy> = {
       contacts: "संपर्क",
       signup: "बुकिंग पर वापस"
     },
-    lead: "यह नीति बताती है कि साइट https://starvedas.ru का उपयोग करते समय, जिसमें किसी समारोह में भागीदारी हेतु अनुरोध जमा करना शामिल है, व्यक्तिगत डेटा को कैसे प्रोसेस और सुरक्षित किया जाता है.",
+    lead: "यह नीति बताती है कि साइट https://starvedas.ru या https://chintamanidhama.ru का उपयोग करते समय, जिसमें किसी समारोह में भागीदारी हेतु अनुरोध जमा करना शामिल है, व्यक्तिगत डेटा को कैसे प्रोसेस और सुरक्षित किया जाता है.",
     pageTitle: "व्यक्तिगत डेटा प्रोसेसिंग नीति",
     sections: [
       {
@@ -231,7 +231,7 @@ const copies: Record<Locale, PrivacyCopy> = {
         body: [
           'यह व्यक्तिगत डेटा प्रोसेसिंग नीति ("नीति") 27.07.2006 के संघीय कानून संख्या 152-FZ "व्यक्तिगत डेटा के बारे में" ("व्यक्तिगत डेटा कानून") के अनुसार तैयार की गई है और {{seller}} ("ऑपरेटर") द्वारा व्यक्तिगत डेटा प्रोसेसिंग प्रक्रिया और उसकी सुरक्षा सुनिश्चित करने के उपायों को परिभाषित करती है.',
           "ऑपरेटर का सबसे महत्वपूर्ण लक्ष्य व्यक्तिगत डेटा प्रोसेस करते समय व्यक्ति और नागरिक के अधिकारों और स्वतंत्रताओं का सम्मान करना है, जिसमें निजता, व्यक्तिगत और पारिवारिक रहस्य की सुरक्षा का अधिकार शामिल है.",
-          "यह नीति वेबसाइट https://starvedas.ru (\"साइट\") के आगंतुकों के बारे में ऑपरेटर को मिल सकने वाली सभी जानकारी पर लागू होती है, जिसमें समारोहों, व्याख्यानों और वीडियो परामर्शों में भाग लेने के लिए अनुरोध जमा करने वाले व्यक्ति भी शामिल हैं."
+          "यह नीति वेबसाइट https://starvedas.ru या https://chintamanidhama.ru (\"साइट\") के आगंतुकों के बारे में ऑपरेटर को मिल सकने वाली सभी जानकारी पर लागू होती है, जिसमें समारोहों, व्याख्यानों और वीडियो परामर्शों में भाग लेने के लिए अनुरोध जमा करने वाले व्यक्ति भी शामिल हैं."
         ]
       },
       {
@@ -239,7 +239,7 @@ const copies: Record<Locale, PrivacyCopy> = {
         body: [
           "स्वचालित प्रोसेसिंग का अर्थ है कंप्यूटर तकनीक की सहायता से व्यक्तिगत डेटा को प्रोसेस करना. अवरोधन का अर्थ है प्रोसेसिंग का अस्थायी निलंबन (उन मामलों को छोड़कर जहाँ डेटा स्पष्ट करने के लिए प्रोसेसिंग आवश्यक हो). व्यक्तिगत डेटा सूचना प्रणाली डेटाबेस में निहित व्यक्तिगत डेटा और उसकी प्रोसेसिंग सुनिश्चित करने वाली सूचना प्रौद्योगिकियों और तकनीकी साधनों का समूह है. अनाम करण का अर्थ है ऐसी कार्रवाइयाँ जिनके परिणामस्वरूप अतिरिक्त जानकारी के बिना यह निर्धारित करना असंभव हो जाता है कि व्यक्तिगत डेटा किसी विशिष्ट उपयोगकर्ता या अन्य विषय से संबंधित है.",
           "व्यक्तिगत डेटा प्रोसेसिंग का अर्थ है व्यक्तिगत डेटा के साथ की गई कोई भी कार्रवाई या कार्रवाइयों का समूह, चाहे स्वचालन के साथ हो या उसके बिना, जिसमें संग्रह, रिकॉर्डिंग, व्यवस्थितकरण, संचय, भंडारण, स्पष्टीकरण, निष्कर्षण, उपयोग, स्थानांतरण (वितरण, प्रावधान, पहुँच), अनाम करण, अवरोधन, हटाना और नष्ट करना शामिल है. ऑपरेटर वह व्यक्ति है जो अकेले या अन्य व्यक्तियों के साथ मिलकर व्यक्तिगत डेटा की प्रोसेसिंग का आयोजन और/या संचालन करता है और प्रोसेसिंग के उद्देश्यों, प्रोसेस किए जाने वाले व्यक्तिगत डेटा की संरचना और उसके साथ की जाने वाली कार्रवाइयों को निर्धारित करता है.",
-          "व्यक्तिगत डेटा कोई भी जानकारी है जो साइट के किसी पहचाने गए या पहचाने जाने योग्य उपयोगकर्ता से प्रत्यक्ष या अप्रत्यक्ष रूप से संबंधित है. \"उपयोगकर्ता\" https://starvedas.ru का कोई भी आगंतुक है, जिसमें समारोह में भागीदारी के लिए अनुरोध जमा करने वाला व्यक्ति भी शामिल है. व्यक्तिगत डेटा का \"प्रावधान\" किसी विशिष्ट व्यक्ति या व्यक्तियों के विशिष्ट समूह को व्यक्तिगत डेटा प्रकट करने की दिशा में की गई कार्रवाइयाँ हैं. व्यक्तिगत डेटा का \"वितरण\" व्यक्तियों के अनिश्चित समूह को व्यक्तिगत डेटा प्रकट करने की दिशा में की गई कोई भी कार्रवाई है.",
+          "व्यक्तिगत डेटा कोई भी जानकारी है जो साइट के किसी पहचाने गए या पहचाने जाने योग्य उपयोगकर्ता से प्रत्यक्ष या अप्रत्यक्ष रूप से संबंधित है. \"उपयोगकर्ता\" https://starvedas.ru या https://chintamanidhama.ru का कोई भी आगंतुक है, जिसमें समारोह में भागीदारी के लिए अनुरोध जमा करने वाला व्यक्ति भी शामिल है. व्यक्तिगत डेटा का \"प्रावधान\" किसी विशिष्ट व्यक्ति या व्यक्तियों के विशिष्ट समूह को व्यक्तिगत डेटा प्रकट करने की दिशा में की गई कार्रवाइयाँ हैं. व्यक्तिगत डेटा का \"वितरण\" व्यक्तियों के अनिश्चित समूह को व्यक्तिगत डेटा प्रकट करने की दिशा में की गई कोई भी कार्रवाई है.",
           "व्यक्तिगत डेटा का सीमा-पार स्थानांतरण किसी विदेशी राज्य के क्षेत्र में किसी विदेशी राज्य के प्राधिकरण, किसी विदेशी व्यक्ति या विदेशी कानूनी इकाई को व्यक्तिगत डेटा का स्थानांतरण है. व्यक्तिगत डेटा का \"विनाश\" ऐसी कोई भी कार्रवाई है जिसके परिणामस्वरूप व्यक्तिगत डेटा को अपरिवर्तनीय रूप से नष्ट कर दिया जाता है, जिससे सूचना प्रणाली में इसकी सामग्री को पुनर्स्थापित करना असंभव हो जाता है, और/या जिसमें व्यक्तिगत डेटा वाले भौतिक मीडिया को नष्ट कर दिया जाता है."
         ]
       },
@@ -314,7 +314,7 @@ const copies: Record<Locale, PrivacyCopy> = {
         title: "12. उपयोगकर्ता अधिकार और अंतिम प्रावधान",
         body: [
           "उपयोगकर्ता किसी भी समय {{email}} पर \"व्यक्तिगत डेटा प्रोसेसिंग के लिए सहमति की वापसी\" अंकित ईमेल भेजकर व्यक्तिगत डेटा प्रोसेसिंग के लिए अपनी सहमति वापस ले सकता है, और उसी पते पर ऑपरेटर से संपर्क करके अपने व्यक्तिगत डेटा की प्रोसेसिंग से संबंधित किसी भी प्रश्न पर स्पष्टीकरण प्राप्त कर सकता है.",
-          "इस नीति में कोई भी परिवर्तन इस दस्तावेज़ में दर्शाया जाएगा. यह नीति तब तक अनिश्चित काल के लिए मान्य है जब तक इसे नए संस्करण द्वारा प्रतिस्थापित नहीं किया जाता. नीति का वर्तमान संस्करण इंटरनेट पर https://starvedas.ru/legal/privacy पर स्वतंत्र रूप से उपलब्ध है.",
+          "इस नीति में कोई भी परिवर्तन इस दस्तावेज़ में दर्शाया जाएगा. यह नीति तब तक अनिश्चित काल के लिए मान्य है जब तक इसे नए संस्करण द्वारा प्रतिस्थापित नहीं किया जाता. नीति का वर्तमान संस्करण इंटरनेट पर https://starvedas.ru/legal/privacy और https://chintamanidhama.ru/legal/privacy पर स्वतंत्र रूप से उपलब्ध है.",
           "ऑपरेटर का विवरण: {{seller}}, कर पहचान संख्या {{inn}}, पंजीकृत पता: {{address}}. संपर्क ईमेल: {{email}}."
         ]
       }

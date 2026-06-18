@@ -3,12 +3,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getRefundCopy } from "@/i18n/refund-copy";
 import { localeCookieName } from "@/i18n/config";
+import { applySiteBrandToText } from "@/lib/site-branding";
 import { getPublicOrganizationSettings } from "@/server/organization-settings";
+import { getRequestSiteBrand } from "@/server/site-branding";
 
-export const metadata: Metadata = {
-  title: "Условия возврата, StarVedas",
-  description: "Условия отмены заказа и возврата оплаты на сайте StarVedas."
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getRequestSiteBrand();
+
+  return {
+    title: applySiteBrandToText("Условия возврата, StarVedas", brand.name),
+    description: applySiteBrandToText(
+      "Условия отмены заказа и возврата оплаты на сайте StarVedas.",
+      brand.name
+    )
+  };
+}
 
 export const dynamic = "force-dynamic";
 

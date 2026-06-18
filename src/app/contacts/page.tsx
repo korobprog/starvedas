@@ -3,12 +3,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getContactsCopy } from "@/i18n/contacts-copy";
 import { localeCookieName } from "@/i18n/config";
+import { applySiteBrandToText } from "@/lib/site-branding";
 import { getPublicOrganizationSettings } from "@/server/organization-settings";
+import { getRequestSiteBrand } from "@/server/site-branding";
 
-export const metadata: Metadata = {
-  title: "Контакты, StarVedas",
-  description: "Контакты и данные исполнителя StarVedas."
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getRequestSiteBrand();
+
+  return {
+    title: applySiteBrandToText("Контакты, StarVedas", brand.name),
+    description: applySiteBrandToText(
+      "Контакты и данные исполнителя StarVedas.",
+      brand.name
+    )
+  };
+}
 
 export const dynamic = "force-dynamic";
 

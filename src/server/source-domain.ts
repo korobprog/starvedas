@@ -23,7 +23,9 @@ export function normalizeSourceDomain(value?: string | null): SourceDomain {
   );
 }
 
-export function getSourceDomainFromHeaders(headers: Headers): SourceDomain {
+export function getSourceDomainFromHeaders(
+  headers: Pick<Headers, "get">
+): SourceDomain {
   return normalizeSourceDomain(
     firstHeaderValue(headers.get("x-forwarded-host")) ||
       firstHeaderValue(headers.get("host"))

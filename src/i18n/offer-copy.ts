@@ -58,13 +58,13 @@ const copies: Record<Locale, OfferCopy> = {
       refund: "Условия возврата",
       signup: "Оформить заявку"
     },
-    lead: "Настоящий документ является публичной офертой {{seller}} и содержит существенные условия оказания информационно-консультационных услуг по организации участия в церемониях, размещенных на сайте starvedas.ru.",
+    lead: "Настоящий документ является публичной офертой {{seller}} и содержит существенные условия оказания информационно-консультационных услуг по организации участия в церемониях, размещенных на сайте starvedas.ru и chintamanidhama.ru.",
     pageTitle: "Публичная оферта",
     sections: {
       general: {
         title: "1. Общие положения и термины",
         body: [
-          "Настоящий документ является публичной офертой {{seller}} (далее — «Исполнитель») и содержит все существенные условия оказания информационно-консультационных услуг по организации участия в духовных церемониях, ритуалах, лекциях и видеоконсультациях (далее — «Церемонии»), информация о которых размещена на сайте https://starvedas.ru (далее — «Сайт»).",
+          "Настоящий документ является публичной офертой {{seller}} (далее — «Исполнитель») и содержит все существенные условия оказания информационно-консультационных услуг по организации участия в духовных церемониях, ритуалах, лекциях и видеоконсультациях (далее — «Церемонии»), информация о которых размещена на сайте https://starvedas.ru и https://chintamanidhama.ru (далее — «Сайт»).",
           "В соответствии с пунктом 2 статьи 437 Гражданского кодекса Российской Федерации (далее — «ГК РФ») настоящий документ, адресованный неопределенному кругу лиц, является официальным публичным предложением Исполнителя заключить договор оказания услуг на изложенных ниже условиях.",
           "Полным и безоговорочным акцептом настоящей оферты в соответствии со статьей 438 ГК РФ является осуществление физическим лицом (далее — «Заказчик») оплаты заявки на участие в выбранной Церемонии в порядке, предусмотренном разделом 5 настоящей оферты. С момента акцепта Заказчик считается ознакомленным и согласившимся со всеми условиями настоящей оферты.",
           "Термины: «Куратор» — специалист, привлекаемый Исполнителем для проведения Церемонии и сопровождения участников; «Заявка» — электронная форма на Сайте, содержащая данные Заказчика, выбранную Церемонию, куратора и список участников; «Личный кабинет» (при наличии) — раздел Сайта, через который Заказчик получает информацию о статусе заявки."
@@ -131,7 +131,7 @@ const copies: Record<Locale, OfferCopy> = {
         title: "9. Возврат денежных средств",
         body: [
           "В случае отказа Заказчика от участия в Церемонии до начала ее проведения возврат денежных средств осуществляется с учетом фактически понесенных Исполнителем расходов на организацию Церемонии (включая оплату работы Куратора, бронирование места проведения и иные подготовительные расходы).",
-          "Подробный порядок и условия возврата денежных средств опубликованы на странице условий возврата по адресу https://starvedas.ru/refund и являются неотъемлемой частью настоящей оферты.",
+          "Подробный порядок и условия возврата денежных средств опубликованы на странице условий возврата по адресу https://starvedas.ru/refund и https://chintamanidhama.ru/refund и являются неотъемлемой частью настоящей оферты.",
           "Если Церемония уже была проведена либо Заказчик и (или) иные участники получили консультационное сопровождение в рамках заявки, денежные средства возврату не подлежат, за исключением случаев, прямо предусмотренных законодательством Российской Федерации о защите прав потребителей."
         ]
       },
@@ -140,7 +140,7 @@ const copies: Record<Locale, OfferCopy> = {
         body: [
           "Настоящий договор вступает в силу с момента акцепта оферты Заказчиком (оплаты заявки) и действует до полного исполнения Сторонами своих обязательств либо до его расторжения по основаниям, предусмотренным настоящей офертой и законодательством Российской Федерации.",
           "Настоящая оферта не требует скрепления печатями и (или) подписания Заказчиком и Исполнителем, сохраняя при этом полную юридическую силу в соответствии со статьями 434 и 438 ГК РФ.",
-          "Исполнитель вправе в любой момент в одностороннем порядке изменять условия настоящей оферты без предварительного согласования с Заказчиком, обеспечивая при этом публикацию измененных условий на Сайте по адресу https://starvedas.ru/legal/offer не менее чем за 1 (один) день до их вступления в силу. Оформление новой заявки после публикации изменений означает согласие Заказчика с новой редакцией оферты.",
+          "Исполнитель вправе в любой момент в одностороннем порядке изменять условия настоящей оферты без предварительного согласования с Заказчиком, обеспечивая при этом публикацию измененных условий на Сайте по адресу https://starvedas.ru/legal/offer и https://chintamanidhama.ru/legal/offer не менее чем за 1 (один) день до их вступления в силу. Оформление новой заявки после публикации изменений означает согласие Заказчика с новой редакцией оферты.",
           "Все споры и разногласия Стороны решают путем переговоров. При недостижении согласия спор подлежит рассмотрению в порядке, предусмотренном действующим законодательством Российской Федерации, по месту нахождения Исполнителя. Все вопросы, не урегулированные настоящей офертой, решаются в соответствии с законодательством Российской Федерации."
         ]
       }
@@ -151,13 +151,13 @@ const copies: Record<Locale, OfferCopy> = {
       refund: "Refund terms",
       signup: "Submit a request"
     },
-    lead: "This document is a public offer of {{seller}} and sets out the material terms for the provision of information and consulting services for organizing participation in the ceremonies published on starvedas.ru.",
+    lead: "This document is a public offer of {{seller}} and sets out the material terms for the provision of information and consulting services for organizing participation in the ceremonies published on starvedas.ru and chintamanidhama.ru.",
     pageTitle: "Public offer",
     sections: {
       general: {
         title: "1. General provisions and definitions",
         body: [
-          'This document is a public offer of {{seller}} (the "Provider") and contains all material terms for the provision of information and consulting services for organizing participation in spiritual ceremonies, rituals, lectures and video consultations (the "Ceremonies"), information about which is published on the website https://starvedas.ru (the "Site").',
+          'This document is a public offer of {{seller}} (the "Provider") and contains all material terms for the provision of information and consulting services for organizing participation in spiritual ceremonies, rituals, lectures and video consultations (the "Ceremonies"), information about which is published on the websites https://starvedas.ru and https://chintamanidhama.ru (the "Site").',
           'In accordance with clause 2 of Article 437 of the Civil Code of the Russian Federation (the "Civil Code"), this document, addressed to an indefinite number of persons, is an official public proposal of the Provider to enter into a service agreement on the terms set out below.',
           'Full and unconditional acceptance of this offer in accordance with Article 438 of the Civil Code is the payment by an individual (the "Customer") for a request to participate in the selected Ceremony in the manner provided for in Section 5 of this offer. From the moment of acceptance, the Customer is deemed to have read and agreed to all the terms of this offer.',
           'Definitions: a "Curator" is a specialist engaged by the Provider to conduct the Ceremony and support participants; a "Request" is the electronic form on the Site containing the Customer\'s details, the selected Ceremony, the curator and the list of participants; a "Personal account" (if available) is the section of the Site through which the Customer receives information about the status of the request.'
@@ -224,7 +224,7 @@ const copies: Record<Locale, OfferCopy> = {
         title: "9. Refunds",
         body: [
           "If the Customer cancels participation in a Ceremony before it begins, the refund is made taking into account the expenses actually incurred by the Provider in organizing the Ceremony (including payment for the Curator's work, booking of the venue and other preparatory expenses).",
-          "Detailed refund procedures and conditions are published on the refund terms page at https://starvedas.ru/refund and form an integral part of this offer.",
+          "Detailed refund procedures and conditions are published on the refund terms page at https://starvedas.ru/refund and https://chintamanidhama.ru/refund and form an integral part of this offer.",
           "If the Ceremony has already taken place, or the Customer and/or other participants have received consulting support as part of the request, the funds are non-refundable, except in cases expressly provided for by Russian consumer protection law."
         ]
       },
@@ -233,7 +233,7 @@ const copies: Record<Locale, OfferCopy> = {
         body: [
           "This agreement comes into force from the moment the Customer accepts the offer (pays for the request) and remains in effect until the parties have fully performed their obligations or until it is terminated on the grounds provided for in this offer and Russian law.",
           "This offer does not require seals and/or signatures of the Customer and the Provider, while retaining full legal force in accordance with Articles 434 and 438 of the Civil Code.",
-          "The Provider has the right to unilaterally amend the terms of this offer at any time without prior agreement with the Customer, while publishing the amended terms on the Site at https://starvedas.ru/legal/offer at least 1 (one) day before they take effect. Submitting a new request after the amendments are published means the Customer agrees to the new version of the offer.",
+          "The Provider has the right to unilaterally amend the terms of this offer at any time without prior agreement with the Customer, while publishing the amended terms on the Site at https://starvedas.ru/legal/offer and https://chintamanidhama.ru/legal/offer at least 1 (one) day before they take effect. Submitting a new request after the amendments are published means the Customer agrees to the new version of the offer.",
           "The parties shall resolve any disputes and disagreements through negotiations. If no agreement is reached, the dispute shall be resolved in the manner provided for by applicable Russian law, at the Provider's location. Any matters not regulated by this offer shall be resolved in accordance with Russian law."
         ]
       }
@@ -244,13 +244,13 @@ const copies: Record<Locale, OfferCopy> = {
       refund: "वापसी शर्तें",
       signup: "अनुरोध भेजें"
     },
-    lead: "यह दस्तावेज़ {{seller}} का सार्वजनिक प्रस्ताव (ऑफर) है और starvedas.ru पर प्रकाशित समारोहों में भागीदारी के आयोजन हेतु सूचना-परामर्श सेवाओं की मुख्य शर्तें निर्धारित करता है.",
+    lead: "यह दस्तावेज़ {{seller}} का सार्वजनिक प्रस्ताव (ऑफर) है और starvedas.ru और chintamanidhama.ru पर प्रकाशित समारोहों में भागीदारी के आयोजन हेतु सूचना-परामर्श सेवाओं की मुख्य शर्तें निर्धारित करता है.",
     pageTitle: "सार्वजनिक ऑफ़र",
     sections: {
       general: {
         title: "1. सामान्य प्रावधान और परिभाषाएँ",
         body: [
-          'यह दस्तावेज़ {{seller}} ("प्रदाता") का सार्वजनिक प्रस्ताव है और वेबसाइट https://starvedas.ru ("साइट") पर प्रकाशित आध्यात्मिक समारोहों, अनुष्ठानों, व्याख्यानों और वीडियो परामर्शों ("समारोह") में भागीदारी के आयोजन हेतु सूचना-परामर्श सेवाओं के प्रावधान की सभी आवश्यक शर्तें शामिल करता है.',
+          'यह दस्तावेज़ {{seller}} ("प्रदाता") का सार्वजनिक प्रस्ताव है और वेबसाइट https://starvedas.ru और https://chintamanidhama.ru ("साइट") पर प्रकाशित आध्यात्मिक समारोहों, अनुष्ठानों, व्याख्यानों और वीडियो परामर्शों ("समारोह") में भागीदारी के आयोजन हेतु सूचना-परामर्श सेवाओं के प्रावधान की सभी आवश्यक शर्तें शामिल करता है.',
           'रूसी संघ के नागरिक संहिता ("नागरिक संहिता") के अनुच्छेद 437 के खंड 2 के अनुसार, अनिश्चित संख्या में व्यक्तियों को संबोधित यह दस्तावेज़ नीचे दी गई शर्तों पर सेवा समझौता करने के लिए प्रदाता का आधिकारिक सार्वजनिक प्रस्ताव है.',
           'नागरिक संहिता के अनुच्छेद 438 के अनुसार इस ऑफर की पूर्ण और बिना शर्त स्वीकृति किसी व्यक्ति ("ग्राहक") द्वारा इस ऑफर के खंड 5 में दी गई प्रक्रिया के अनुसार चुने गए समारोह में भागीदारी हेतु अनुरोध का भुगतान करना है. स्वीकृति के क्षण से ग्राहक को इस ऑफर की सभी शर्तों से परिचित और सहमत माना जाता है.',
           '​परिभाषाएँ: "क्यूरेटर" वह विशेषज्ञ है जिसे प्रदाता समारोह संचालित करने और प्रतिभागियों का सहयोग करने के लिए नियुक्त करता है; "अनुरोध" साइट पर इलेक्ट्रॉनिक फ़ॉर्म है जिसमें ग्राहक का विवरण, चुना गया समारोह, क्यूरेटर और प्रतिभागियों की सूची शामिल है; "व्यक्तिगत खाता" (यदि उपलब्ध हो) साइट का वह भाग है जिसके माध्यम से ग्राहक अनुरोध की स्थिति के बारे में जानकारी प्राप्त करता है.'
@@ -317,7 +317,7 @@ const copies: Record<Locale, OfferCopy> = {
         title: "9. वापसी",
         body: [
           "यदि ग्राहक समारोह शुरू होने से पहले भागीदारी रद्द करता है, तो वापसी प्रदाता द्वारा समारोह के आयोजन में वास्तव में किए गए खर्चों (क्यूरेटर के काम के भुगतान, स्थल की बुकिंग और अन्य प्रारंभिक खर्चों सहित) को ध्यान में रखते हुए की जाती है.",
-          "वापसी की विस्तृत प्रक्रिया और शर्तें https://starvedas.ru/refund पर वापसी शर्तों के पृष्ठ पर प्रकाशित हैं और इस ऑफर का अभिन्न अंग हैं.",
+          "वापसी की विस्तृत प्रक्रिया और शर्तें https://starvedas.ru/refund और https://chintamanidhama.ru/refund पर वापसी शर्तों के पृष्ठ पर प्रकाशित हैं और इस ऑफर का अभिन्न अंग हैं.",
           "यदि समारोह पहले ही हो चुका है, या ग्राहक और/या अन्य प्रतिभागियों को अनुरोध के हिस्से के रूप में परामर्श सहायता मिल चुकी है, तो रूसी उपभोक्ता संरक्षण कानून द्वारा स्पष्ट रूप से प्रदान किए गए मामलों को छोड़कर, राशि वापस नहीं की जाती."
         ]
       },
@@ -326,7 +326,7 @@ const copies: Record<Locale, OfferCopy> = {
         body: [
           "यह समझौता ग्राहक द्वारा ऑफर की स्वीकृति (अनुरोध का भुगतान) के क्षण से लागू होता है और तब तक प्रभावी रहता है जब तक पक्ष अपने दायित्वों को पूरी तरह से पूरा नहीं कर लेते या इस ऑफर और रूसी कानून द्वारा प्रदान किए गए आधारों पर इसे समाप्त नहीं किया जाता.",
           "इस ऑफर को ग्राहक और प्रदाता की मुहर और/या हस्ताक्षर की आवश्यकता नहीं है, फिर भी यह नागरिक संहिता के अनुच्छेद 434 और 438 के अनुसार पूर्ण कानूनी बल बनाए रखता है.",
-          "प्रदाता को बिना किसी पूर्व सहमति के किसी भी समय इस ऑफर की शर्तों को एकतरफा रूप से बदलने का अधिकार है, बशर्ते बदली हुई शर्तें https://starvedas.ru/legal/offer पर लागू होने से कम से कम 1 (एक) दिन पहले प्रकाशित की जाएँ. परिवर्तन प्रकाशित होने के बाद नया अनुरोध जमा करने का अर्थ है कि ग्राहक ऑफर के नए संस्करण से सहमत है.",
+          "प्रदाता को बिना किसी पूर्व सहमति के किसी भी समय इस ऑफर की शर्तों को एकतरफा रूप से बदलने का अधिकार है, बशर्ते बदली हुई शर्तें https://starvedas.ru/legal/offer और https://chintamanidhama.ru/legal/offer पर लागू होने से कम से कम 1 (एक) दिन पहले प्रकाशित की जाएँ. परिवर्तन प्रकाशित होने के बाद नया अनुरोध जमा करने का अर्थ है कि ग्राहक ऑफर के नए संस्करण से सहमत है.",
           "पक्ष किसी भी विवाद और असहमति को बातचीत के माध्यम से हल करेंगे. यदि सहमति नहीं बनती है, तो विवाद को प्रदाता के स्थान पर लागू रूसी कानून द्वारा प्रदान की गई प्रक्रिया के अनुसार हल किया जाएगा. इस ऑफर द्वारा विनियमित न किए गए सभी मामलों को रूसी कानून के अनुसार हल किया जाएगा."
         ]
       }

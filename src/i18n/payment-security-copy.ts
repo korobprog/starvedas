@@ -1,4 +1,5 @@
 import { normalizeLocale, type Locale } from "@/i18n/config";
+import { applySiteBrandToCopy } from "@/lib/site-branding";
 
 type PaymentSecurityCopy = {
   actions: {
@@ -69,6 +70,9 @@ const copies: Record<Locale, PaymentSecurityCopy> = {
   }
 };
 
-export function getPaymentSecurityCopy(locale: string | null | undefined) {
-  return copies[normalizeLocale(locale)];
+export function getPaymentSecurityCopy(
+  locale: string | null | undefined,
+  brandName?: string
+) {
+  return applySiteBrandToCopy(copies[normalizeLocale(locale)], brandName);
 }

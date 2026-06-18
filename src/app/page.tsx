@@ -11,6 +11,8 @@ import { getPublicOrganizationSettings } from "@/server/organization-settings";
 import { getCheckoutPaymentProvidersForCurator } from "@/server/payment-providers";
 import { getCuratorForReferral } from "@/server/referrals";
 import { getPublicServices } from "@/server/services";
+import { applySiteBrandToCopy } from "@/lib/site-branding";
+import { getRequestSiteBrand } from "@/server/site-branding";
 import Image from "next/image";
 import PayMir from "@/../public/images/pay-card-mir.svg";
 
@@ -59,7 +61,8 @@ export default async function Home({
   const params = await searchParams;
   const referralSlug = params.ref?.trim() || undefined;
   const locale = cookieStore.get(localeCookieName)?.value;
-  const copy = getHomeCopy(locale);
+  const brand = await getRequestSiteBrand();
+  const copy = applySiteBrandToCopy(getHomeCopy(locale), brand.name);
   const [activeSchedule, assignedCurator, { contact }, availableServices] =
     await Promise.all([
       getActiveSchedule(),
@@ -81,8 +84,8 @@ export default async function Home({
     <main className="page-shell">
       <header className="site-header">
         <div className="container site-header__inner">
-          <a className="brand" href="#top" aria-label="StarVedas">
-            <span className="brand__name">StarVedas</span>
+          <a className="brand" href="#top" aria-label={brand.name}>
+            <span className="brand__name">{brand.name}</span>
             <span className="brand__tagline">{copy.brandTagline}</span>
           </a>
           <SiteNav locale={cookieStore.get(localeCookieName)?.value} />
@@ -221,6 +224,7 @@ export default async function Home({
             </div>
             <SignupForm
               assignedCurator={assignedCurator}
+              brandName={brand.name}
               initialServiceSlug={initialServiceSlug}
               locale={locale}
               paymentProviders={paymentProviders}
@@ -251,7 +255,7 @@ export default async function Home({
 
       <footer className="site-footer">
         <div className="container">
-          <strong>StarVedas</strong>
+          <strong>{brand.name}</strong>
           <Image
             src={PayMir}
             alt="Мир"

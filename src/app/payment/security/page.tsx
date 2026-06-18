@@ -3,15 +3,28 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getPaymentSecurityCopy } from "@/i18n/payment-security-copy";
 import { localeCookieName } from "@/i18n/config";
+import { applySiteBrandToText } from "@/lib/site-branding";
+import { getRequestSiteBrand } from "@/server/site-branding";
 
-export const metadata: Metadata = {
-  title: "Безопасность платежей, StarVedas",
-  description: "Как StarVedas обрабатывает оплату и защищает платежные данные."
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getRequestSiteBrand();
+
+  return {
+    title: applySiteBrandToText("Безопасность платежей, StarVedas", brand.name),
+    description: applySiteBrandToText(
+      "Как StarVedas обрабатывает оплату и защищает платежные данные.",
+      brand.name
+    )
+  };
+}
 
 export default async function PaymentSecurityPage() {
   const cookieStore = await cookies();
-  const copy = getPaymentSecurityCopy(cookieStore.get(localeCookieName)?.value);
+  const brand = await getRequestSiteBrand();
+  const copy = getPaymentSecurityCopy(
+    cookieStore.get(localeCookieName)?.value,
+    brand.name
+  );
 
   return (
     <main className="legal-page">

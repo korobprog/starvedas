@@ -19,7 +19,7 @@ const copies: Record<Locale, ConsentCopy> = {
       form: "Перейти к форме",
       privacy: "Политика"
     },
-    lead: "Отправляя заявку на сайте starvedas.ru, клиент подтверждает согласие на обработку данных, необходимых для связи, оформления заказа и организации участия в выбранной церемонии.",
+    lead: "Отправляя заявку на сайте starvedas.ru или chintamanidhama.ru, клиент подтверждает согласие на обработку данных, необходимых для связи, оформления заказа и организации участия в выбранной церемонии.",
     pageTitle: "Согласие на обработку персональных данных",
     sections: [
       {
@@ -45,7 +45,7 @@ const copies: Record<Locale, ConsentCopy> = {
       form: "Go to form",
       privacy: "Privacy policy"
     },
-    lead: "By submitting a request on starvedas.ru, the client confirms consent to process data required for communication, order processing and organizing participation in the selected ceremony.",
+    lead: "By submitting a request on starvedas.ru or chintamanidhama.ru, the client confirms consent to process data required for communication, order processing and organizing participation in the selected ceremony.",
     pageTitle: "Personal data consent",
     sections: [
       {
@@ -71,7 +71,7 @@ const copies: Record<Locale, ConsentCopy> = {
       form: "फ़ॉर्म पर जाएँ",
       privacy: "गोपनीयता नीति"
     },
-    lead: "साइट starvedas.ru पर अनुरोध भेजकर, ग्राहक संचार, ऑर्डर प्रसंस्करण और चुने गए समारोह में भागीदारी के संगठन के लिए आवश्यक डेटा प्रोसेस करने की सहमति देता है.",
+    lead: "साइट starvedas.ru या chintamanidhama.ru पर अनुरोध भेजकर, ग्राहक संचार, ऑर्डर प्रसंस्करण और चुने गए समारोह में भागीदारी के संगठन के लिए आवश्यक डेटा प्रोसेस करने की सहमति देता है.",
     pageTitle: "व्यक्तिगत डेटा सहमति",
     sections: [
       {

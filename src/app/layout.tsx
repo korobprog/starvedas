@@ -2,13 +2,21 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { localeCookieName, normalizeLocale } from "@/i18n/config";
+import { applySiteBrandToText } from "@/lib/site-branding";
+import { getRequestSiteBrand } from "@/server/site-branding";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "StarVedas, запись на церемонии",
-  description:
-    "Клиентский сайт StarVedas для записи на ягью, пуджу, абхишеку и связанные церемонии."
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await getRequestSiteBrand();
+
+  return {
+    title: applySiteBrandToText("StarVedas, запись на церемонии", brand.name),
+    description: applySiteBrandToText(
+      "Клиентский сайт StarVedas для записи на ягью, пуджу, абхишеку и связанные церемонии.",
+      brand.name
+    )
+  };
+}
 
 type RootLayoutProps = Readonly<{
   children: React.ReactNode;
