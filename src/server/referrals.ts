@@ -11,6 +11,7 @@ export type PublicCuratorAssignment = {
   postPurchaseText: string | null;
   postPurchaseTitle: string | null;
   postPurchaseUrl: string | null;
+  showMailingConsentCheckbox: boolean;
   slug: string;
   supportButtonLabel: string | null;
   supportEnabled: boolean;
@@ -23,6 +24,7 @@ const publicCuratorSelect = {
   postPurchaseText: true,
   postPurchaseTitle: true,
   postPurchaseUrl: true,
+  showMailingConsentCheckbox: true,
   slug: true,
   supportButtonLabel: true,
   supportEnabled: true,

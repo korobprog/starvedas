@@ -45,6 +45,7 @@ async function getAssignedCurator(referralSlug?: string) {
       postPurchaseText: null,
       postPurchaseTitle: null,
       postPurchaseUrl: null,
+      showMailingConsentCheckbox: false,
       slug: "administrator",
       supportButtonLabel: "Написать вопрос администратору",
       supportEnabled: true,

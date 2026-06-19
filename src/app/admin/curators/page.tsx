@@ -53,6 +53,7 @@ async function getCurators() {
       postPurchaseText: true,
       postPurchaseTitle: true,
       postPurchaseUrl: true,
+      showMailingConsentCheckbox: true,
       referralLinks: {
         orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
         select: {
@@ -317,6 +318,16 @@ export default async function AdminCuratorsPage() {
                       type="checkbox"
                     />
                     <span>Показывать кнопку вопросов клиентам</span>
+                  </label>
+                  <label className="checkbox-field">
+                    <input
+                      defaultChecked={curator.showMailingConsentCheckbox}
+                      name="showMailingConsentCheckbox"
+                      type="checkbox"
+                    />
+                    <span>
+                      Показывать чекбокс согласия на рассылку в форме заявки
+                    </span>
                   </label>
                   <label className="checkbox-field">
                     <input

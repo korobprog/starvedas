@@ -69,6 +69,7 @@ const createCuratorSchema = z.object({
   postPurchaseText: optionalText,
   postPurchaseTitle: optionalText,
   postPurchaseUrl: optionalUrl,
+  showMailingConsentCheckbox: z.boolean(),
   slug: z.string().trim().max(120).optional(),
   supportButtonLabel: optionalButtonLabel,
   supportEnabled: z.boolean(),
@@ -90,6 +91,7 @@ const updateCuratorSchema = z.object({
   postPurchaseText: optionalText,
   postPurchaseTitle: optionalText,
   postPurchaseUrl: optionalUrl,
+  showMailingConsentCheckbox: z.boolean(),
   slug: z.string().trim().min(2).max(120),
   supportButtonLabel: optionalButtonLabel,
   supportEnabled: z.boolean(),
@@ -100,6 +102,7 @@ const cabinetSettingsSchema = z.object({
   postPurchaseText: optionalText,
   postPurchaseTitle: optionalText,
   postPurchaseUrl: optionalUrl,
+  showMailingConsentCheckbox: z.boolean(),
   supportButtonLabel: optionalButtonLabel,
   supportUrl: optionalSupportUrl
 });
@@ -238,6 +241,8 @@ export async function createCuratorAction(
     postPurchaseText: formData.get("postPurchaseText") ?? "",
     postPurchaseTitle: formData.get("postPurchaseTitle") ?? "",
     postPurchaseUrl: formData.get("postPurchaseUrl") ?? "",
+    showMailingConsentCheckbox:
+      formData.get("showMailingConsentCheckbox") === "on",
     slug: formData.get("slug") || undefined,
     supportButtonLabel: formData.get("supportButtonLabel") ?? "",
     supportEnabled: formData.get("supportEnabled") === "on",
@@ -278,6 +283,7 @@ export async function createCuratorAction(
         postPurchaseText: data.postPurchaseText,
         postPurchaseTitle: data.postPurchaseTitle,
         postPurchaseUrl: data.postPurchaseUrl,
+        showMailingConsentCheckbox: data.showMailingConsentCheckbox,
         slug,
         supportButtonLabel: data.supportButtonLabel,
         supportEnabled: data.supportEnabled,
@@ -320,6 +326,8 @@ export async function updateCuratorAction(formData: FormData) {
     postPurchaseText: formData.get("postPurchaseText") ?? "",
     postPurchaseTitle: formData.get("postPurchaseTitle") ?? "",
     postPurchaseUrl: formData.get("postPurchaseUrl") ?? "",
+    showMailingConsentCheckbox:
+      formData.get("showMailingConsentCheckbox") === "on",
     slug: formData.get("slug"),
     supportButtonLabel: formData.get("supportButtonLabel") ?? "",
     supportEnabled: formData.get("supportEnabled") === "on",
@@ -397,6 +405,7 @@ export async function updateCuratorAction(formData: FormData) {
         postPurchaseText: data.postPurchaseText,
         postPurchaseTitle: data.postPurchaseTitle,
         postPurchaseUrl: data.postPurchaseUrl,
+        showMailingConsentCheckbox: data.showMailingConsentCheckbox,
         slug,
         supportButtonLabel: data.supportButtonLabel,
         supportEnabled: data.supportEnabled,
@@ -479,6 +488,8 @@ export async function saveCabinetCuratorSettings(formData: FormData) {
     postPurchaseText: formData.get("postPurchaseText") ?? "",
     postPurchaseTitle: formData.get("postPurchaseTitle") ?? "",
     postPurchaseUrl: formData.get("postPurchaseUrl") ?? "",
+    showMailingConsentCheckbox:
+      formData.get("showMailingConsentCheckbox") === "on",
     supportButtonLabel: formData.get("supportButtonLabel") ?? "",
     supportUrl: formData.get("supportUrl") ?? ""
   });
@@ -511,6 +522,8 @@ export async function saveCabinetCuratorSettings(formData: FormData) {
   }
 
   const updateData: Prisma.CuratorUpdateInput = {};
+  updateData.showMailingConsentCheckbox =
+    parsed.data.showMailingConsentCheckbox;
 
   if (curator.canEditPostPurchase) {
     updateData.postPurchaseText = parsed.data.postPurchaseText;

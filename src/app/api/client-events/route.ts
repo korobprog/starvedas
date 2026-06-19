@@ -80,6 +80,9 @@ export async function POST(request: Request) {
   const referralSlug =
     parsed.data.referralSlug || cookieStore.get(referralCookieName)?.value;
   const curator = await getCuratorForReferral(referralSlug);
+  const consentMailings = curator.showMailingConsentCheckbox
+    ? parsed.data.consentMailings
+    : false;
 
   await prisma.$transaction(async (tx) => {
     if (
@@ -88,7 +91,7 @@ export async function POST(request: Request) {
       hasContact(parsed.data)
     ) {
       await upsertClientProfileForFunnel(tx, {
-        consentMailings: parsed.data.consentMailings,
+        consentMailings,
         consentMailingsSource: "checkout",
         consentPersonalData: parsed.data.consentPersonalData,
         curatorId: curator.id,

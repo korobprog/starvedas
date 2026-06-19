@@ -90,6 +90,7 @@ const cabinetCuratorSelect = Prisma.validator<Prisma.CuratorSelect>()({
   postPurchaseText: true,
   postPurchaseTitle: true,
   postPurchaseUrl: true,
+  showMailingConsentCheckbox: true,
   referralLinks: {
     orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
     select: {
@@ -795,13 +796,17 @@ export default async function CabinetPage({
                   Сейчас кнопка{" "}
                   {curator.supportEnabled ? "показывается" : "скрыта админом"}.
                 </p>
-                <button
-                  className="button button--primary"
-                  disabled={
-                    !curator.canEditPostPurchase && !curator.canEditSupport
-                  }
-                  type="submit"
-                >
+                <label className="checkbox-field">
+                  <input
+                    defaultChecked={curator.showMailingConsentCheckbox}
+                    name="showMailingConsentCheckbox"
+                    type="checkbox"
+                  />
+                  <span>
+                    Показывать чекбокс согласия на рассылку в форме заявки
+                  </span>
+                </label>
+                <button className="button button--primary" type="submit">
                   Сохранить
                 </button>
               </form>

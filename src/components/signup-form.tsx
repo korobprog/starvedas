@@ -181,6 +181,7 @@ type AssignedCurator = {
   postPurchaseText?: string | null;
   postPurchaseTitle?: string | null;
   postPurchaseUrl?: string | null;
+  showMailingConsentCheckbox?: boolean;
   supportButtonLabel?: string | null;
   supportEnabled?: boolean;
   supportUrl?: string | null;
@@ -319,6 +320,9 @@ export function SignupForm({
   services: SiteServiceList;
 }) {
   const copy = getSignupCopy(locale, brandName);
+  const showMailingConsentCheckbox = Boolean(
+    assignedCurator.showMailingConsentCheckbox
+  );
   const [step, setStep] = useState(0);
   const [serviceSlug, setServiceSlug] = useState(
     initialServiceSlug ?? services[0].slug
@@ -521,7 +525,7 @@ export function SignupForm({
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        consentMailings,
+        consentMailings: showMailingConsentCheckbox ? consentMailings : false,
         consentPersonalData,
         customerEmail,
         customerName,
@@ -598,7 +602,7 @@ export function SignupForm({
           customerPhoneCountry,
           customerEmail,
           consentPersonalData,
-          consentMailings,
+          consentMailings: showMailingConsentCheckbox ? consentMailings : false,
           paymentProvider,
           referralSlug
         })
@@ -1042,14 +1046,16 @@ export function SignupForm({
               .
             </span>
           </label>
-          <label className="checkbox-field">
-            <input
-              checked={consentMailings}
-              onChange={(event) => setConsentMailings(event.target.checked)}
-              type="checkbox"
-            />
-            <span>{copy.consent.mailing}</span>
-          </label>
+          {showMailingConsentCheckbox && (
+            <label className="checkbox-field">
+              <input
+                checked={consentMailings}
+                onChange={(event) => setConsentMailings(event.target.checked)}
+                type="checkbox"
+              />
+              <span>{copy.consent.mailing}</span>
+            </label>
+          )}
         </fieldset>
       )}
 

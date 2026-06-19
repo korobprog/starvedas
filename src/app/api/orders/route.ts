@@ -217,7 +217,10 @@ export async function POST(request: Request) {
           where: {
             active: true,
             id: { in: selectedServiceOptionIds },
-            OR: [{ eventStartsAt: null }, { eventStartsAt: { gt: new Date() } }],
+            OR: [
+              { eventStartsAt: null },
+              { eventStartsAt: { gt: new Date() } }
+            ],
             serviceId: service.id
           }
         })
@@ -259,10 +262,13 @@ export async function POST(request: Request) {
     );
     const customerTelegram = normalizeOptional(data.customerTelegram);
     const referralSlug = data.referralSlug ?? curator.slug;
+    const consentMailings = curator.showMailingConsentCheckbox
+      ? data.consentMailings
+      : false;
 
     const order = await prisma.$transaction(async (tx) => {
       const client = await upsertClientProfileForFunnel(tx, {
-        consentMailings: data.consentMailings,
+        consentMailings,
         consentMailingsSource: "checkout",
         consentPersonalData: true,
         curatorId: curator.id,

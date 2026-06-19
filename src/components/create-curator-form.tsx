@@ -79,6 +79,10 @@ export function CreateCuratorForm() {
         <span>Показывать кнопку вопросов клиентам</span>
       </label>
       <label className="checkbox-field">
+        <input name="showMailingConsentCheckbox" type="checkbox" />
+        <span>Показывать чекбокс согласия на рассылку в форме заявки</span>
+      </label>
+      <label className="checkbox-field">
         <input name="hidden" type="checkbox" />
         <span>Скрыть персональную версию сайта</span>
       </label>
