@@ -7,9 +7,14 @@ import { getManagedServices } from "@/server/services";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminProductsPage() {
+export default async function AdminProductsPage({
+  searchParams
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
   await requireAdminUser("/admin/products");
 
+  const params = await searchParams;
   const services = await getManagedServices();
   const activeCount = services.filter((service) => service.active).length;
   const ordersCount = services.reduce(
@@ -19,6 +24,13 @@ export default async function AdminProductsPage() {
 
   return (
     <div className="admin-grid">
+      {params.saved && (
+        <section className="admin-card admin-card--wide admin-success">
+          <strong>Сохранено</strong>
+          <span>Изменения продукта и карточек обрядов успешно сохранены.</span>
+        </section>
+      )}
+
       <section className="admin-card">
         <h2>Создать продукт</h2>
         <p className="admin-muted">

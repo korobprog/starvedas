@@ -204,6 +204,29 @@ model Schedule {
   updatedAt DateTime @updatedAt
 }
 
+model Article {
+  id            String    @id @default(cuid())
+  title         String
+  titleEn       String?
+  titleHi       String?
+  slug          String    @unique
+  excerpt       String?
+  excerptEn     String?
+  excerptHi     String?
+  content       String
+  contentEn     String?
+  contentHi     String?
+  coverImageUrl String?
+  active        Boolean   @default(false)
+  featured      Boolean   @default(false)
+  sortOrder     Int       @default(0)
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([active, publishedAt, sortOrder])
+}
+
 model ClientProfile {
   id                    String             @id @default(cuid())
   name                  String

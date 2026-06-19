@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { AdminSubmitButton } from "@/components/admin-submit-button";
 import { getAdminCopy } from "@/i18n/admin-copy";
 import { localeCookieName } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
@@ -24,14 +25,26 @@ async function getSchedules() {
   }
 }
 
-export default async function AdminSchedulePage() {
+export default async function AdminSchedulePage({
+  searchParams
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
   const cookieStore = await cookies();
+  const params = await searchParams;
   const copy = getAdminCopy(cookieStore.get(localeCookieName)?.value);
   const schedules = await getSchedules();
   const activeSchedule = schedules.find((schedule) => schedule.active);
 
   return (
     <div className="admin-grid">
+      {params.saved && (
+        <section className="admin-card admin-card--wide admin-success">
+          <strong>Сохранено</strong>
+          <span>Расписание успешно сохранено.</span>
+        </section>
+      )}
+
       <section className="admin-card">
         <h2>{copy.schedule.activeSchedule}</h2>
         {activeSchedule ? (
@@ -79,9 +92,9 @@ export default async function AdminSchedulePage() {
             <input name="active" type="checkbox" />
             <span>{copy.schedule.publish}</span>
           </label>
-          <button className="button button--primary" type="submit">
+          <AdminSubmitButton className="button button--primary">
             {copy.schedule.save}
-          </button>
+          </AdminSubmitButton>
         </form>
       </section>
 
@@ -131,9 +144,7 @@ export default async function AdminSchedulePage() {
                   />
                   <span>{copy.schedule.publish}</span>
                 </label>
-                <button className="button" type="submit">
-                  {copy.schedule.update}
-                </button>
+                <AdminSubmitButton>{copy.schedule.update}</AdminSubmitButton>
               </form>
             ))}
           </div>

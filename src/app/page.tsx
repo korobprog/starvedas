@@ -14,6 +14,7 @@ import { getPublicServices } from "@/server/services";
 import { applySiteBrandToCopy } from "@/lib/site-branding";
 import { getRequestSiteBrand } from "@/server/site-branding";
 import Image from "next/image";
+import Link from "next/link";
 import PayMir from "@/../public/images/pay-card-mir.svg";
 
 export const dynamic = "force-dynamic";
@@ -283,6 +284,7 @@ export default async function Home({
             <a href="/payment/security">{copy.footer.security}</a>
             <a href="/refund">{copy.footer.refund}</a>
             <a href="/contacts">{copy.footer.contacts}</a>
+            <Link href="/articles">Статьи</Link>
           </div>
           <SupportCta
             className="support-cta--footer"

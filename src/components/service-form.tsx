@@ -1,4 +1,5 @@
 import type { PriceUnit } from "@prisma/client";
+import { AdminSubmitButton } from "@/components/admin-submit-button";
 import { RiteOptionsFields } from "@/components/rite-options-fields";
 import {
   createService,
@@ -220,9 +221,9 @@ export function CreateServiceForm() {
   return (
     <form action={createService} className="admin-form">
       <ServiceFields />
-      <button className="button button--primary" type="submit">
+      <AdminSubmitButton className="button button--primary">
         Создать продукт
-      </button>
+      </AdminSubmitButton>
     </form>
   );
 }
@@ -280,9 +281,9 @@ export function ServiceEditorList({
           <form action={updateService} className="admin-form">
             <input name="id" type="hidden" value={service.id} />
             <ServiceFields service={service} />
-            <button className="button button--primary" type="submit">
+            <AdminSubmitButton className="button button--primary">
               Сохранить
-            </button>
+            </AdminSubmitButton>
           </form>
 
           <form action={toggleServiceActive}>
@@ -292,9 +293,9 @@ export function ServiceEditorList({
               type="hidden"
               value={service.active ? "false" : "true"}
             />
-            <button className="button" type="submit">
+            <AdminSubmitButton>
               {service.active ? "Деактивировать" : "Активировать"}
-            </button>
+            </AdminSubmitButton>
           </form>
         </article>
       ))}

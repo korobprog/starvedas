@@ -2,6 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireServiceManager } from "@/server/auth";
@@ -160,9 +161,7 @@ function parseMoscowDateTime(value: string | undefined) {
     return null;
   }
 
-  const match = normalized.match(
-    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/
-  );
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
 
   if (!match) {
     throw new Error("Некорректная дата мероприятия");
@@ -227,6 +226,58 @@ function parseServiceOptionsFormData(formData: FormData) {
     }
 
     return parsed.data;
+  });
+}
+
+function compareParsedOptionsByDate(
+  left: ParsedServiceOption,
+  right: ParsedServiceOption
+) {
+  if (left.eventStartsAt && right.eventStartsAt) {
+    const dateDiff =
+      left.eventStartsAt.getTime() - right.eventStartsAt.getTime();
+
+    if (dateDiff !== 0) {
+      return dateDiff;
+    }
+  }
+
+  if (left.eventStartsAt && !right.eventStartsAt) {
+    return -1;
+  }
+
+  if (!left.eventStartsAt && right.eventStartsAt) {
+    return 1;
+  }
+
+  const sortDiff = left.sortOrder - right.sortOrder;
+
+  if (sortDiff !== 0) {
+    return sortDiff;
+  }
+
+  return left.title.localeCompare(right.title, "ru");
+}
+
+function normalizeOptionSortOrders(options: ParsedServiceOption[]) {
+  const visibleOptions = options
+    .filter((option) => !option.delete)
+    .sort(compareParsedOptionsByDate);
+  const sortOrderByOption = new Map(
+    visibleOptions.map((option, index) => [option, index + 1])
+  );
+
+  return options.map((option) => {
+    const sortOrder = sortOrderByOption.get(option);
+
+    if (!sortOrder) {
+      return option;
+    }
+
+    return {
+      ...option,
+      sortOrder
+    };
   });
 }
 
@@ -322,7 +373,9 @@ export async function createService(formData: FormData) {
   await requireServiceManager();
 
   const data = parseServiceFormData(formData);
-  const options = parseServiceOptionsFormData(formData);
+  const options = normalizeOptionSortOrders(
+    parseServiceOptionsFormData(formData)
+  );
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -338,13 +391,16 @@ export async function createService(formData: FormData) {
   }
 
   revalidateServicePages();
+  redirect("/admin/products?saved=1");
 }
 
 export async function updateService(formData: FormData) {
   await requireServiceManager();
 
   const data = parseServiceUpdateFormData(formData);
-  const options = parseServiceOptionsFormData(formData);
+  const options = normalizeOptionSortOrders(
+    parseServiceOptionsFormData(formData)
+  );
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -377,6 +433,7 @@ export async function updateService(formData: FormData) {
   }
 
   revalidateServicePages();
+  redirect("/admin/products?saved=1");
 }
 
 export async function toggleServiceActive(formData: FormData) {
@@ -399,4 +456,5 @@ export async function toggleServiceActive(formData: FormData) {
   });
 
   revalidateServicePages();
+  redirect("/admin/products?saved=1");
 }

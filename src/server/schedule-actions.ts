@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/server/auth";
@@ -60,4 +61,5 @@ export async function saveSchedule(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/admin/schedule");
+  redirect("/admin/schedule?saved=1");
 }

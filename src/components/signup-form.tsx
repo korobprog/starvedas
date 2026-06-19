@@ -823,12 +823,18 @@ export function SignupForm({
                       onChange={() => toggleServiceOption(option.id)}
                       type="checkbox"
                     />
-                    <span>{option.title}</span>
-                    {option.description && <small>{option.description}</small>}
                     {option.eventStartsAtLabel && (
-                      <small>Дата и время: {option.eventStartsAtLabel} МСК</small>
+                      <span className="rite-choice-card__date">
+                        {option.eventStartsAtLabel} МСК
+                      </span>
                     )}
-                    <small>{option.priceLabel}</small>
+                    <span className="rite-choice-card__title">
+                      {option.title}
+                    </span>
+                    {option.description && <small>{option.description}</small>}
+                    <small className="rite-choice-card__price">
+                      {option.priceLabel}
+                    </small>
                   </label>
                 ))
               ) : (
@@ -1063,7 +1069,10 @@ export function SignupForm({
                   <ul className="rite-summary-list">
                     {selectedServiceOptions.map((option) => (
                       <li key={option.id}>
-                        {option.title} ? {option.priceLabel}
+                        {option.eventStartsAtLabel
+                          ? `${option.eventStartsAtLabel} МСК — `
+                          : ""}
+                        {option.title} — {option.priceLabel}
                       </li>
                     ))}
                   </ul>

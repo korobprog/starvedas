@@ -44,6 +44,13 @@ function formatMoscowDateTimeInput(value: Date | string | null | undefined) {
     return "";
   }
 
+  if (
+    typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)
+  ) {
+    return value;
+  }
+
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
@@ -53,6 +60,56 @@ function formatMoscowDateTimeInput(value: Date | string | null | undefined) {
   const moscowTime = new Date(date.getTime() + 3 * 60 * 60 * 1000);
 
   return moscowTime.toISOString().slice(0, 16);
+}
+
+function normalizeTemplateTitle(value?: string | null) {
+  return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function parseBulkDateTime(line: string) {
+  const match = line.match(
+    /(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?(?:[,\s]+(\d{1,2}):(\d{2}))?/
+  );
+
+  if (!match) {
+    return {
+      eventStartsAt: null,
+      lineWithoutDate: line
+    };
+  }
+
+  const [, day, month, yearValue, hour = "7", minute = "00"] = match;
+  const currentYear = new Date().getFullYear();
+  const fullYear = yearValue
+    ? Number(yearValue.length === 2 ? `20${yearValue}` : yearValue)
+    : currentYear;
+  const eventStartsAt = `${fullYear}-${month.padStart(2, "0")}-${day.padStart(
+    2,
+    "0"
+  )}T${hour.padStart(2, "0")}:${minute}`;
+
+  return {
+    eventStartsAt,
+    lineWithoutDate: `${line.slice(0, match.index)} ${line.slice(
+      (match.index ?? 0) + match[0].length
+    )}`.trim()
+  };
+}
+
+function parseBulkPrice(line: string) {
+  const match = line.match(/(?:^|[\s—–-])(\d[\d\s]*)\s*(?:руб\.?|₽|rub)?\s*$/i);
+
+  if (!match) {
+    return {
+      lineWithoutPrice: line,
+      priceRub: null
+    };
+  }
+
+  return {
+    lineWithoutPrice: line.slice(0, match.index).trim(),
+    priceRub: Number(match[1].replace(/\s+/g, ""))
+  };
 }
 
 export function RiteOptionsFields({
@@ -65,6 +122,7 @@ export function RiteOptionsFields({
   const [items, setItems] = useState<EditableRiteOption[]>(
     options.map((option) => ({ ...option, key: option.id }))
   );
+  const [bulkText, setBulkText] = useState("");
 
   function addOption() {
     setItems((current) => [...current, createEmptyOption(current.length)]);
@@ -113,6 +171,74 @@ export function RiteOptionsFields({
     });
   }
 
+  function findTemplate(title: string, sourceItems: EditableRiteOption[]) {
+    const normalizedTitle = normalizeTemplateTitle(title);
+
+    return sourceItems.find(
+      (item) => normalizeTemplateTitle(item.title) === normalizedTitle
+    );
+  }
+
+  function createOptionFromBulkLine(
+    line: string,
+    index: number,
+    sourceItems: EditableRiteOption[]
+  ): EditableRiteOption | null {
+    const { eventStartsAt, lineWithoutDate } = parseBulkDateTime(line);
+    const { lineWithoutPrice, priceRub } = parseBulkPrice(lineWithoutDate);
+    const parts = lineWithoutPrice
+      .replace(/^[—–-]\s*/, "")
+      .split(/\s+[—–-]\s+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const title = parts[0] ?? "";
+
+    if (!title) {
+      return null;
+    }
+
+    const template = findTemplate(title, sourceItems);
+    const description =
+      parts.slice(1).join(" — ") || template?.description || "";
+
+    return {
+      active: true,
+      description,
+      descriptionEn: template?.descriptionEn ?? null,
+      descriptionHi: template?.descriptionHi ?? null,
+      eventStartsAt,
+      key: `bulk-${Date.now()}-${index}`,
+      priceInr: template?.priceInr ?? null,
+      priceRub: priceRub ?? template?.priceRub ?? 0,
+      priceUnit: template?.priceUnit ?? "PER_PARTICIPANT",
+      priceUsd: template?.priceUsd ?? null,
+      sortOrder: sourceItems.length + index + 1,
+      title,
+      titleEn: template?.titleEn ?? null,
+      titleHi: template?.titleHi ?? null
+    };
+  }
+
+  function addBulkOptions() {
+    const lines = bulkText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length === 0) {
+      return;
+    }
+
+    setItems((current) => {
+      const createdOptions = lines
+        .map((line, index) => createOptionFromBulkLine(line, index, current))
+        .filter((option): option is EditableRiteOption => Boolean(option));
+
+      return [...current, ...createdOptions];
+    });
+    setBulkText("");
+  }
+
   const visibleItems = items.filter((item) => !item.markedForDelete);
 
   return (
@@ -128,6 +254,32 @@ export function RiteOptionsFields({
         {serviceSlug === "single-rite" && (
           <span className="badge">single-rite</span>
         )}
+      </div>
+
+      <div className="bulk-schedule-box">
+        <label className="field">
+          <span>Массовая загрузка расписания</span>
+          <textarea
+            onChange={(event) => setBulkText(event.target.value)}
+            placeholder={
+              "24.06.2026 07:00 Ганга Пуджа — очищение, освобождение от негативной кармы — 1200\n25.06.2026 07:00 Гаятри Пуджа — мудрость, духовное раскрытие — 1200"
+            }
+            rows={5}
+            value={bulkText}
+          />
+          <small>
+            Каждая новая строка станет отдельным обрядом. Если название уже
+            встречалось, описание и цена подтянутся автоматически.
+          </small>
+        </label>
+        <button
+          className="button"
+          disabled={!bulkText.trim()}
+          onClick={addBulkOptions}
+          type="button"
+        >
+          Разобрать строки и добавить карточки
+        </button>
       </div>
 
       {items.map((option, index) => {

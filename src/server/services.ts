@@ -39,6 +39,7 @@ const publicServiceSelect = {
       priceRub: true,
       priceUnit: true,
       priceUsd: true,
+      sortOrder: true,
       title: true,
       titleEn: true,
       titleHi: true
@@ -270,11 +271,14 @@ function toSiteService(
   const locale = normalizeLocale(localeValue);
   const currency = getCurrencyForLocale(locale);
   const priceAmount = getLocalizedPrice(service, currency);
+  const sortedOptions = [...service.options]
+    .filter(isUpcomingOption)
+    .sort(compareServiceOptionsByDate);
 
   return {
     currency,
     description: getLocalizedDescription(service, locale),
-    options: service.options.filter(isUpcomingOption).map((option) => {
+    options: sortedOptions.map((option) => {
       const optionPriceAmount = getLocalizedOptionPrice(option, currency);
 
       return {
@@ -312,7 +316,9 @@ function withOrderLocale(
 
   return {
     ...service,
-    options: service.options.filter(isUpcomingOption),
+    options: service.options
+      .filter(isUpcomingOption)
+      .sort(compareServiceOptionsByDate),
     currency,
     localizedDescription: getLocalizedDescription(service, locale),
     localizedPrice: getLocalizedPrice(service, currency),
@@ -322,6 +328,44 @@ function withOrderLocale(
 
 function isUpcomingOption(option: { eventStartsAt: Date | null }) {
   return !option.eventStartsAt || option.eventStartsAt.getTime() > Date.now();
+}
+
+function compareServiceOptionsByDate(
+  left: {
+    eventStartsAt: Date | null;
+    sortOrder: number;
+    title: string;
+  },
+  right: {
+    eventStartsAt: Date | null;
+    sortOrder: number;
+    title: string;
+  }
+) {
+  if (left.eventStartsAt && right.eventStartsAt) {
+    const dateDiff =
+      left.eventStartsAt.getTime() - right.eventStartsAt.getTime();
+
+    if (dateDiff !== 0) {
+      return dateDiff;
+    }
+  }
+
+  if (left.eventStartsAt && !right.eventStartsAt) {
+    return -1;
+  }
+
+  if (!left.eventStartsAt && right.eventStartsAt) {
+    return 1;
+  }
+
+  const sortDiff = left.sortOrder - right.sortOrder;
+
+  if (sortDiff !== 0) {
+    return sortDiff;
+  }
+
+  return left.title.localeCompare(right.title, "ru");
 }
 
 export async function getPublicServices(
