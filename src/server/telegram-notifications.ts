@@ -23,10 +23,21 @@ type OrderCreatedNotificationInput = {
   locale?: string | null;
 };
 
+type PaymentSucceededNotificationInput = OrderCreatedNotificationInput & {
+  paidAt?: Date | null;
+  paymentProviderName: string;
+};
+
 export async function sendOrderCreatedTelegramNotification(
   input: OrderCreatedNotificationInput
 ) {
   return sendTelegramMessage(formatOrderCreatedMessage(input));
+}
+
+export async function sendPaymentSucceededTelegramNotification(
+  input: PaymentSucceededNotificationInput
+) {
+  return sendTelegramMessage(formatPaymentSucceededMessage(input));
 }
 
 export function isTelegramUserAllowed(
@@ -63,6 +74,7 @@ function formatOrderCreatedMessage(input: OrderCreatedNotificationInput) {
     `Участников: ${input.participantCount}`,
     "Список участников:",
     input.participantNames.join("\n"),
+    ...formatSelectedOptions(input),
     "",
     `Заказчик: ${input.customerName}`,
     `Telegram: ${formatOptional(input.customerTelegram)}`,
@@ -71,6 +83,50 @@ function formatOrderCreatedMessage(input: OrderCreatedNotificationInput) {
   ]
     .filter((line): line is string => Boolean(line))
     .join("\n");
+}
+
+function formatPaymentSucceededMessage(
+  input: PaymentSucceededNotificationInput
+) {
+  const localizedAmount = formatLocalizedPrice(input.amountRub, input.locale);
+
+  return [
+    "✅ Оплата получена StarVedas",
+    "",
+    `Заказ: #${input.orderNumber}`,
+    `Статус: оплачен`,
+    `Платежная система: ${input.paymentProviderName}`,
+    input.paidAt ? `Время оплаты: ${input.paidAt.toLocaleString("ru-RU")}` : "",
+    `Куратор: ${input.curatorName}`,
+    `Церемония: ${input.serviceTitle}`,
+    `Сумма: ${localizedAmount}`,
+    `Участников: ${input.participantCount}`,
+    "Список участников:",
+    input.participantNames.join("\n"),
+    ...formatSelectedOptions(input),
+    "",
+    `Заказчик: ${input.customerName}`,
+    `Telegram: ${formatOptional(input.customerTelegram)}`,
+    `Телефон: ${formatOptional(input.customerPhone)}`,
+    `Email: ${formatOptional(input.customerEmail)}`
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
+}
+
+function formatSelectedOptions(input: OrderCreatedNotificationInput) {
+  if (!input.selectedOptions?.length) {
+    return [];
+  }
+
+  return [
+    "",
+    "Выбранные обряды:",
+    ...input.selectedOptions.map(
+      (option) =>
+        `- ${option.title}: ${formatLocalizedPrice(option.priceRub, input.locale)}`
+    )
+  ];
 }
 
 async function sendTelegramMessage(text: string) {

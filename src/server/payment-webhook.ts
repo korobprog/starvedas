@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { markOrderClientBought } from "@/server/client-profiles";
 import { type PayformData, verifyPayformSignature } from "@/server/payform";
+import { sendPaymentSucceededTelegramNotification } from "@/server/telegram-notifications";
 
 function parseFormBody(body: string) {
   return Object.fromEntries(new URLSearchParams(body));
@@ -173,6 +174,7 @@ export async function handlePaymentWebhook({
   const paymentStatus = getPaymentStatus(payload);
   const orderStatus = toOrderStatus(paymentStatus);
   const leadStatus = toLeadStatus(paymentStatus);
+  const paidAt = paymentStatus === PaymentStatus.SUCCEEDED ? new Date() : null;
   const providerPaymentId = getString(payload, [
     "payment_id",
     "transaction_id",
@@ -184,13 +186,48 @@ export async function handlePaymentWebhook({
       orderNumber
     },
     select: {
+      amountRub: true,
+      curator: {
+        select: {
+          name: true
+        }
+      },
+      customerEmail: true,
+      customerName: true,
+      customerPhone: true,
+      customerTelegram: true,
       id: true,
       leadStatus: true,
+      orderNumber: true,
+      participantCount: true,
+      participants: {
+        orderBy: {
+          sortOrder: "asc"
+        },
+        select: {
+          fullName: true
+        }
+      },
       payment: {
         select: {
           status: true
         }
       },
+      service: {
+        select: {
+          title: true
+        }
+      },
+      serviceOptions: {
+        orderBy: {
+          sortOrder: "asc"
+        },
+        select: {
+          titleSnapshot: true,
+          totalRubSnapshot: true
+        }
+      },
+      sourceDomain: true,
       status: true
     }
   });
@@ -209,8 +246,7 @@ export async function handlePaymentWebhook({
         orderId: order.id
       },
       data: {
-        paidAt:
-          paymentStatus === PaymentStatus.SUCCEEDED ? new Date() : undefined,
+        paidAt: paidAt ?? undefined,
         providerPaymentId,
         rawPayload: payload as Prisma.InputJsonObject,
         status: paymentStatus
@@ -242,6 +278,35 @@ export async function handlePaymentWebhook({
       await markOrderClientBought(tx, order.id, providerName);
     }
   });
+
+  if (paymentStatus === PaymentStatus.SUCCEEDED) {
+    try {
+      await sendPaymentSucceededTelegramNotification({
+        amountRub: order.amountRub,
+        curatorName: order.curator.name,
+        customerEmail: order.customerEmail,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        customerTelegram: order.customerTelegram,
+        orderNumber: order.orderNumber,
+        paidAt,
+        participantCount: order.participantCount,
+        participantNames: order.participants.map(
+          (participant) => participant.fullName
+        ),
+        paymentProviderName: providerName,
+        selectedOptions: order.serviceOptions.map((option) => ({
+          priceRub: option.totalRubSnapshot,
+          title: option.titleSnapshot
+        })),
+        serviceTitle: order.service.title,
+        sourceDomain: order.sourceDomain,
+        statusText: "оплачен"
+      });
+    } catch {
+      console.error("Telegram payment notification failed");
+    }
+  }
 
   return NextResponse.json({ ok: true });
 }
