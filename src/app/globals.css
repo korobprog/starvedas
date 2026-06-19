@@ -1232,6 +1232,11 @@ select {
   justify-self: start;
 }
 
+.participant-textarea {
+  min-height: 180px;
+  line-height: 1.5;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

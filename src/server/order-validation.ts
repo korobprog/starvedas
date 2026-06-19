@@ -7,6 +7,9 @@ import {
 } from "@/lib/phone-validation";
 import { paymentProviderCodes } from "@/server/payment-providers";
 
+const participantNamePattern =
+  /^[\p{L}\p{M}][\p{L}\p{M}'’`.-]*(?:\s+[\p{L}\p{M}][\p{L}\p{M}'’`.-]*)+$/u;
+
 const phoneCountrySchema = z
   .string()
   .trim()
@@ -62,15 +65,45 @@ export const createOrderSchema = z
         path: ["customerTelegram"]
       });
     }
+
+    const participantNames = getParticipantNames(data.participantsText);
+
+    if (participantNames.length !== data.participantCount) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Количество участников не совпадает со списком",
+        path: ["participantsText"]
+      });
+    }
+
+    if (
+      participantNames.length > 200 ||
+      participantNames.some((name) => !isParticipantNameValid(name))
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Каждая строка участника должна содержать имя и фамилию без цифр, телефонов и лишних символов",
+        path: ["participantsText"]
+      });
+    }
   });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 
 export function getParticipantNames(participantsText: string) {
   return participantsText
-    .split("\n")
-    .map((item) => item.trim())
+    .split(/\r?\n/)
+    .map((item) => normalizeParticipantName(item))
     .filter(Boolean);
+}
+
+export function normalizeParticipantName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+export function isParticipantNameValid(value: string) {
+  return value.length <= 120 && participantNamePattern.test(value);
 }
 
 export function calculateOrderAmount({

@@ -63,7 +63,9 @@ type SignupCopy = {
   warnings: {
     countMismatch: string;
     incompleteParticipants: string;
+    invalidParticipantLines: string;
     invalidPhone: string;
+    tooManyParticipants: string;
   };
   placeholders: {
     participants: string;
@@ -141,11 +143,14 @@ const copies: Record<Locale, SignupCopy> = {
         "Количество строк в списке сейчас: {{count}}. Укажите столько строк, сколько участников выбрано.",
       incompleteParticipants:
         "Заполните имя и фамилию для каждого участника. Сейчас заполнено: {{count}}.",
-      invalidPhone: "Введите корректный телефон для выбранной страны."
+      invalidParticipantLines:
+        "Проверьте строки {{lines}}: укажите имя и фамилию без цифр, телефонов и лишних символов.",
+      invalidPhone: "Введите корректный телефон для выбранной страны.",
+      tooManyParticipants: "Можно указать не больше 200 участников."
     },
     placeholders: {
       participants:
-        "Первая запись: тот, кто оформляет заказ. Нажмите плюс, чтобы добавить еще участника. Тариф считается за каждого заполненного участника.",
+        "Введите участников в одно поле: каждая новая строка — отдельный участник. В каждой строке укажите имя и фамилию. Тариф считается за каждого участника.",
       telegram: "@username",
       phone: "(777) ...",
       email: "mail@example.com"
@@ -217,11 +222,14 @@ const copies: Record<Locale, SignupCopy> = {
         "Current number of lines in the list: {{count}}. Add the same number of lines as selected participants.",
       incompleteParticipants:
         "Fill in first and last name for each participant. Completed: {{count}}.",
-      invalidPhone: "Enter a valid phone for the selected country."
+      invalidParticipantLines:
+        "Check lines {{lines}}: enter first and last name without numbers, phones, or extra symbols.",
+      invalidPhone: "Enter a valid phone for the selected country.",
+      tooManyParticipants: "You can add no more than 200 participants."
     },
     placeholders: {
       participants:
-        "First participant: the person placing the order. Click plus to add another participant. The price is counted for each completed participant.",
+        "Enter participants in one field: each new line is a separate participant. Add first and last name on every line. The price is counted for each participant.",
       telegram: "@username",
       phone: "+{{code}}...",
       email: "mail@example.com"
@@ -293,11 +301,14 @@ const copies: Record<Locale, SignupCopy> = {
         "सूची में वर्तमान पंक्तियों की संख्या: {{count}}. चयनित प्रतिभागियों के बराबर पंक्तियाँ जोड़ें.",
       incompleteParticipants:
         "हर प्रतिभागी का नाम और उपनाम भरें. पूरे भरे गए: {{count}}.",
-      invalidPhone: "चुने गए देश के लिए सही फोन नंबर डालें."
+      invalidParticipantLines:
+        "पंक्तियाँ {{lines}} जाँचें: अंक, फोन या अतिरिक्त चिन्हों के बिना नाम और उपनाम लिखें.",
+      invalidPhone: "चुने गए देश के लिए सही फोन नंबर डालें.",
+      tooManyParticipants: "200 से अधिक प्रतिभागी नहीं जोड़े जा सकते."
     },
     placeholders: {
       participants:
-        "पहला प्रतिभागी: ऑर्डर करने वाला व्यक्ति. दूसरा प्रतिभागी जोड़ने के लिए प्लस दबाएँ. हर भरे गए प्रतिभागी के लिए कीमत गिनी जाएगी.",
+        "सभी प्रतिभागियों को एक ही फ़ील्ड में लिखें: हर नई पंक्ति एक अलग प्रतिभागी है. हर पंक्ति में नाम और उपनाम लिखें. कीमत हर प्रतिभागी के लिए गिनी जाएगी.",
       telegram: "@username",
       phone: "+{{code}}...",
       email: "mail@example.com"

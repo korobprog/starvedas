@@ -171,11 +171,6 @@ type SubmitState =
     }
   | { status: "error"; message: string };
 
-type ParticipantInput = {
-  firstName: string;
-  lastName: string;
-};
-
 type AssignedCurator = {
   name: string;
   postPurchaseText?: string | null;
@@ -187,21 +182,32 @@ type AssignedCurator = {
   supportUrl?: string | null;
 };
 
-function createParticipant(): ParticipantInput {
-  return {
-    firstName: "",
-    lastName: ""
-  };
+const participantNamePattern =
+  /^[\p{L}\p{M}][\p{L}\p{M}'’`.-]*(?:\s+[\p{L}\p{M}][\p{L}\p{M}'’`.-]*)+$/u;
+
+function normalizeParticipantName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
 }
 
-function getParticipantFullName(participant: ParticipantInput) {
-  return [participant.firstName.trim(), participant.lastName.trim()]
-    .filter(Boolean)
-    .join(" ");
+function getParticipantNamesFromText(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map(normalizeParticipantName)
+    .filter(Boolean);
 }
 
-function isParticipantComplete(participant: ParticipantInput) {
-  return Boolean(participant.firstName.trim() && participant.lastName.trim());
+function isParticipantNameValid(value: string) {
+  return value.length <= 120 && participantNamePattern.test(value);
+}
+
+function getInvalidParticipantLines(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((line, index) => ({
+      lineNumber: index + 1,
+      name: normalizeParticipantName(line)
+    }))
+    .filter(({ name }) => Boolean(name) && !isParticipantNameValid(name));
 }
 
 function isWebUrl(value: string) {
@@ -333,9 +339,7 @@ export function SignupForm({
   const [paymentProvider, setPaymentProvider] = useState(
     paymentProviders[0]?.code ?? "prodamus"
   );
-  const [participants, setParticipants] = useState<ParticipantInput[]>([
-    createParticipant()
-  ]);
+  const [participantsInput, setParticipantsInput] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerNameTouched, setCustomerNameTouched] = useState(false);
   const [customerTelegram, setCustomerTelegram] = useState("");
@@ -375,15 +379,20 @@ export function SignupForm({
   const isSingleRiteSelected = selectedService.slug === "single-rite";
 
   const participantFullNames = useMemo(
-    () =>
-      participants.filter(isParticipantComplete).map(getParticipantFullName),
-    [participants]
+    () => getParticipantNamesFromText(participantsInput),
+    [participantsInput]
   );
   const participantsText = useMemo(
     () => participantFullNames.join("\n"),
     [participantFullNames]
   );
   const participantCount = participantFullNames.length;
+  const invalidParticipantLines = useMemo(
+    () => getInvalidParticipantLines(participantsInput),
+    [participantsInput]
+  );
+  const hasInvalidParticipants =
+    invalidParticipantLines.length > 0 || participantCount > 200;
   const phoneCountryOptions = useMemo(
     () => getPhoneCountryOptions(locale),
     [locale]
@@ -428,15 +437,12 @@ export function SignupForm({
   const hasContact = Boolean(
     customerTelegram.trim() || customerPhone.trim() || customerEmail.trim()
   );
-  const hasIncompleteParticipants = participants.some(
-    (participant) => !isParticipantComplete(participant)
-  );
   const isSubmitDisabled =
     submitState.status === "loading" ||
     (step === 0 &&
       isSingleRiteSelected &&
       selectedServiceOptionIds.length < 1) ||
-    (step === 1 && (hasIncompleteParticipants || participantCount < 1)) ||
+    (step === 1 && (hasInvalidParticipants || participantCount < 1)) ||
     (step === 2 &&
       (!hasContact || !consentPersonalData || !isCustomerPhoneValid)) ||
     (step === 4 && paymentProviders.length === 0);
@@ -551,35 +557,6 @@ export function SignupForm({
     );
   }
 
-  function updateParticipant(
-    index: number,
-    field: keyof ParticipantInput,
-    value: string
-  ) {
-    setParticipants((current) =>
-      current.map((participant, participantIndex) =>
-        participantIndex === index
-          ? {
-              ...participant,
-              [field]: value
-            }
-          : participant
-      )
-    );
-  }
-
-  function addParticipant() {
-    setParticipants((current) => [...current, createParticipant()]);
-  }
-
-  function removeParticipant(index: number) {
-    setParticipants((current) =>
-      current.length === 1
-        ? current
-        : current.filter((_, participantIndex) => participantIndex !== index)
-    );
-  }
-
   async function submitOrder() {
     setSubmitState({ status: "loading" });
 
@@ -677,7 +654,7 @@ export function SignupForm({
       }
 
       if (step === 1 && (!customerNameTouched || !customerName.trim())) {
-        const firstParticipantName = getParticipantFullName(participants[0]);
+        const firstParticipantName = participantFullNames[0];
 
         if (firstParticipantName) {
           setCustomerName(firstParticipantName);
@@ -858,67 +835,37 @@ export function SignupForm({
         <fieldset className="form-step">
           <legend>{copy.legend.participants}</legend>
           <p className="form-note">{copy.placeholders.participants}</p>
-          <div
-            className="participant-list"
-            aria-label={copy.fields.participantList}
-          >
-            {participants.map((participant, index) => (
-              <div className="participant-row" key={index}>
-                <strong className="participant-row__label">
-                  {index === 0
-                    ? copy.fields.primaryParticipant
-                    : copy.fields.participantNumber.replace(
-                        "{{number}}",
-                        String(index + 1)
-                      )}
-                </strong>
-                <label className="field">
-                  <span>{copy.fields.participantFirstName}</span>
-                  <input
-                    onChange={(event) =>
-                      updateParticipant(index, "firstName", event.target.value)
-                    }
-                    required
-                    type="text"
-                    value={participant.firstName}
-                  />
-                </label>
-                <label className="field">
-                  <span>{copy.fields.participantLastName}</span>
-                  <input
-                    onChange={(event) =>
-                      updateParticipant(index, "lastName", event.target.value)
-                    }
-                    required
-                    type="text"
-                    value={participant.lastName}
-                  />
-                </label>
-                {index > 0 && (
-                  <button
-                    className="button participant-row__remove"
-                    onClick={() => removeParticipant(index)}
-                    type="button"
-                  >
-                    {copy.actions.removeParticipant}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <button
-            className="button participant-add"
-            onClick={addParticipant}
-            type="button"
-          >
-            + {copy.actions.addParticipant}
-          </button>
-          {hasIncompleteParticipants && (
+          <label className="field">
+            <span>{copy.fields.participantList}</span>
+            <textarea
+              aria-invalid={hasInvalidParticipants}
+              className="participant-textarea"
+              onChange={(event) => setParticipantsInput(event.target.value)}
+              placeholder={"Иван Иванов\nМария Петрова\nАлексей Смирнов"}
+              required
+              rows={6}
+              value={participantsInput}
+            />
+          </label>
+          <p className="form-note">
+            {copy.fields.participantCount}: {participantCount}
+          </p>
+          {invalidParticipantLines.length > 0 && (
             <p className="form-warning">
-              {copy.warnings.incompleteParticipants.replace(
-                "{{count}}",
-                String(participantCount)
+              {copy.warnings.invalidParticipantLines.replace(
+                "{{lines}}",
+                invalidParticipantLines
+                  .map(({ lineNumber }) => String(lineNumber))
+                  .join(", ")
               )}
+            </p>
+          )}
+          {participantCount > 200 && (
+            <p className="form-warning">{copy.warnings.tooManyParticipants}</p>
+          )}
+          {participantCount < 1 && (
+            <p className="form-warning">
+              {copy.warnings.incompleteParticipants.replace("{{count}}", "0")}
             </p>
           )}
         </fieldset>
