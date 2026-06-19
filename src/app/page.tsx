@@ -80,6 +80,11 @@ export default async function Home({
   )
     ? params.service
     : undefined;
+  const hideAdminSupportButtons =
+    brand.sourceDomain === "chintamanidhama.ru" &&
+    assignedCurator.slug === "administrator";
+  const curatorSupportEnabled =
+    assignedCurator.supportEnabled && !hideAdminSupportButtons;
 
   return (
     <main className="page-shell">
@@ -109,7 +114,7 @@ export default async function Home({
               <SupportCta
                 className="support-cta--inline"
                 supportButtonLabel={assignedCurator.supportButtonLabel}
-                supportEnabled={assignedCurator.supportEnabled}
+                supportEnabled={curatorSupportEnabled}
                 supportUrl={assignedCurator.supportUrl}
               />
             </div>
@@ -155,7 +160,7 @@ export default async function Home({
             className="support-cta--card"
             note="По тарифам можно обратиться к администратору."
             supportButtonLabel="Уточнить тарифы"
-            supportEnabled={assignedCurator.supportEnabled}
+            supportEnabled={curatorSupportEnabled}
             supportUrl={assignedCurator.supportUrl}
           />
         </div>
@@ -209,7 +214,7 @@ export default async function Home({
             <SupportCta
               note="Если нужно уточнить расписание или способ оплаты, напишите куратору."
               supportButtonLabel={assignedCurator.supportButtonLabel}
-              supportEnabled={assignedCurator.supportEnabled}
+              supportEnabled={curatorSupportEnabled}
               supportUrl={assignedCurator.supportUrl}
             />
           </div>
@@ -224,7 +229,10 @@ export default async function Home({
               <p>{copy.sections.signup.lead}</p>
             </div>
             <SignupForm
-              assignedCurator={assignedCurator}
+              assignedCurator={{
+                ...assignedCurator,
+                supportEnabled: curatorSupportEnabled
+              }}
               brandName={brand.name}
               initialServiceSlug={initialServiceSlug}
               locale={locale}
@@ -289,7 +297,7 @@ export default async function Home({
           <SupportCta
             className="support-cta--footer"
             supportButtonLabel={assignedCurator.supportButtonLabel}
-            supportEnabled={assignedCurator.supportEnabled}
+            supportEnabled={curatorSupportEnabled}
             supportUrl={assignedCurator.supportUrl}
           />
         </div>

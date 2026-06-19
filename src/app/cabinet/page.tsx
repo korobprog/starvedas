@@ -225,6 +225,39 @@ function parseClientFilters(searchParams: SearchParams | undefined) {
   };
 }
 
+type CabinetSection =
+  | "overview"
+  | "content"
+  | "products"
+  | "payments"
+  | "clients";
+
+const cabinetSectionMeta: Record<
+  CabinetSection,
+  { description: string; label: string }
+> = {
+  overview: {
+    description: "Ссылка и статистика",
+    label: "Обзор"
+  },
+  content: {
+    description: "Текст после покупки",
+    label: "Сообщение"
+  },
+  products: {
+    description: "Товары и абонементы",
+    label: "Продукты"
+  },
+  payments: {
+    description: "Способы и проверки",
+    label: "Оплата"
+  },
+  clients: {
+    description: "Заявки и рассылки",
+    label: "Клиенты"
+  }
+};
+
 function buildParticipantOrderWhere(
   curatorId: string,
   filters: ReturnType<typeof parseParticipantFilters>
@@ -557,6 +590,23 @@ export default async function CabinetPage({
     : buildReferralPath(primaryReferralSlug);
   const canViewClients =
     user.role !== UserRole.CURATOR || curator.canViewClients;
+  const canOpenProductsSection =
+    serviceManagementAccess || user.role === UserRole.CURATOR;
+  const availableCabinetSections: CabinetSection[] = [
+    "overview",
+    "content",
+    ...(canOpenProductsSection ? (["products"] as const) : []),
+    "payments",
+    ...(canViewClients ? (["clients"] as const) : [])
+  ];
+  const requestedSection = firstParam(rawSearchParams?.section) as
+    | CabinetSection
+    | undefined;
+  const activeSection = availableCabinetSections.includes(
+    requestedSection ?? "overview"
+  )
+    ? (requestedSection ?? "overview")
+    : "overview";
   const participantFilters = parseParticipantFilters(rawSearchParams);
   const clientFilters = parseClientFilters(rawSearchParams);
   const paidOrders = curator.orders.filter((order) => order.status === "PAID");
@@ -618,261 +668,293 @@ export default async function CabinetPage({
           </nav>
         </header>
 
-        <div className="admin-grid">
-          <section className="admin-card">
-            <h2>Реферальная ссылка</h2>
-            <p className="admin-muted">
-              Клиенты, которые перейдут по этой ссылке, попадут к вам.
-            </p>
-            <a
-              className="referral-link"
-              href={referral}
-              rel="noreferrer"
-              target="_blank"
-            >
-              {referral}
-            </a>
-            {canViewClients ? (
-              <div className="stats-grid">
-                <div>
-                  <strong>{curator.orders.length}</strong>
-                  <span>заказов</span>
-                </div>
-                <div>
-                  <strong>{paidOrders.length}</strong>
-                  <span>оплачено</span>
-                </div>
-                <div>
-                  <strong>{paidAmount.toLocaleString("ru-RU")}</strong>
-                  <span>руб.</span>
-                </div>
-              </div>
-            ) : (
-              <p className="admin-muted">
-                Просмотр клиентов отключен администратором.
-              </p>
-            )}
-          </section>
+        <nav className="cabinet-section-menu" aria-label="Разделы кабинета">
+          {availableCabinetSections.map((section) => {
+            const meta = cabinetSectionMeta[section];
 
-          <section className="admin-card">
-            <h2>Информация после покупки</h2>
-            {!curator.canEditPostPurchase && (
-              <p className="admin-muted">
-                Редактирование информации после покупки отключено
-                администратором.
-              </p>
-            )}
-            {!curator.canEditSupport && (
-              <p className="admin-muted">
-                Редактирование кнопки поддержки отключено администратором.
-              </p>
-            )}
-            <form action={saveCabinetCuratorSettings} className="admin-form">
-              <label className="field">
-                <span>Заголовок</span>
-                <input
-                  defaultValue={curator.postPurchaseTitle ?? ""}
-                  disabled={!curator.canEditPostPurchase}
-                  name="postPurchaseTitle"
-                  type="text"
-                />
-              </label>
-              <label className="field">
-                <span>Текст для клиента</span>
-                <textarea
-                  defaultValue={curator.postPurchaseText ?? ""}
-                  disabled={!curator.canEditPostPurchase}
-                  name="postPurchaseText"
-                  rows={5}
-                />
-              </label>
-              <label className="field">
-                <span>Ссылка для клиента</span>
-                <input
-                  defaultValue={curator.postPurchaseUrl ?? ""}
-                  disabled={!curator.canEditPostPurchase}
-                  name="postPurchaseUrl"
-                  placeholder="https://t.me/..."
-                  type="url"
-                />
-              </label>
-              <label className="field">
-                <span>Текст кнопки вопроса</span>
-                <input
-                  defaultValue={curator.supportButtonLabel ?? ""}
-                  disabled={!curator.canEditSupport}
-                  name="supportButtonLabel"
-                  placeholder="Написать вопрос куратору"
-                  type="text"
-                />
-              </label>
-              <label className="field">
-                <span>Адрес для вопросов</span>
-                <input
-                  defaultValue={curator.supportUrl ?? ""}
-                  disabled={!curator.canEditSupport}
-                  name="supportUrl"
-                  placeholder="https://t.me/..., @username, email или телефон"
-                  type="text"
-                />
-              </label>
-              <p className="admin-muted">
-                Сейчас кнопка{" "}
-                {curator.supportEnabled ? "показывается" : "скрыта админом"}.
-              </p>
-              <button
-                className="button button--primary"
-                disabled={
-                  !curator.canEditPostPurchase && !curator.canEditSupport
+            return (
+              <Link
+                aria-current={activeSection === section ? "page" : undefined}
+                className={
+                  activeSection === section
+                    ? "cabinet-section-menu__item cabinet-section-menu__item--active"
+                    : "cabinet-section-menu__item"
                 }
-                type="submit"
+                href={`/cabinet?section=${section}`}
+                key={section}
               >
-                Сохранить
-              </button>
-            </form>
-          </section>
+                <span>{meta.label}</span>
+                <small>{meta.description}</small>
+              </Link>
+            );
+          })}
+        </nav>
 
-          {serviceManagementAccess ? (
+        <div className="admin-grid">
+          {activeSection === "overview" && (
             <section className="admin-card admin-card--wide">
-              <h2>Продукты и абонементы</h2>
+              <h2>Реферальная ссылка</h2>
               <p className="admin-muted">
-                Управляйте продуктами, которые доступны клиентам на сайте.
+                Клиенты, которые перейдут по этой ссылке, попадут к вам.
               </p>
-              <CreateServiceForm />
-              <ServiceEditorList services={managedServices} />
+              <a
+                className="referral-link"
+                href={referral}
+                rel="noreferrer"
+                target="_blank"
+              >
+                {referral}
+              </a>
+              {canViewClients ? (
+                <div className="stats-grid">
+                  <div>
+                    <strong>{curator.orders.length}</strong>
+                    <span>заказов</span>
+                  </div>
+                  <div>
+                    <strong>{paidOrders.length}</strong>
+                    <span>оплачено</span>
+                  </div>
+                  <div>
+                    <strong>{paidAmount.toLocaleString("ru-RU")}</strong>
+                    <span>руб.</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="admin-muted">
+                  Просмотр клиентов отключен администратором.
+                </p>
+              )}
             </section>
-          ) : (
-            user.role === UserRole.CURATOR && (
+          )}
+
+          {activeSection === "content" && (
+            <section className="admin-card admin-card--wide">
+              <h2>Информация после покупки</h2>
+              {!curator.canEditPostPurchase && (
+                <p className="admin-muted">
+                  Редактирование информации после покупки отключено
+                  администратором.
+                </p>
+              )}
+              {!curator.canEditSupport && (
+                <p className="admin-muted">
+                  Редактирование кнопки поддержки отключено администратором.
+                </p>
+              )}
+              <form action={saveCabinetCuratorSettings} className="admin-form">
+                <label className="field">
+                  <span>Заголовок</span>
+                  <input
+                    defaultValue={curator.postPurchaseTitle ?? ""}
+                    disabled={!curator.canEditPostPurchase}
+                    name="postPurchaseTitle"
+                    type="text"
+                  />
+                </label>
+                <label className="field">
+                  <span>Текст для клиента</span>
+                  <textarea
+                    defaultValue={curator.postPurchaseText ?? ""}
+                    disabled={!curator.canEditPostPurchase}
+                    name="postPurchaseText"
+                    rows={5}
+                  />
+                </label>
+                <label className="field">
+                  <span>Ссылка для клиента</span>
+                  <input
+                    defaultValue={curator.postPurchaseUrl ?? ""}
+                    disabled={!curator.canEditPostPurchase}
+                    name="postPurchaseUrl"
+                    placeholder="https://t.me/..."
+                    type="url"
+                  />
+                </label>
+                <label className="field">
+                  <span>Текст кнопки вопроса</span>
+                  <input
+                    defaultValue={curator.supportButtonLabel ?? ""}
+                    disabled={!curator.canEditSupport}
+                    name="supportButtonLabel"
+                    placeholder="Написать вопрос куратору"
+                    type="text"
+                  />
+                </label>
+                <label className="field">
+                  <span>Адрес для вопросов</span>
+                  <input
+                    defaultValue={curator.supportUrl ?? ""}
+                    disabled={!curator.canEditSupport}
+                    name="supportUrl"
+                    placeholder="https://t.me/..., @username, email или телефон"
+                    type="text"
+                  />
+                </label>
+                <p className="admin-muted">
+                  Сейчас кнопка{" "}
+                  {curator.supportEnabled ? "показывается" : "скрыта админом"}.
+                </p>
+                <button
+                  className="button button--primary"
+                  disabled={
+                    !curator.canEditPostPurchase && !curator.canEditSupport
+                  }
+                  type="submit"
+                >
+                  Сохранить
+                </button>
+              </form>
+            </section>
+          )}
+
+          {activeSection === "products" &&
+            (serviceManagementAccess ? (
               <section className="admin-card admin-card--wide">
                 <h2>Продукты и абонементы</h2>
                 <p className="admin-muted">
-                  Управление продуктами отключено администратором.
+                  Управляйте продуктами, которые доступны клиентам на сайте.
                 </p>
+                <CreateServiceForm />
+                <ServiceEditorList services={managedServices} />
               </section>
-            )
+            ) : (
+              user.role === UserRole.CURATOR && (
+                <section className="admin-card admin-card--wide">
+                  <h2>Продукты и абонементы</h2>
+                  <p className="admin-muted">
+                    Управление продуктами отключено администратором.
+                  </p>
+                </section>
+              )
+            ))}
+
+          {activeSection === "payments" && (
+            <section className="admin-card admin-card--wide">
+              <h2>Способы оплаты и реквизиты</h2>
+              <p className="admin-muted">
+                Выберите только из способов, разрешенных администратором, и
+                заполните инструкции для клиентов вашей ссылки.
+              </p>
+              {enabledPaymentSettings.length > 0 ? (
+                <form
+                  action={saveCabinetPaymentSettings}
+                  className="admin-form"
+                >
+                  <div className="payment-settings-list">
+                    {enabledPaymentSettings.map((provider) => (
+                      <fieldset
+                        className="payment-settings-card"
+                        key={provider.code}
+                      >
+                        <legend>{provider.name}</legend>
+                        <p className="admin-muted">{provider.description}</p>
+                        <label className="checkbox-field">
+                          <input
+                            defaultChecked={provider.enabled}
+                            name={`enabled:${provider.code}`}
+                            type="checkbox"
+                          />
+                          <span>Показывать этот способ клиентам</span>
+                        </label>
+                        <label className="field">
+                          <span>Инструкция клиенту</span>
+                          <textarea
+                            defaultValue={
+                              provider.instructions?.instructions ?? ""
+                            }
+                            name={`instructions:${provider.code}`}
+                            placeholder="Например: используйте этот способ, если не получается оплатить через платежную форму."
+                            rows={3}
+                          />
+                        </label>
+                        {provider.isCustom && (
+                          <>
+                            <div className="field-grid">
+                              <label className="field">
+                                <span>Банк</span>
+                                <input
+                                  defaultValue={
+                                    provider.instructions?.bankName ?? ""
+                                  }
+                                  name={`bankName:${provider.code}`}
+                                  type="text"
+                                />
+                              </label>
+                              <label className="field">
+                                <span>Получатель</span>
+                                <input
+                                  defaultValue={
+                                    provider.instructions?.recipientName ?? ""
+                                  }
+                                  name={`recipientName:${provider.code}`}
+                                  type="text"
+                                />
+                              </label>
+                              <label className="field">
+                                <span>Карта или счет</span>
+                                <input
+                                  defaultValue={
+                                    provider.instructions?.accountNumber ?? ""
+                                  }
+                                  name={`accountNumber:${provider.code}`}
+                                  type="text"
+                                />
+                              </label>
+                            </div>
+                            <div className="field-grid">
+                              <label className="field">
+                                <span>Телефон</span>
+                                <input
+                                  defaultValue={
+                                    provider.instructions?.phone ?? ""
+                                  }
+                                  name={`phone:${provider.code}`}
+                                  type="text"
+                                />
+                              </label>
+                              <label className="field">
+                                <span>Комментарий к платежу</span>
+                                <input
+                                  defaultValue={
+                                    provider.instructions?.paymentComment ?? ""
+                                  }
+                                  name={`paymentComment:${provider.code}`}
+                                  type="text"
+                                />
+                              </label>
+                              <label className="field">
+                                <span>Срок проверки</span>
+                                <input
+                                  defaultValue={
+                                    provider.instructions?.verificationPeriod ??
+                                    ""
+                                  }
+                                  name={`verificationPeriod:${provider.code}`}
+                                  placeholder="Например: до 1 рабочего дня"
+                                  type="text"
+                                />
+                              </label>
+                            </div>
+                          </>
+                        )}
+                      </fieldset>
+                    ))}
+                  </div>
+                  <button className="button button--primary" type="submit">
+                    Сохранить способы оплаты
+                  </button>
+                </form>
+              ) : (
+                <p className="admin-muted">
+                  Администратор пока не разрешил способы оплаты для этого
+                  кабинета.
+                </p>
+              )}
+            </section>
           )}
 
-          <section className="admin-card admin-card--wide">
-            <h2>Способы оплаты и реквизиты</h2>
-            <p className="admin-muted">
-              Выберите только из способов, разрешенных администратором, и
-              заполните инструкции для клиентов вашей ссылки.
-            </p>
-            {enabledPaymentSettings.length > 0 ? (
-              <form action={saveCabinetPaymentSettings} className="admin-form">
-                <div className="payment-settings-list">
-                  {enabledPaymentSettings.map((provider) => (
-                    <fieldset
-                      className="payment-settings-card"
-                      key={provider.code}
-                    >
-                      <legend>{provider.name}</legend>
-                      <p className="admin-muted">{provider.description}</p>
-                      <label className="checkbox-field">
-                        <input
-                          defaultChecked={provider.enabled}
-                          name={`enabled:${provider.code}`}
-                          type="checkbox"
-                        />
-                        <span>Показывать этот способ клиентам</span>
-                      </label>
-                      <label className="field">
-                        <span>Инструкция клиенту</span>
-                        <textarea
-                          defaultValue={
-                            provider.instructions?.instructions ?? ""
-                          }
-                          name={`instructions:${provider.code}`}
-                          placeholder="Например: используйте этот способ, если не получается оплатить через платежную форму."
-                          rows={3}
-                        />
-                      </label>
-                      {provider.isCustom && (
-                        <>
-                          <div className="field-grid">
-                            <label className="field">
-                              <span>Банк</span>
-                              <input
-                                defaultValue={
-                                  provider.instructions?.bankName ?? ""
-                                }
-                                name={`bankName:${provider.code}`}
-                                type="text"
-                              />
-                            </label>
-                            <label className="field">
-                              <span>Получатель</span>
-                              <input
-                                defaultValue={
-                                  provider.instructions?.recipientName ?? ""
-                                }
-                                name={`recipientName:${provider.code}`}
-                                type="text"
-                              />
-                            </label>
-                            <label className="field">
-                              <span>Карта или счет</span>
-                              <input
-                                defaultValue={
-                                  provider.instructions?.accountNumber ?? ""
-                                }
-                                name={`accountNumber:${provider.code}`}
-                                type="text"
-                              />
-                            </label>
-                          </div>
-                          <div className="field-grid">
-                            <label className="field">
-                              <span>Телефон</span>
-                              <input
-                                defaultValue={
-                                  provider.instructions?.phone ?? ""
-                                }
-                                name={`phone:${provider.code}`}
-                                type="text"
-                              />
-                            </label>
-                            <label className="field">
-                              <span>Комментарий к платежу</span>
-                              <input
-                                defaultValue={
-                                  provider.instructions?.paymentComment ?? ""
-                                }
-                                name={`paymentComment:${provider.code}`}
-                                type="text"
-                              />
-                            </label>
-                            <label className="field">
-                              <span>Срок проверки</span>
-                              <input
-                                defaultValue={
-                                  provider.instructions?.verificationPeriod ??
-                                  ""
-                                }
-                                name={`verificationPeriod:${provider.code}`}
-                                placeholder="Например: до 1 рабочего дня"
-                                type="text"
-                              />
-                            </label>
-                          </div>
-                        </>
-                      )}
-                    </fieldset>
-                  ))}
-                </div>
-                <button className="button button--primary" type="submit">
-                  Сохранить способы оплаты
-                </button>
-              </form>
-            ) : (
-              <p className="admin-muted">
-                Администратор пока не разрешил способы оплаты для этого
-                кабинета.
-              </p>
-            )}
-          </section>
-
-          {canViewClients && (
+          {activeSection === "payments" && canViewClients && (
             <section className="admin-card admin-card--wide">
               <h2>Оплаты на проверке</h2>
               <p className="admin-muted">
@@ -952,10 +1034,11 @@ export default async function CabinetPage({
             </section>
           )}
 
-          {canViewClients && (
+          {activeSection === "clients" && canViewClients && (
             <section className="admin-card admin-card--wide">
               <h2>Участники оплаченных заказов</h2>
               <form className="admin-form filter-form">
+                <input name="section" type="hidden" value="clients" />
                 <label className="field">
                   <span>Дата с</span>
                   <input
@@ -1011,7 +1094,7 @@ export default async function CabinetPage({
                   <button className="button button--primary" type="submit">
                     Применить фильтры
                   </button>
-                  <Link className="button" href="/cabinet">
+                  <Link className="button" href="/cabinet?section=clients">
                     Сбросить
                   </Link>
                 </div>
@@ -1023,7 +1106,7 @@ export default async function CabinetPage({
             </section>
           )}
 
-          {canViewClients && (
+          {activeSection === "clients" && canViewClients && (
             <section className="admin-card admin-card--wide">
               <h2>Клиентская база и рассылки</h2>
               <p className="admin-muted">
@@ -1031,6 +1114,7 @@ export default async function CabinetPage({
                 Выгрузка содержит только контакты с согласием на рассылки.
               </p>
               <form className="admin-form filter-form">
+                <input name="section" type="hidden" value="clients" />
                 <label className="field">
                   <span>Дата статуса с</span>
                   <input
@@ -1103,7 +1187,7 @@ export default async function CabinetPage({
                   <button className="button button--primary" type="submit">
                     Применить фильтры
                   </button>
-                  <Link className="button" href="/cabinet">
+                  <Link className="button" href="/cabinet?section=clients">
                     Сбросить
                   </Link>
                 </div>
@@ -1115,62 +1199,66 @@ export default async function CabinetPage({
             </section>
           )}
 
-          <section className="admin-card admin-card--wide">
-            <h2>Клиенты и покупки</h2>
-            {!canViewClients ? (
-              <p className="admin-muted">
-                Просмотр клиентов и покупок отключен администратором.
-              </p>
-            ) : curator.orders.length > 0 ? (
-              <div className="table-wrap">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Заказ</th>
-                      <th>Клиент</th>
-                      <th>Покупка</th>
-                      <th>Сумма</th>
-                      <th>Статус</th>
-                      <th>Контакты</th>
-                      <th>Дата</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {curator.orders.map((order) => (
-                      <tr key={order.id}>
-                        <td>#{order.orderNumber}</td>
-                        <td>{order.customerName}</td>
-                        <td>
-                          {order.service.title}
-                          {order.serviceOptions.length ? (
-                            <ul className="rite-summary-list">
-                              {order.serviceOptions.map((option) => (
-                                <li key={option.titleSnapshot}>
-                                  {option.titleSnapshot}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : null}
-                        </td>
-                        <td>{formatMoney(order.amountRub, order.currency)}</td>
-                        <td>
-                          {formatStatus(order.status)} /{" "}
-                          {formatStatus(order.leadStatus)}
-                          {order.payment?.status
-                            ? ` / ${formatStatus(order.payment.status)}`
-                            : ""}
-                        </td>
-                        <td>{formatContacts(order) || "Не указаны"}</td>
-                        <td>{order.createdAt.toLocaleDateString("ru-RU")}</td>
+          {activeSection === "clients" && (
+            <section className="admin-card admin-card--wide">
+              <h2>Клиенты и покупки</h2>
+              {!canViewClients ? (
+                <p className="admin-muted">
+                  Просмотр клиентов и покупок отключен администратором.
+                </p>
+              ) : curator.orders.length > 0 ? (
+                <div className="table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Заказ</th>
+                        <th>Клиент</th>
+                        <th>Покупка</th>
+                        <th>Сумма</th>
+                        <th>Статус</th>
+                        <th>Контакты</th>
+                        <th>Дата</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="admin-muted">Клиентов пока нет.</p>
-            )}
-          </section>
+                    </thead>
+                    <tbody>
+                      {curator.orders.map((order) => (
+                        <tr key={order.id}>
+                          <td>#{order.orderNumber}</td>
+                          <td>{order.customerName}</td>
+                          <td>
+                            {order.service.title}
+                            {order.serviceOptions.length ? (
+                              <ul className="rite-summary-list">
+                                {order.serviceOptions.map((option) => (
+                                  <li key={option.titleSnapshot}>
+                                    {option.titleSnapshot}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
+                          </td>
+                          <td>
+                            {formatMoney(order.amountRub, order.currency)}
+                          </td>
+                          <td>
+                            {formatStatus(order.status)} /{" "}
+                            {formatStatus(order.leadStatus)}
+                            {order.payment?.status
+                              ? ` / ${formatStatus(order.payment.status)}`
+                              : ""}
+                          </td>
+                          <td>{formatContacts(order) || "Не указаны"}</td>
+                          <td>{order.createdAt.toLocaleDateString("ru-RU")}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="admin-muted">Клиентов пока нет.</p>
+              )}
+            </section>
+          )}
         </div>
       </div>
     </main>
