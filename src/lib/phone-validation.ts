@@ -101,11 +101,7 @@ function formatBracketedAreaCodePhone(
   const firstPart = digits.slice(3, 6);
   const secondPart = digits.slice(6, 8);
   const thirdPart = digits.slice(8, 10);
-  let formatted = `(${areaCode}`;
-
-  if (areaCode.length === 3) {
-    formatted += ")";
-  }
+  let formatted = areaCode;
 
   if (firstPart) {
     formatted += ` ${firstPart}`;
