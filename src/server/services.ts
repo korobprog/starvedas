@@ -413,6 +413,13 @@ export async function getManagedServices(): Promise<ManagedService[]> {
   });
 }
 
+export async function getManagedService(id: string): Promise<ManagedService | null> {
+  return prisma.service.findUnique({
+    where: { id },
+    select: managedServiceSelect
+  });
+}
+
 export async function getServiceForOrder(
   slug: string,
   locale?: string | null

@@ -152,3 +152,12 @@ export async function getManagedArticles(): Promise<ManagedArticle[]> {
     select: managedArticleSelect
   });
 }
+
+export async function getManagedArticle(
+  id: string
+): Promise<ManagedArticle | null> {
+  return prisma.article.findUnique({
+    where: { id },
+    select: managedArticleSelect
+  });
+}

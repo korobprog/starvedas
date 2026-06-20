@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ReferralLinkTools } from "@/components/referral-link-tools";
 import {
   getAdminCurators,
   getAdminOrigin,
@@ -10,6 +11,16 @@ import {
 } from "@/server/admin-curators";
 
 export const dynamic = "force-dynamic";
+
+function getReferralDisplayValue(referral: string) {
+  try {
+    const url = new URL(referral);
+
+    return decodeURI(`${url.host}${url.pathname}`);
+  } catch {
+    return decodeURI(referral.replace(/^https?:\/\//, ""));
+  }
+}
 
 export default async function AdminCuratorsPage() {
   const [curators, origin] = await Promise.all([
@@ -94,6 +105,7 @@ export default async function AdminCuratorsPage() {
                 const clientCount = getClientCount(curator.orders);
                 const paidAmount = getPaidAmount(curator);
                 const referral = getReferralForCurator(curator, origin);
+                const referralDisplayValue = getReferralDisplayValue(referral);
 
                 return (
                   <tr key={curator.id}>
@@ -116,20 +128,25 @@ export default async function AdminCuratorsPage() {
                       </div>
                     </td>
                     <td>
-                      <a href={referral} rel="noreferrer" target="_blank">
-                        {referral}
-                      </a>
+                      <ReferralLinkTools
+                        displayValue={referralDisplayValue}
+                        href={referral}
+                      />
                     </td>
-                    <td>
+                    <td className="curators-table__metric">
                       {clientCount} / {curator.orders.length}
                     </td>
-                    <td>{paidAmount.toLocaleString("ru-RU")} руб.</td>
-                    <td>
+                    <td className="curators-table__metric">
+                      {paidAmount.toLocaleString("ru-RU")} руб.
+                    </td>
+                    <td className="curators-table__actions">
                       <Link
-                        className="button"
+                        aria-label={`Открыть карточку куратора ${curator.name}`}
+                        className="icon-button icon-button--menu"
                         href={`/admin/curators/${curator.id}`}
+                        title="Открыть карточку"
                       >
-                        Открыть
+                        …
                       </Link>
                     </td>
                   </tr>

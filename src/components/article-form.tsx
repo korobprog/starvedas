@@ -6,7 +6,7 @@ import {
 } from "@/server/article-actions";
 import type { ManagedArticle } from "@/server/articles";
 
-function formatDateInput(value: Date | string | null | undefined) {
+export function formatDateInput(value: Date | string | null | undefined) {
   if (!value) {
     return "";
   }
@@ -20,7 +20,7 @@ function formatDateInput(value: Date | string | null | undefined) {
   return date.toISOString().slice(0, 10);
 }
 
-function ArticleFields({
+export function ArticleFields({
   article
 }: Readonly<{
   article?: ManagedArticle;
@@ -180,6 +180,43 @@ export function CreateArticleForm() {
       <ArticleFields />
       <AdminSubmitButton className="button button--primary">
         Создать статью
+      </AdminSubmitButton>
+    </form>
+  );
+}
+
+export function UpdateArticleForm({
+  article
+}: Readonly<{
+  article: ManagedArticle;
+}>) {
+  return (
+    <form action={updateArticle} className="admin-form">
+      <input name="id" type="hidden" value={article.id} />
+      <ArticleFields article={article} />
+      <AdminSubmitButton className="button button--primary">
+        Сохранить
+      </AdminSubmitButton>
+    </form>
+  );
+}
+
+export function ToggleArticleActiveForm({
+  article
+}: Readonly<{
+  article: ManagedArticle;
+}>) {
+  return (
+    <form action={toggleArticleActive}>
+      <input name="id" type="hidden" value={article.id} />
+      <input name="slug" type="hidden" value={article.slug} />
+      <input
+        name="active"
+        type="hidden"
+        value={article.active ? "false" : "true"}
+      />
+      <AdminSubmitButton>
+        {article.active ? "Снять с публикации" : "Опубликовать"}
       </AdminSubmitButton>
     </form>
   );

@@ -147,15 +147,21 @@ export async function createArticle(formData: FormData) {
   await requireAdminUser("/admin/articles");
 
   const data = parseArticleFormData(formData);
+  let articleId = "";
 
   try {
-    await prisma.article.create({ data });
+    const article = await prisma.article.create({
+      data,
+      select: { id: true }
+    });
+
+    articleId = article.id;
   } catch (error) {
     handlePrismaError(error);
   }
 
   revalidateArticlePages(data.slug);
-  redirect("/admin/articles?saved=1");
+  redirect(`/admin/articles/${articleId}?created=1`);
 }
 
 export async function updateArticle(formData: FormData) {
@@ -189,7 +195,7 @@ export async function updateArticle(formData: FormData) {
   }
 
   revalidateArticlePages(data.slug);
-  redirect("/admin/articles?saved=1");
+  redirect(`/admin/articles/${data.id}?saved=1`);
 }
 
 export async function toggleArticleActive(formData: FormData) {
@@ -211,5 +217,5 @@ export async function toggleArticleActive(formData: FormData) {
   });
 
   revalidateArticlePages(parsed.data.slug);
-  redirect("/admin/articles?saved=1");
+  redirect(`/admin/articles/${parsed.data.id}?saved=1`);
 }
