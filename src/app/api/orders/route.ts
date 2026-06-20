@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 import { localeCookieName, normalizeLocale } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
 import { normalizePhoneNumber } from "@/lib/phone-validation";
+import { getCurrentClientProfile } from "@/server/client-auth";
 import {
   calculateOrderAmount,
   calculateSelectedOptionsAmount,
@@ -127,6 +128,7 @@ export async function POST(request: Request) {
       getCuratorForReferral(data.referralSlug),
       getServiceForOrder(data.serviceSlug, locale)
     ]);
+    const currentClient = await getCurrentClientProfile();
 
     if (!curator || !service) {
       return NextResponse.json(
@@ -268,6 +270,7 @@ export async function POST(request: Request) {
 
     const order = await prisma.$transaction(async (tx) => {
       const client = await upsertClientProfileForFunnel(tx, {
+        clientId: currentClient?.id,
         consentMailings,
         consentMailingsSource: "checkout",
         consentPersonalData: true,
@@ -279,7 +282,8 @@ export async function POST(request: Request) {
         source: "site",
         sourceDomain,
         status: ClientFunnelStatus.DID_NOT_BUY,
-        telegram: customerTelegram
+        telegram: customerTelegram,
+        telegramId: currentClient?.telegramId
       });
 
       return tx.order.create({
@@ -295,6 +299,7 @@ export async function POST(request: Request) {
           participantCount: data.participantCount,
           participantsText: data.participantsText,
           publicToken: createOrderPublicToken(),
+          referralSlug,
           sourceDomain,
           status: initialOrderStatus,
           curator: {

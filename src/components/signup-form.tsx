@@ -182,6 +182,37 @@ type AssignedCurator = {
   supportUrl?: string | null;
 };
 
+type TelegramMiniAppClient = {
+  consentMailings?: boolean;
+  consentPersonalData?: boolean;
+  email?: string | null;
+  name: string;
+  phone?: string | null;
+  referralSlug?: string | null;
+  telegram?: string | null;
+  telegramPhotoUrl?: string | null;
+};
+
+type TelegramAuthState =
+  | { status: "idle" | "not_available" }
+  | { status: "loading" }
+  | { status: "authenticated"; client: TelegramMiniAppClient }
+  | { status: "error"; message: string };
+
+type TelegramWebApp = {
+  expand?: () => void;
+  initData?: string;
+  ready?: () => void;
+};
+
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: TelegramWebApp;
+    };
+  }
+}
+
 const participantNamePattern =
   /^[\p{L}\p{M}][\p{L}\p{M}'’`.-]*(?:\s+[\p{L}\p{M}][\p{L}\p{M}'’`.-]*)+$/u;
 
@@ -190,10 +221,7 @@ function normalizeParticipantName(value: string) {
 }
 
 function getParticipantNamesFromText(value: string) {
-  return value
-    .split(/\r?\n/)
-    .map(normalizeParticipantName)
-    .filter(Boolean);
+  return value.split(/\r?\n/).map(normalizeParticipantName).filter(Boolean);
 }
 
 function isParticipantNameValid(value: string) {
@@ -352,11 +380,16 @@ export function SignupForm({
   const [submitState, setSubmitState] = useState<SubmitState>({
     status: "idle"
   });
+  const [telegramAuthState, setTelegramAuthState] = useState<TelegramAuthState>(
+    { status: "idle" }
+  );
+  const [repeatMessage, setRepeatMessage] = useState<string | null>(null);
   const [isFormInView, setIsFormInView] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
   const stepHasRendered = useRef(false);
   const checkoutStartedRecorded = useRef(false);
+  const repeatLoadedKey = useRef<string | null>(null);
   const selectedPaymentProvider = useMemo(
     () =>
       paymentProviders.find((provider) => provider.code === paymentProvider),
@@ -473,6 +506,172 @@ export function SignupForm({
 
     return () => window.clearTimeout(timeoutId);
   }, [services]);
+
+  useEffect(() => {
+    const webApp = window.Telegram?.WebApp;
+
+    if (!webApp?.initData) {
+      return;
+    }
+
+    let cancelled = false;
+
+    webApp.ready?.();
+    webApp.expand?.();
+
+    void fetch("/api/client/telegram-mini-app", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        initData: webApp.initData,
+        referralSlug
+      })
+    })
+      .then(async (response) => {
+        const result = (await response.json().catch(() => ({}))) as
+          | {
+              client: TelegramMiniAppClient;
+              referralSlug?: string | null;
+            }
+          | { message?: string };
+
+        if (!response.ok || !("client" in result)) {
+          throw new Error(
+            "message" in result && result.message
+              ? result.message
+              : "Не удалось войти через Telegram"
+          );
+        }
+
+        return result;
+      })
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+
+        setTelegramAuthState({
+          status: "authenticated",
+          client: result.client
+        });
+        setCustomerName((current) => current || result.client.name || "");
+        setCustomerNameTouched(
+          (current) => current || Boolean(result.client.name)
+        );
+        setCustomerTelegram(
+          (current) => current || result.client.telegram || ""
+        );
+        setCustomerPhone((current) => current || result.client.phone || "");
+        setCustomerEmail((current) => current || result.client.email || "");
+        setConsentPersonalData(
+          (current) => current || Boolean(result.client.consentPersonalData)
+        );
+        setConsentMailings(
+          (current) => current || Boolean(result.client.consentMailings)
+        );
+
+        if (result.referralSlug && result.referralSlug !== referralSlug) {
+          const url = new URL(window.location.href);
+
+          url.searchParams.set("ref", result.referralSlug);
+          url.hash = "signup";
+          window.location.replace(url.toString());
+        }
+      })
+      .catch((error: Error) => {
+        if (!cancelled) {
+          setTelegramAuthState({
+            status: "error",
+            message: error.message
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [referralSlug]);
+
+  useEffect(() => {
+    const repeatToken = new URLSearchParams(window.location.search).get(
+      "repeat"
+    );
+
+    if (!repeatToken || repeatLoadedKey.current === repeatToken) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void fetch(`/api/client/repeat?order=${encodeURIComponent(repeatToken)}`)
+      .then(async (response) => {
+        const result = (await response.json().catch(() => ({}))) as
+          | {
+              customerEmail?: string | null;
+              customerName?: string | null;
+              customerPhone?: string | null;
+              customerTelegram?: string | null;
+              participantsText: string;
+              referralSlug?: string | null;
+              selectedServiceOptionIds: string[];
+              serviceSlug: string;
+            }
+          | { message?: string };
+
+        if (!response.ok || !("serviceSlug" in result)) {
+          throw new Error(
+            "message" in result && result.message
+              ? result.message
+              : "Не удалось загрузить прошлый абонемент"
+          );
+        }
+
+        return result;
+      })
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+
+        repeatLoadedKey.current = repeatToken;
+
+        if (result.referralSlug && result.referralSlug !== referralSlug) {
+          const url = new URL(window.location.href);
+
+          url.searchParams.set("ref", result.referralSlug);
+          url.hash = "signup";
+          window.location.replace(url.toString());
+          return;
+        }
+
+        if (services.some((service) => service.slug === result.serviceSlug)) {
+          setServiceSlug(result.serviceSlug);
+          setSelectedServiceOptionIds(result.selectedServiceOptionIds);
+        }
+
+        setParticipantsInput(result.participantsText);
+        setCustomerName(result.customerName ?? "");
+        setCustomerNameTouched(Boolean(result.customerName));
+        setCustomerTelegram(result.customerTelegram ?? "");
+        setCustomerPhone(result.customerPhone ?? "");
+        setCustomerEmail(result.customerEmail ?? "");
+        setConsentPersonalData(true);
+        setRepeatMessage(
+          "Мы заполнили форму по прошлому абонементу. Проверьте данные и отправьте заявку заново."
+        );
+      })
+      .catch((error: Error) => {
+        if (!cancelled) {
+          setRepeatMessage(error.message);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [referralSlug, services, telegramAuthState.status]);
 
   useEffect(() => {
     void fetch("/api/client-events", {
@@ -721,6 +920,11 @@ export function SignupForm({
             Перейти к оплате
           </a>
         )}
+        {telegramAuthState.status === "authenticated" && (
+          <a className="button" href="/client">
+            Открыть личный кабинет
+          </a>
+        )}
         <SupportCta
           curatorName={submitState.curatorName}
           note="Если нужна помощь с оплатой или участниками, напишите куратору."
@@ -874,6 +1078,35 @@ export function SignupForm({
       {step === 2 && (
         <fieldset className="form-step">
           <legend>{copy.legend.contacts}</legend>
+          <div className="telegram-auth-card">
+            {telegramAuthState.status === "authenticated" ? (
+              <>
+                <strong>
+                  Вы вошли через Telegram
+                  {telegramAuthState.client.telegram
+                    ? ` как ${telegramAuthState.client.telegram}`
+                    : ""}
+                </strong>
+                <p>
+                  Контакты сохранятся в личном кабинете, а прошлые абонементы
+                  можно будет повторить без повторного ввода данных.
+                </p>
+                <a className="button button--small" href="/client">
+                  Мои абонементы
+                </a>
+              </>
+            ) : telegramAuthState.status === "loading" ? (
+              <p>Проверяем вход через Telegram...</p>
+            ) : telegramAuthState.status === "error" ? (
+              <p>{telegramAuthState.message}</p>
+            ) : (
+              <p>
+                Если открыть форму из Telegram Mini App, мы автоматически
+                сохраним данные в личном кабинете.
+              </p>
+            )}
+          </div>
+          {repeatMessage && <p className="form-note">{repeatMessage}</p>}
           <label className="field">
             <span>{copy.fields.customerName}</span>
             <input

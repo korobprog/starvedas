@@ -67,6 +67,7 @@ async function getCurators() {
       supportButtonLabel: true,
       supportEnabled: true,
       supportUrl: true,
+      telegramId: true,
       user: {
         select: {
           active: true,
@@ -255,6 +256,16 @@ export default async function AdminCuratorsPage() {
                         defaultValue={curator.user?.email ?? ""}
                         name="email"
                         type="email"
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Telegram ID куратора</span>
+                      <input
+                        defaultValue={curator.telegramId ?? ""}
+                        inputMode="numeric"
+                        name="telegramId"
+                        placeholder="123456789"
+                        type="text"
                       />
                     </label>
                     <label className="field">

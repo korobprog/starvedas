@@ -33,6 +33,15 @@ export function CreateCuratorForm() {
           <span>Slug для ссылки</span>
           <input name="slug" placeholder="jaya-mangal" type="text" />
         </label>
+        <label className="field">
+          <span>Telegram ID куратора</span>
+          <input
+            inputMode="numeric"
+            name="telegramId"
+            placeholder="123456789"
+            type="text"
+          />
+        </label>
       </div>
       <label className="field">
         <span>Пароль</span>

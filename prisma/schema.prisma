@@ -112,6 +112,7 @@ model Curator {
   supportButtonLabel         String?
   supportEnabled             Boolean  @default(true)
   supportUrl                 String?
+  telegramId                 String?  @unique
   showMailingConsentCheckbox Boolean  @default(false)
   canEditPostPurchase        Boolean  @default(true)
   canEditSupport             Boolean  @default(true)
@@ -232,6 +233,11 @@ model ClientProfile {
   id                    String             @id @default(cuid())
   name                  String
   telegram              String?
+  telegramId            String?            @unique
+  telegramFirstName     String?
+  telegramLastName      String?
+  telegramPhotoUrl      String?
+  telegramAuthDate      DateTime?
   phone                 String?
   email                 String?
   consentPersonalData   Boolean            @default(false)
@@ -303,6 +309,7 @@ model Order {
   publicToken         String      @unique
   source              String      @default("site")
   sourceDomain        String      @default("starvedas.ru")
+  referralSlug        String?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
@@ -319,6 +326,7 @@ model Order {
   statusHistory  LeadStatusHistory[]
 
   @@index([sourceDomain])
+  @@index([referralSlug])
 }
 
 model OrderServiceOption {

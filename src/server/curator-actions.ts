@@ -58,6 +58,15 @@ const optionalButtonLabel = z
   .max(80)
   .transform((value) => value || null);
 
+const optionalTelegramId = z
+  .string()
+  .trim()
+  .max(32)
+  .refine((value) => !value || /^\d{4,32}$/.test(value), {
+    message: "Telegram ID должен состоять только из цифр"
+  })
+  .transform((value) => value || null);
+
 const createCuratorSchema = z.object({
   canEditPostPurchase: z.boolean(),
   canEditSupport: z.boolean(),
@@ -73,7 +82,8 @@ const createCuratorSchema = z.object({
   slug: z.string().trim().max(120).optional(),
   supportButtonLabel: optionalButtonLabel,
   supportEnabled: z.boolean(),
-  supportUrl: optionalSupportUrl
+  supportUrl: optionalSupportUrl,
+  telegramId: optionalTelegramId
 });
 
 const updateCuratorSchema = z.object({
@@ -95,7 +105,8 @@ const updateCuratorSchema = z.object({
   slug: z.string().trim().min(2).max(120),
   supportButtonLabel: optionalButtonLabel,
   supportEnabled: z.boolean(),
-  supportUrl: optionalSupportUrl
+  supportUrl: optionalSupportUrl,
+  telegramId: optionalTelegramId
 });
 
 const cabinetSettingsSchema = z.object({
@@ -246,7 +257,8 @@ export async function createCuratorAction(
     slug: formData.get("slug") || undefined,
     supportButtonLabel: formData.get("supportButtonLabel") ?? "",
     supportEnabled: formData.get("supportEnabled") === "on",
-    supportUrl: formData.get("supportUrl") ?? ""
+    supportUrl: formData.get("supportUrl") ?? "",
+    telegramId: formData.get("telegramId") ?? ""
   });
 
   if (!parsed.success) {
@@ -288,6 +300,7 @@ export async function createCuratorAction(
         supportButtonLabel: data.supportButtonLabel,
         supportEnabled: data.supportEnabled,
         supportUrl: data.supportUrl,
+        telegramId: data.telegramId,
         userId: user.id
       },
       select: {
@@ -331,7 +344,8 @@ export async function updateCuratorAction(formData: FormData) {
     slug: formData.get("slug"),
     supportButtonLabel: formData.get("supportButtonLabel") ?? "",
     supportEnabled: formData.get("supportEnabled") === "on",
-    supportUrl: formData.get("supportUrl") ?? ""
+    supportUrl: formData.get("supportUrl") ?? "",
+    telegramId: formData.get("telegramId") ?? ""
   });
 
   if (!parsed.success) {
@@ -410,6 +424,7 @@ export async function updateCuratorAction(formData: FormData) {
         supportButtonLabel: data.supportButtonLabel,
         supportEnabled: data.supportEnabled,
         supportUrl: data.supportUrl,
+        telegramId: data.telegramId,
         userId
       }
     });

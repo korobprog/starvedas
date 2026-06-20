@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getCurrentClientProfile } from "@/server/client-auth";
 import {
   invalidPhoneMessage,
   isPhoneCountryCode,
@@ -80,6 +81,7 @@ export async function POST(request: Request) {
   const referralSlug =
     parsed.data.referralSlug || cookieStore.get(referralCookieName)?.value;
   const curator = await getCuratorForReferral(referralSlug);
+  const currentClient = await getCurrentClientProfile();
   const consentMailings = curator.showMailingConsentCheckbox
     ? parsed.data.consentMailings
     : false;
@@ -91,6 +93,7 @@ export async function POST(request: Request) {
       hasContact(parsed.data)
     ) {
       await upsertClientProfileForFunnel(tx, {
+        clientId: currentClient?.id,
         consentMailings,
         consentMailingsSource: "checkout",
         consentPersonalData: parsed.data.consentPersonalData,
@@ -106,6 +109,7 @@ export async function POST(request: Request) {
         sourceDomain,
         status: ClientFunnelStatus.STARTED_CHECKOUT,
         telegram: parsed.data.customerTelegram,
+        telegramId: currentClient?.telegramId,
         visitorId
       });
       return;
