@@ -1,4 +1,4 @@
-﻿ALTER TABLE "ClientProfile"
+ALTER TABLE "ClientProfile"
   ADD COLUMN "telegramId" TEXT,
   ADD COLUMN "telegramFirstName" TEXT,
   ADD COLUMN "telegramLastName" TEXT,
