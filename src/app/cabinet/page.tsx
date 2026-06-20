@@ -33,6 +33,7 @@ import {
   buildReferralUrl,
   ensureSystemCurator
 } from "@/server/referrals";
+import { getCuratorTelegramBotUsername } from "@/server/telegram-mini-app";
 import { getManagedServices } from "@/server/services";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,18 @@ async function getOrigin() {
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
     (host ? `${protocol}://${host}` : "")
   );
+}
+
+function getTelegramBotUsername() {
+  return getCuratorTelegramBotUsername();
+}
+
+function buildTelegramMiniAppReferralUrl(slug: string) {
+  const botUsername = getTelegramBotUsername();
+
+  return botUsername
+    ? `https://t.me/${botUsername}?startapp=${encodeURIComponent(slug)}`
+    : "";
 }
 
 const cabinetOrderSelect = Prisma.validator<Prisma.OrderSelect>()({
@@ -589,6 +602,8 @@ export default async function CabinetPage({
   const referral = origin
     ? buildReferralUrl(origin, primaryReferralSlug)
     : buildReferralPath(primaryReferralSlug);
+  const telegramMiniAppReferral =
+    buildTelegramMiniAppReferralUrl(primaryReferralSlug);
   const canViewClients =
     user.role !== UserRole.CURATOR || curator.canViewClients;
   const canOpenProductsSection =
@@ -706,6 +721,22 @@ export default async function CabinetPage({
               >
                 {referral}
               </a>
+              {telegramMiniAppReferral && (
+                <>
+                  <p className="admin-muted">
+                    Ссылка для Telegram Mini App: клиент сразу войдёт в кабинет,
+                    а реферальный код сохранится из параметра startapp.
+                  </p>
+                  <a
+                    className="referral-link"
+                    href={telegramMiniAppReferral}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {telegramMiniAppReferral}
+                  </a>
+                </>
+              )}
               {canViewClients ? (
                 <div className="stats-grid">
                   <div>

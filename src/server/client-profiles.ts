@@ -1,8 +1,9 @@
-import { ClientFunnelStatus, Prisma } from "@prisma/client";
+﻿import { ClientFunnelStatus, Prisma } from "@prisma/client";
 
 type ClientProfileTx = Prisma.TransactionClient;
 
 type ClientProfileInput = {
+  clientId?: string | null;
   consentMailings?: boolean;
   consentMailingsSource?: string;
   consentPersonalData?: boolean;
@@ -14,6 +15,7 @@ type ClientProfileInput = {
   source?: string;
   sourceDomain?: string;
   telegram?: string | null;
+  telegramId?: string | null;
   visitorId?: string | null;
 };
 
@@ -67,14 +69,20 @@ function getIdentityWhere({
   email,
   phone,
   sourceDomain,
-  telegram
+  telegram,
+  telegramId
 }: {
   email: string | null;
   phone: string | null;
   sourceDomain: string;
   telegram: string | null;
+  telegramId: string | null;
 }) {
   const identityWhere: Prisma.ClientProfileWhereInput[] = [];
+
+  if (telegramId) {
+    identityWhere.push({ telegramId });
+  }
 
   if (telegram) {
     identityWhere.push({ telegram, sourceDomain });
@@ -121,29 +129,43 @@ export async function upsertClientProfileForFunnel(
   const email = normalizeEmail(input.email);
   const phone = normalizeText(input.phone);
   const telegram = normalizeText(input.telegram);
-  const name = normalizeText(input.name) ?? input.fallbackName ?? "Клиент";
+  const telegramId = normalizeText(input.telegramId);
+  const name =
+    normalizeText(input.name) ?? input.fallbackName ?? "РљР»РёРµРЅС‚";
   const sourceDomain = input.sourceDomain ?? "starvedas.ru";
   const identityWhere = getIdentityWhere({
     email,
     phone,
     sourceDomain,
-    telegram
+    telegram,
+    telegramId
   });
-  const existing = identityWhere.length
-    ? await tx.clientProfile.findFirst({
-        orderBy: {
-          updatedAt: "desc"
+  const existing = input.clientId
+    ? await tx.clientProfile.findUnique({
+        where: {
+          id: input.clientId
         },
         select: {
           consentMailings: true,
           id: true,
           status: true
-        },
-        where: {
-          OR: identityWhere
         }
       })
-    : null;
+    : identityWhere.length
+      ? await tx.clientProfile.findFirst({
+          orderBy: {
+            updatedAt: "desc"
+          },
+          select: {
+            consentMailings: true,
+            id: true,
+            status: true
+          },
+          where: {
+            OR: identityWhere
+          }
+        })
+      : null;
   const nextStatus = chooseStatus(existing?.status, input.status);
   const consentMailings = existing?.consentMailings || input.consentMailings;
   const data = {
@@ -164,6 +186,7 @@ export async function upsertClientProfileForFunnel(
     sourceDomain,
     status: nextStatus,
     telegram,
+    telegramId: telegramId ?? undefined,
     ...getStatusTimestampData(input.status, now)
   } satisfies Prisma.ClientProfileUncheckedUpdateInput;
 

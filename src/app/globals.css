@@ -1267,6 +1267,46 @@ select {
   line-height: 1.6;
 }
 
+.telegram-auth-card {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 4px;
+  border: 1px solid #d9ecff;
+  border-radius: 18px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f3f9ff, #fff);
+  color: var(--text);
+}
+
+.telegram-auth-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.telegram-auth-card .button {
+  justify-self: start;
+}
+
+.client-order-list {
+  display: grid;
+  gap: 18px;
+}
+
+.client-order-card {
+  display: grid;
+  gap: 18px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 22px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.client-order-card h3 {
+  margin: 0;
+}
+
 .legal-inline-links {
   display: flex;
   flex-wrap: wrap;

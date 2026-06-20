@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { getHomeCopy } from "@/i18n/home-copy";
@@ -12,7 +12,8 @@ export function SiteNav({ locale }: { locale?: string | null }) {
     { href: "#schedule", label: copy.nav.schedule },
     { href: "#signup", label: copy.nav.signup },
     { href: "#faq", label: copy.nav.faq },
-    { href: "/articles", label: "Статьи" }
+    { href: "/client", label: "Кабинет" },
+    { href: "/articles", label: "РЎС‚Р°С‚СЊРё" }
   ] as const;
 
   return (
