@@ -23,6 +23,7 @@ export type CreateCuratorState = {
     password: string;
     referralPath: string;
   };
+  curatorId?: string;
   error?: string;
   message?: string;
 };
@@ -273,6 +274,7 @@ export async function createCuratorAction(
 
   const password = data.password || generateTemporaryPassword();
   const slug = await createUniqueSlug(data.slug || data.name);
+  let curatorId = "";
 
   await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
@@ -308,6 +310,8 @@ export async function createCuratorAction(
       }
     });
 
+    curatorId = curator.id;
+
     await setPrimaryReferralLink(tx, curator.id, slug, true);
   });
 
@@ -319,6 +323,7 @@ export async function createCuratorAction(
       password,
       referralPath: buildReferralPath(slug)
     },
+    curatorId,
     message: "Куратор создан"
   };
 }

@@ -1,6 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useRef } from "react";
+import { getCuratorAccessStorageKey } from "@/lib/curator-access-storage";
 import {
   createCuratorAction,
   type CreateCuratorState
@@ -8,7 +11,15 @@ import {
 
 const initialState: CreateCuratorState = {};
 
-export function CreateCuratorForm() {
+type CreateCuratorFormProps = {
+  redirectToDetail?: boolean;
+};
+
+export function CreateCuratorForm({
+  redirectToDetail = false
+}: CreateCuratorFormProps) {
+  const router = useRouter();
+  const didRedirectRef = useRef(false);
   const [state, formAction, pending] = useActionState(
     createCuratorAction,
     initialState
@@ -17,6 +28,30 @@ export function CreateCuratorForm() {
     state.credentials && typeof window !== "undefined"
       ? `${window.location.origin}${state.credentials.referralPath}`
       : state.credentials?.referralPath;
+
+  useEffect(() => {
+    if (
+      !redirectToDetail ||
+      didRedirectRef.current ||
+      !state.credentials ||
+      !state.curatorId
+    ) {
+      return;
+    }
+
+    didRedirectRef.current = true;
+
+    try {
+      window.sessionStorage.setItem(
+        getCuratorAccessStorageKey(state.curatorId),
+        JSON.stringify(state.credentials)
+      );
+    } catch {
+      // Если браузер запретил sessionStorage, просто откроем карточку.
+    }
+
+    router.replace(`/admin/curators/${encodeURIComponent(state.curatorId)}`);
+  }, [redirectToDetail, router, state.credentials, state.curatorId]);
 
   return (
     <form action={formAction} className="admin-form">
@@ -110,7 +145,11 @@ export function CreateCuratorForm() {
       {state.error && <p className="form-warning">{state.error}</p>}
       {state.credentials && (
         <div className="form-result form-result--success">
-          <h3>{state.message}</h3>
+          <h3>
+            {redirectToDetail
+              ? "Куратор создан, открываем карточку..."
+              : state.message}
+          </h3>
           <p>
             Логин: <strong>{state.credentials.email}</strong>
           </p>
@@ -120,6 +159,11 @@ export function CreateCuratorForm() {
           <p>
             Реферальная ссылка: <strong>{referralUrl}</strong>
           </p>
+          {state.curatorId && (
+            <Link className="button" href={`/admin/curators/${state.curatorId}`}>
+              Открыть карточку
+            </Link>
+          )}
         </div>
       )}
       <button
