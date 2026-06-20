@@ -29,13 +29,13 @@ const vatTaxTypeOptions = [
   { label: "НДС 22/122", value: 15 }
 ];
 
-function getPriceUnitLabel(value: PriceUnit) {
+export function getPriceUnitLabel(value: PriceUnit) {
   return (
     priceUnitOptions.find((option) => option.value === value)?.label ?? value
   );
 }
 
-function ServiceFields({
+export function ServiceFields({
   service
 }: Readonly<{
   service?: ManagedService;
@@ -223,6 +223,42 @@ export function CreateServiceForm() {
       <ServiceFields />
       <AdminSubmitButton className="button button--primary">
         Создать продукт
+      </AdminSubmitButton>
+    </form>
+  );
+}
+
+export function UpdateServiceForm({
+  service
+}: Readonly<{
+  service: ManagedService;
+}>) {
+  return (
+    <form action={updateService} className="admin-form">
+      <input name="id" type="hidden" value={service.id} />
+      <ServiceFields service={service} />
+      <AdminSubmitButton className="button button--primary">
+        Сохранить
+      </AdminSubmitButton>
+    </form>
+  );
+}
+
+export function ToggleServiceActiveForm({
+  service
+}: Readonly<{
+  service: ManagedService;
+}>) {
+  return (
+    <form action={toggleServiceActive}>
+      <input name="id" type="hidden" value={service.id} />
+      <input
+        name="active"
+        type="hidden"
+        value={service.active ? "false" : "true"}
+      />
+      <AdminSubmitButton>
+        {service.active ? "Деактивировать" : "Активировать"}
       </AdminSubmitButton>
     </form>
   );

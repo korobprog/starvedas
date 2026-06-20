@@ -376,6 +376,7 @@ export async function createService(formData: FormData) {
   const options = normalizeOptionSortOrders(
     parseServiceOptionsFormData(formData)
   );
+  let serviceId = "";
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -384,6 +385,7 @@ export async function createService(formData: FormData) {
         select: { id: true }
       });
 
+      serviceId = service.id;
       await saveServiceOptions(tx, service.id, options);
     });
   } catch (error) {
@@ -391,7 +393,7 @@ export async function createService(formData: FormData) {
   }
 
   revalidateServicePages();
-  redirect("/admin/products?saved=1");
+  redirect(`/admin/products/${serviceId}?created=1`);
 }
 
 export async function updateService(formData: FormData) {
@@ -433,7 +435,7 @@ export async function updateService(formData: FormData) {
   }
 
   revalidateServicePages();
-  redirect("/admin/products?saved=1");
+  redirect(`/admin/products/${data.id}?saved=1`);
 }
 
 export async function toggleServiceActive(formData: FormData) {
@@ -456,5 +458,5 @@ export async function toggleServiceActive(formData: FormData) {
   });
 
   revalidateServicePages();
-  redirect("/admin/products?saved=1");
+  redirect(`/admin/products/${parsed.data.id}?saved=1`);
 }
