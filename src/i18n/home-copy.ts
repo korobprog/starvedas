@@ -3,6 +3,8 @@ import { normalizeLocale, type Locale } from "@/i18n/config";
 export type HomeCopy = {
   brandTagline: string;
   nav: {
+    articles: string;
+    cabinet: string;
     faq: string;
     close: string;
     open: string;
@@ -56,6 +58,8 @@ const copies: Record<Locale, HomeCopy> = {
       services: "Услуги",
       schedule: "Расписание",
       signup: "Записаться",
+      cabinet: "Кабинет",
+      articles: "Статьи",
       faq: "Вопросы",
       open: "Открыть меню",
       close: "Свернуть меню",
@@ -88,7 +92,7 @@ const copies: Record<Locale, HomeCopy> = {
     sections: {
       services: {
         title: "Что можно заказать",
-        lead: "В первой версии список услуг будет редактироваться через админку, а итоговая сумма всегда будет рассчитываться на backend."
+        lead: "Здесь собраны доступные форматы участия: абонемент на месяц, марафон, отдельный обряд, абхишека и ягья. Выберите подходящий вариант и укажите участников в форме записи."
       },
       participation: {
         title: "Как проходит участие",
@@ -137,6 +141,8 @@ const copies: Record<Locale, HomeCopy> = {
       services: "Services",
       schedule: "Schedule",
       signup: "Book now",
+      cabinet: "Account",
+      articles: "Articles",
       faq: "Questions",
       open: "Open menu",
       close: "Close menu",
@@ -169,7 +175,7 @@ const copies: Record<Locale, HomeCopy> = {
     sections: {
       services: {
         title: "What you can order",
-        lead: "In the first version, services will be editable in the admin panel, and the final amount will always be calculated on the backend."
+        lead: "Choose from the available participation formats: monthly pass, marathon, single rite, abhisheka, or yagya. Pick the option that suits you and add participants in the signup form."
       },
       participation: {
         title: "How participation works",
@@ -218,6 +224,8 @@ const copies: Record<Locale, HomeCopy> = {
       services: "सेवाएँ",
       schedule: "कार्यक्रम",
       signup: "बुक करें",
+      cabinet: "कैबिनेट",
+      articles: "लेख",
       faq: "प्रश्न",
       open: "मेनू खोलें",
       close: "मेनू बंद करें",
@@ -250,7 +258,7 @@ const copies: Record<Locale, HomeCopy> = {
     sections: {
       services: {
         title: "आप क्या ऑर्डर कर सकते हैं",
-        lead: "पहले संस्करण में सेवाएँ एडमिन पैनल से बदली जा सकेंगी, और अंतिम राशि हमेशा backend पर गणना होगी."
+        lead: "उपलब्ध सहभागिता प्रारूप चुनें: मासिक पास, मैराथन, एकल अनुष्ठान, अभिषेक या यज्ञ। उपयुक्त विकल्प चुनें और पंजीकरण फ़ॉर्म में प्रतिभागियों को जोड़ें."
       },
       participation: {
         title: "भागीदारी कैसे होती है",

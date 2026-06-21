@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef } from "react";
+import { CuratorSlugInput } from "@/components/curator-slug-input";
 import { getCuratorAccessStorageKey } from "@/lib/curator-access-storage";
 import {
   createCuratorAction,
@@ -64,10 +65,7 @@ export function CreateCuratorForm({
           <span>Email для входа</span>
           <input name="email" required type="email" />
         </label>
-        <label className="field">
-          <span>Slug для ссылки</span>
-          <input name="slug" placeholder="jaya-mangal" type="text" />
-        </label>
+        <CuratorSlugInput />
         <label className="field">
           <span>Telegram ID куратора</span>
           <input
@@ -160,7 +158,10 @@ export function CreateCuratorForm({
             Реферальная ссылка: <strong>{referralUrl}</strong>
           </p>
           {state.curatorId && (
-            <Link className="button" href={`/admin/curators/${state.curatorId}`}>
+            <Link
+              className="button"
+              href={`/admin/curators/${state.curatorId}`}
+            >
               Открыть карточку
             </Link>
           )}

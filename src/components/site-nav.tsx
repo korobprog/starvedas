@@ -12,8 +12,8 @@ export function SiteNav({ locale }: { locale?: string | null }) {
     { href: "#schedule", label: copy.nav.schedule },
     { href: "#signup", label: copy.nav.signup },
     { href: "#faq", label: copy.nav.faq },
-    { href: "/client", label: "Кабинет" },
-    { href: "/articles", label: "РЎС‚Р°С‚СЊРё" }
+    { href: "/client", label: copy.nav.cabinet },
+    { href: "/articles", label: copy.nav.articles }
   ] as const;
 
   return (

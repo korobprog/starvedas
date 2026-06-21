@@ -5,6 +5,7 @@ import { Prisma, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { slugifyReferralValue } from "@/lib/slugs";
 import { requireUser } from "@/server/auth";
 import { hashPassword } from "@/server/password";
 import {
@@ -120,13 +121,10 @@ const cabinetSettingsSchema = z.object({
 });
 
 function slugify(value: string) {
-  const slug = value
-    .toLocaleLowerCase("ru")
-    .replaceAll("ё", "е")
-    .replace(/[^a-zа-я0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  return slug || `curator-${crypto.randomBytes(4).toString("hex")}`;
+  return (
+    slugifyReferralValue(value) ||
+    `curator-${crypto.randomBytes(4).toString("hex")}`
+  );
 }
 
 async function createUniqueSlug(value: string, currentId?: string) {

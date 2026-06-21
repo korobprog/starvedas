@@ -1,4 +1,5 @@
 import { CuratorCopyTools } from "@/components/curator-copy-tools";
+import { CuratorSlugInput } from "@/components/curator-slug-input";
 import {
   deactivateCuratorAction,
   updateCuratorAction
@@ -93,18 +94,20 @@ export function CuratorProfileForm({
         <div className="field-grid">
           <label className="field">
             <span>Имя</span>
-            <input defaultValue={curator.name} name="name" required type="text" />
-          </label>
-          <label className="field">
-            <span>Slug</span>
             <input
-              defaultValue={primaryReferralSlug}
-              disabled={curator.isSystem}
-              name="slug"
+              defaultValue={curator.name}
+              name="name"
               required
               type="text"
             />
           </label>
+          <CuratorSlugInput
+            defaultName={curator.name}
+            defaultSlug={primaryReferralSlug}
+            disabled={curator.isSystem}
+            label="Slug"
+            required
+          />
           {curator.isSystem && (
             <input name="slug" type="hidden" value={primaryReferralSlug} />
           )}

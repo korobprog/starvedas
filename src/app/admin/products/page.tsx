@@ -105,66 +105,87 @@ export default async function AdminProductsPage({
         {services.length === 0 ? (
           <p className="admin-muted">Продукты пока не созданы.</p>
         ) : (
-          <div className="table-wrap">
-            <table className="admin-table products-table">
-              <thead>
-                <tr>
-                  <th>Продукт</th>
-                  <th>Slug</th>
-                  <th>Цена</th>
-                  <th>Карточки</th>
-                  <th>Заказы</th>
-                  <th aria-label="Действия" />
-                </tr>
-              </thead>
-              <tbody>
-                {services.map((service) => {
-                  const activeOptionsCount = service.options.filter(
-                    (option) => option.active
-                  ).length;
+          <div className="product-card-grid">
+            {services.map((service) => {
+              const activeOptionsCount = service.options.filter(
+                (option) => option.active
+              ).length;
+              const detailHref = `/admin/products/${service.id}`;
 
-                  return (
-                    <tr key={service.id}>
-                      <td>
-                        <div className="curators-table__name">
-                          <Link href={`/admin/products/${service.id}`}>
-                            {service.title}
-                          </Link>
-                          <span className={getServiceStatusClassName(service)}>
-                            {getServiceStatusLabel(service)}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <code className="table-code">/{service.slug}</code>
-                      </td>
-                      <td>
-                        <div className="curators-table__stack">
-                          <strong>{formatServicePrices(service)}</strong>
-                          <span>{getPriceUnitLabel(service.priceUnit)}</span>
-                        </div>
-                      </td>
-                      <td className="curators-table__metric">
+              return (
+                <article className="product-card" key={service.id}>
+                  <div className="product-card__header">
+                    <div>
+                      <Link className="product-card__title" href={detailHref}>
+                        {service.title}
+                      </Link>
+                      <p className="product-card__meta">
+                        <code>/{service.slug}</code>
+                        <span>{getPriceUnitLabel(service.priceUnit)}</span>
+                      </p>
+                    </div>
+                    <span className={getServiceStatusClassName(service)}>
+                      {getServiceStatusLabel(service)}
+                    </span>
+                  </div>
+
+                  <p className="product-card__description">
+                    {service.receiptName ||
+                      service.description ||
+                      "Описание продукта не заполнено"}
+                  </p>
+
+                  <dl className="product-card__stats">
+                    <div>
+                      <dt>Цена</dt>
+                      <dd>{formatServicePrices(service)}</dd>
+                    </div>
+                    <div>
+                      <dt>Карточки</dt>
+                      <dd>
                         {activeOptionsCount} / {service.options.length}
-                      </td>
-                      <td className="curators-table__metric">
-                        {service._count.orders}
-                      </td>
-                      <td className="curators-table__actions">
-                        <Link
-                          aria-label={`Открыть карточку продукта ${service.title}`}
-                          className="icon-button icon-button--menu"
-                          href={`/admin/products/${service.id}`}
-                          title="Открыть карточку"
-                        >
-                          …
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Заказы</dt>
+                      <dd>{service._count.orders}</dd>
+                    </div>
+                    <div>
+                      <dt>Сортировка</dt>
+                      <dd>{service.sortOrder}</dd>
+                    </div>
+                  </dl>
+
+                  {service.options.length > 0 && (
+                    <div className="product-card__options">
+                      {service.options.slice(0, 3).map((option) => (
+                        <span key={option.id}>
+                          {option.title}
+                          {!option.active ? " · скрыта" : ""}
+                        </span>
+                      ))}
+                      {service.options.length > 3 && (
+                        <span>+{service.options.length - 3} ещё</span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="product-card__actions">
+                    <Link className="button button--small" href={detailHref}>
+                      Открыть карточку
+                    </Link>
+                    <Link
+                      aria-label={`Открыть карточку ???????? ${service.title}`}
+                      className="icon-button icon-button--menu"
+                      href={detailHref}
+                      title="Открыть карточку"
+                    >
+                      …
+                    </Link>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
