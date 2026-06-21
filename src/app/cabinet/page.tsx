@@ -9,10 +9,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { ClientsTable } from "@/components/clients-table";
 import { ParticipantsTable } from "@/components/participants-table";
-import {
-  CreateServiceForm,
-  ServiceEditorList
-} from "@/components/service-form";
+import { ServiceEditorList } from "@/components/service-form";
 import { formatMoney } from "@/i18n/pricing";
 import { formatStatus } from "@/lib/status-labels";
 import { prisma } from "@/lib/prisma";
@@ -847,11 +844,23 @@ export default async function CabinetPage({
           {activeSection === "products" &&
             (serviceManagementAccess ? (
               <section className="admin-card admin-card--wide">
-                <h2>Продукты и абонементы</h2>
-                <p className="admin-muted">
-                  Управляйте продуктами, которые доступны клиентам на сайте.
-                </p>
-                <CreateServiceForm />
+                <div className="admin-card__header">
+                  <div>
+                    <h2>Продукты и абонементы</h2>
+                    <p className="admin-muted">
+                      Компактный список без больших форм. Откройте карточку,
+                      чтобы изменить цены, переводы и обряды внутри раздела.
+                    </p>
+                  </div>
+                  <div className="admin-card__actions">
+                    <Link
+                      className="button button--primary"
+                      href="/admin/products/new"
+                    >
+                      Создать продукт
+                    </Link>
+                  </div>
+                </div>
                 <ServiceEditorList services={managedServices} />
               </section>
             ) : (

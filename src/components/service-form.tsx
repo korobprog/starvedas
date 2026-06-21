@@ -1,4 +1,5 @@
 import type { PriceUnit } from "@prisma/client";
+import Link from "next/link";
 import { AdminSubmitButton } from "@/components/admin-submit-button";
 import { RiteOptionsFields } from "@/components/rite-options-fields";
 import {
@@ -33,6 +34,16 @@ export function getPriceUnitLabel(value: PriceUnit) {
   return (
     priceUnitOptions.find((option) => option.value === value)?.label ?? value
   );
+}
+
+function formatServicePrices(service: ManagedService) {
+  return [
+    `RUB ${service.priceRub.toLocaleString("ru-RU")}`,
+    service.priceUsd ? `USD ${service.priceUsd.toLocaleString("en-US")}` : "",
+    service.priceInr ? `INR ${service.priceInr.toLocaleString("hi-IN")}` : ""
+  ]
+    .filter(Boolean)
+    .join(" / ");
 }
 
 export function ServiceFields({
@@ -276,65 +287,93 @@ export function ServiceEditorList({
   }
 
   return (
-    <div className="admin-list">
-      {services.map((service) => (
-        <article className="admin-list-item" key={service.id}>
-          <div className="admin-list-item__header">
-            <div>
-              <h3>{service.title}</h3>
-              <p className="admin-muted">
-                /{service.slug} · RUB {service.priceRub.toLocaleString("ru-RU")}
-                {service.priceUsd
-                  ? ` · USD ${service.priceUsd.toLocaleString("en-US")}`
-                  : ""}
-                {service.priceInr
-                  ? ` · INR ${service.priceInr.toLocaleString("hi-IN")}`
-                  : ""}{" "}
-                · {getPriceUnitLabel(service.priceUnit)} · чек:{" "}
-                {service.receiptName ?? service.title}
-              </p>
-            </div>
-            <span className="badge">
-              {service.active ? "Активен" : "Скрыт"}
-            </span>
-          </div>
+    <div className="product-card-grid">
+      {services.map((service) => {
+        const activeOptionsCount = service.options.filter(
+          (option) => option.active
+        ).length;
+        const detailHref = `/admin/products/${service.id}`;
 
-          <dl className="details-list">
-            <div>
-              <dt>Заказы</dt>
-              <dd>{service._count.orders}</dd>
+        return (
+          <article className="product-card" key={service.id}>
+            <div className="product-card__header">
+              <div>
+                <Link className="product-card__title" href={detailHref}>
+                  {service.title}
+                </Link>
+                <p className="product-card__meta">
+                  <code>/{service.slug}</code>
+                  <span>{getPriceUnitLabel(service.priceUnit)}</span>
+                </p>
+              </div>
+              <span
+                className={
+                  service.active ? "badge badge--success" : "badge badge--muted"
+                }
+              >
+                {service.active ? "Активен" : "Скрыт"}
+              </span>
             </div>
-            <div>
-              <dt>Список участников</dt>
-              <dd>
-                {service.requiresExactParticipantList
-                  ? "обязателен"
-                  : "не обязателен"}
-              </dd>
+
+            <p className="product-card__description">
+              {service.receiptName ||
+                service.description ||
+                "Описание продукта не заполнено"}
+            </p>
+
+            <dl className="product-card__stats">
+              <div>
+                <dt>Цена</dt>
+                <dd>{formatServicePrices(service)}</dd>
+              </div>
+              <div>
+                <dt>Обряды</dt>
+                <dd>
+                  {activeOptionsCount} / {service.options.length}
+                </dd>
+              </div>
+              <div>
+                <dt>Заказы</dt>
+                <dd>{service._count.orders}</dd>
+              </div>
+              <div>
+                <dt>Список</dt>
+                <dd>
+                  {service.requiresExactParticipantList ? "нужен" : "не нужен"}
+                </dd>
+              </div>
+            </dl>
+
+            {service.options.length > 0 && (
+              <div className="product-card__options">
+                {service.options.slice(0, 3).map((option) => (
+                  <span key={option.id}>
+                    {option.title}
+                    {!option.active ? " · скрыт" : ""}
+                  </span>
+                ))}
+                {service.options.length > 3 && (
+                  <span>+{service.options.length - 3} ещё</span>
+                )}
+              </div>
+            )}
+
+            <div className="product-card__actions">
+              <Link className="button button--small" href={detailHref}>
+                Открыть карточку
+              </Link>
+              <Link
+                aria-label={`Открыть карточку продукта ${service.title}`}
+                className="icon-button icon-button--menu"
+                href={detailHref}
+                title="Открыть карточку"
+              >
+                &#8230;
+              </Link>
             </div>
-          </dl>
-
-          <form action={updateService} className="admin-form">
-            <input name="id" type="hidden" value={service.id} />
-            <ServiceFields service={service} />
-            <AdminSubmitButton className="button button--primary">
-              Сохранить
-            </AdminSubmitButton>
-          </form>
-
-          <form action={toggleServiceActive}>
-            <input name="id" type="hidden" value={service.id} />
-            <input
-              name="active"
-              type="hidden"
-              value={service.active ? "false" : "true"}
-            />
-            <AdminSubmitButton>
-              {service.active ? "Деактивировать" : "Активировать"}
-            </AdminSubmitButton>
-          </form>
-        </article>
-      ))}
+          </article>
+        );
+      })}
     </div>
   );
 }
