@@ -12,6 +12,8 @@ type CuratorCreatedAccessNoticeProps = {
   origin: string;
 };
 
+const fallbackReferralOrigin = "https://chintamanidhama.ru";
+
 function copyWithTextarea(text: string) {
   const textarea = document.createElement("textarea");
 
@@ -39,7 +41,12 @@ async function copyToClipboard(text: string) {
 }
 
 function getBaseOrigin(origin: string) {
-  return origin.replace(/\/$/, "") || window.location.origin;
+  return (
+    process.env.NEXT_PUBLIC_REFERRAL_SITE_URL?.replace(/\/$/, "") ||
+    fallbackReferralOrigin ||
+    origin.replace(/\/$/, "") ||
+    window.location.origin
+  );
 }
 
 function getReferralUrl(origin: string, referralPath: string) {

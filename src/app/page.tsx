@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { steps } from "@/lib/site-data";
 import { getPublicOrganizationSettings } from "@/server/organization-settings";
 import { getCheckoutPaymentProvidersForCurator } from "@/server/payment-providers";
-import { getCuratorForReferral } from "@/server/referrals";
+import { getCuratorForReferral, referralCookieName } from "@/server/referrals";
 import { getPublicServices } from "@/server/services";
 import { applySiteBrandToCopy } from "@/lib/site-branding";
 import { getRequestSiteBrand } from "@/server/site-branding";
@@ -61,7 +61,10 @@ export default async function Home({
 }) {
   const cookieStore = await cookies();
   const params = await searchParams;
-  const referralSlug = params.ref?.trim() || undefined;
+  const referralSlug =
+    params.ref?.trim() ||
+    cookieStore.get(referralCookieName)?.value ||
+    undefined;
   const locale = cookieStore.get(localeCookieName)?.value;
   const brand = await getRequestSiteBrand();
   const copy = applySiteBrandToCopy(getHomeCopy(locale), brand.name);

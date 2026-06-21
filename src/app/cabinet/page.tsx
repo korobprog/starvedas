@@ -18,7 +18,12 @@ import {
   requireUser
 } from "@/server/auth";
 import { logoutAction } from "@/server/auth-actions";
-import { saveCabinetCuratorSettings } from "@/server/curator-actions";
+import {
+  createCabinetReferralLinkAction,
+  saveCabinetCuratorSettings,
+  toggleCabinetReferralLinkAction,
+  updateCabinetReferralLinkAction
+} from "@/server/curator-actions";
 import { saveCabinetPaymentSettings } from "@/server/curator-payment-actions";
 import { confirmCustomPaymentAction } from "@/server/order-actions";
 import {
@@ -87,6 +92,7 @@ const cabinetOrderSelect = Prisma.validator<Prisma.OrderSelect>()({
       titleSnapshot: true
     }
   },
+  referralSlug: true,
   sourceDomain: true,
   status: true
 });
@@ -104,8 +110,13 @@ const cabinetCuratorSelect = Prisma.validator<Prisma.CuratorSelect>()({
   referralLinks: {
     orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
     select: {
+      active: true,
+      createdAt: true,
+      createdByCurator: true,
+      id: true,
       isPrimary: true,
-      slug: true
+      slug: true,
+      title: true
     }
   },
   slug: true,
@@ -202,6 +213,7 @@ function parseParticipantFilters(searchParams: SearchParams | undefined) {
   return {
     dateFrom: dateFrom || "",
     dateTo: dateTo || "",
+    referralSlug: firstParam(searchParams?.referralSlug) || "",
     serviceId: firstParam(searchParams?.serviceId) || "",
     sourceDomain: firstParam(searchParams?.sourceDomain) || ""
   };
@@ -230,6 +242,7 @@ function parseClientFilters(searchParams: SearchParams | undefined) {
     consent: parseClientConsent(firstParam(searchParams?.clientConsent)),
     dateFrom: dateFrom || "",
     dateTo: dateTo || "",
+    referralSlug: firstParam(searchParams?.clientReferralSlug) || "",
     serviceId: firstParam(searchParams?.clientServiceId) || "",
     sourceDomain: firstParam(searchParams?.clientSourceDomain) || "",
     status: parseClientStatus(firstParam(searchParams?.clientStatus))
@@ -288,6 +301,7 @@ function buildParticipantOrderWhere(
   return {
     createdAt: Object.keys(createdAt).length ? createdAt : undefined,
     curatorId,
+    referralSlug: filters.referralSlug || undefined,
     serviceId: filters.serviceId || undefined,
     sourceDomain: filters.sourceDomain || undefined,
     status: OrderStatus.PAID
@@ -416,6 +430,7 @@ function buildClientWhere(
           }
         }
       : undefined,
+    referralSlug: filters.referralSlug || undefined,
     sourceDomain: filters.sourceDomain || undefined,
     status: filters.status,
     updatedAt: Object.keys(updatedAt).length ? updatedAt : undefined
@@ -562,6 +577,136 @@ async function getAwaitingCustomOrders(
   });
 }
 
+function getReferralSourceLabel(link: {
+  createdByCurator?: boolean | null;
+  isPrimary?: boolean | null;
+  slug: string;
+  title?: string | null;
+}) {
+  if (link.title?.trim()) {
+    return link.title.trim();
+  }
+
+  return link.isPrimary
+    ? "Основная ссылка от администратора"
+    : link.createdByCurator
+      ? "Партнёрская ссылка куратора"
+      : link.slug;
+}
+
+async function getReferralStats(curatorId: string) {
+  const [orders, clients, events] = await Promise.all([
+    prisma.order.findMany({
+      select: {
+        amountRub: true,
+        currency: true,
+        referralSlug: true,
+        status: true
+      },
+      where: {
+        curatorId,
+        referralSlug: {
+          not: null
+        }
+      }
+    }),
+    prisma.clientProfile.findMany({
+      select: {
+        referralSlug: true,
+        status: true
+      },
+      where: {
+        curatorId,
+        referralSlug: {
+          not: null
+        }
+      }
+    }),
+    prisma.clientEvent.findMany({
+      select: {
+        referralSlug: true,
+        status: true
+      },
+      where: {
+        curatorId,
+        referralSlug: {
+          not: null
+        }
+      }
+    })
+  ]);
+  const stats = new Map<
+    string,
+    {
+      boughtClients: number;
+      clients: number;
+      paidAmountRub: number;
+      paidOrders: number;
+      refundedAmountRub: number;
+      refunds: number;
+      visits: number;
+    }
+  >();
+
+  function ensure(slug: string | null) {
+    const key = slug || "";
+    const current = stats.get(key);
+
+    if (current) {
+      return current;
+    }
+
+    const next = {
+      boughtClients: 0,
+      clients: 0,
+      paidAmountRub: 0,
+      paidOrders: 0,
+      refundedAmountRub: 0,
+      refunds: 0,
+      visits: 0
+    };
+
+    stats.set(key, next);
+
+    return next;
+  }
+
+  for (const event of events) {
+    if (event.status === ClientFunnelStatus.VISITED) {
+      ensure(event.referralSlug).visits += 1;
+    }
+  }
+
+  for (const client of clients) {
+    const row = ensure(client.referralSlug);
+
+    row.clients += 1;
+    if (client.status === ClientFunnelStatus.BOUGHT) {
+      row.boughtClients += 1;
+    }
+  }
+
+  for (const order of orders) {
+    const row = ensure(order.referralSlug);
+
+    if (order.status === OrderStatus.PAID) {
+      row.paidOrders += 1;
+      if (order.currency === "RUB") {
+        row.paidAmountRub += order.amountRub;
+      }
+    }
+
+    if (order.status === OrderStatus.REFUNDED) {
+      row.refunds += 1;
+      if (order.currency === "RUB") {
+        row.refundedAmountRub += order.amountRub;
+      }
+    }
+  }
+
+  return stats;
+}
+
 export default async function CabinetPage({
   searchParams
 }: Readonly<{
@@ -632,7 +777,8 @@ export default async function CabinetPage({
     participantData,
     clientData,
     awaitingCustomOrders,
-    managedServices
+    managedServices,
+    referralStats
   ] = await Promise.all([
     getCuratorPaymentProviderSettings(curator.id),
     canViewClients
@@ -648,13 +794,45 @@ export default async function CabinetPage({
     canViewClients
       ? getAwaitingCustomOrders(curator.id, participantFilters)
       : Promise.resolve([]),
-    serviceManagementAccess ? getManagedServices() : Promise.resolve([])
+    serviceManagementAccess ? getManagedServices() : Promise.resolve([]),
+    canViewClients ? getReferralStats(curator.id) : Promise.resolve(new Map())
   ]);
   const enabledPaymentSettings = paymentSettings.filter(
     (provider) => provider.active && provider.allowed
   );
   const [participants, participantServices] = participantData;
   const [clients, clientServices] = clientData;
+  const referralLinkRows = curator.referralLinks.map((link) => {
+    const webUrl = origin
+      ? buildReferralUrl(origin, link.slug)
+      : buildReferralPath(link.slug);
+    const telegramUrl = buildTelegramMiniAppReferralUrl(link.slug);
+    const stats = referralStats.get(link.slug) ?? {
+      boughtClients: 0,
+      clients: 0,
+      paidAmountRub: 0,
+      paidOrders: 0,
+      refundedAmountRub: 0,
+      refunds: 0,
+      visits: 0
+    };
+    const netAmountRub = stats.paidAmountRub - stats.refundedAmountRub;
+    const conversion =
+      stats.clients > 0
+        ? Math.round((stats.paidOrders / stats.clients) * 100)
+        : 0;
+
+    return {
+      ...link,
+      conversion,
+      label: getReferralSourceLabel(link),
+      netAmountRub,
+      qrUrl: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(webUrl)}`,
+      stats,
+      telegramUrl,
+      webUrl
+    };
+  });
 
   return (
     <main className="admin-page">
@@ -754,6 +932,191 @@ export default async function CabinetPage({
                   Просмотр клиентов отключен администратором.
                 </p>
               )}
+            </section>
+          )}
+
+          {activeSection === "overview" && (
+            <section className="admin-card admin-card--wide">
+              <div className="admin-card__header">
+                <div>
+                  <h2>Личные ссылки для партнёров</h2>
+                  <p className="admin-muted">
+                    Создавайте отдельную ссылку для клуба, партнёра или канала.
+                    Первый переход закрепляется за клиентом до регистрации, а
+                    после регистрации атрибуция сохраняется навсегда.
+                  </p>
+                </div>
+              </div>
+
+              <form
+                action={createCabinetReferralLinkAction}
+                className="admin-form filter-form"
+              >
+                <label className="field">
+                  <span>Название источника</span>
+                  <input
+                    maxLength={120}
+                    name="title"
+                    placeholder="Например: Клуб Ромашка"
+                    required
+                    type="text"
+                  />
+                </label>
+                <div className="filter-form__actions">
+                  <button className="button button--primary" type="submit">
+                    Сгенерировать ссылку
+                  </button>
+                </div>
+              </form>
+
+              <div className="participant-tools">
+                <a className="button" href="/cabinet/referrals/export">
+                  Скачать всю бухгалтерию CSV
+                </a>
+              </div>
+
+              <div className="table-wrap">
+                <table className="admin-table referral-stats-table">
+                  <thead>
+                    <tr>
+                      <th>Источник</th>
+                      <th>Ссылки</th>
+                      <th>Статистика</th>
+                      <th>Бухгалтерия</th>
+                      <th>QR</th>
+                      <th>Управление</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {referralLinkRows.map((link) => (
+                      <tr key={link.id}>
+                        <td>
+                          <strong>{link.label}</strong>
+                          <br />
+                          <span
+                            className={
+                              link.active
+                                ? "badge badge--success"
+                                : "badge badge--muted"
+                            }
+                          >
+                            {link.active ? "Активна" : "Отключена"}
+                          </span>{" "}
+                          <span className="badge badge--muted">
+                            {link.isPrimary
+                              ? "ссылка от админа"
+                              : link.createdByCurator
+                                ? "ссылка куратора"
+                                : "старая ссылка"}
+                          </span>
+                        </td>
+                        <td>
+                          <a
+                            href={link.webUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            {link.webUrl}
+                          </a>
+                          {link.telegramUrl && (
+                            <>
+                              <br />
+                              <a
+                                href={link.telegramUrl}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                Telegram: {link.telegramUrl}
+                              </a>
+                            </>
+                          )}
+                        </td>
+                        <td>
+                          Визитов: {link.stats.visits}
+                          <br />
+                          Регистраций: {link.stats.clients}
+                          <br />
+                          Покупателей: {link.stats.boughtClients}
+                          <br />
+                          Оплат: {link.stats.paidOrders}
+                          <br />
+                          Конверсия: {link.conversion}%
+                        </td>
+                        <td>
+                          Оплачено:{" "}
+                          {formatMoney(link.stats.paidAmountRub, "RUB")}
+                          <br />
+                          Возвраты:{" "}
+                          {formatMoney(link.stats.refundedAmountRub, "RUB")}
+                          <br />
+                          Итого: {formatMoney(link.netAmountRub, "RUB")}
+                          <br />
+                          <a
+                            href={`/cabinet/referrals/export?slug=${encodeURIComponent(link.slug)}`}
+                          >
+                            Скачать CSV
+                          </a>
+                        </td>
+                        <td>
+                          <a href={link.qrUrl} rel="noreferrer" target="_blank">
+                            Открыть QR
+                          </a>
+                        </td>
+                        <td>
+                          {link.isPrimary ? (
+                            <span className="admin-muted">
+                              Основная ссылка редактируется админом
+                            </span>
+                          ) : (
+                            <div className="referral-actions">
+                              <form action={updateCabinetReferralLinkAction}>
+                                <input
+                                  name="id"
+                                  type="hidden"
+                                  value={link.id}
+                                />
+                                <input
+                                  aria-label="Название ссылки"
+                                  className="table-input"
+                                  defaultValue={link.label}
+                                  maxLength={120}
+                                  name="title"
+                                  required
+                                  type="text"
+                                />
+                                <button
+                                  className="button button--small"
+                                  type="submit"
+                                >
+                                  Переименовать
+                                </button>
+                              </form>
+                              <form action={toggleCabinetReferralLinkAction}>
+                                <input
+                                  name="id"
+                                  type="hidden"
+                                  value={link.id}
+                                />
+                                <input
+                                  name="active"
+                                  type="hidden"
+                                  value={link.active ? "off" : "on"}
+                                />
+                                <button
+                                  className="button button--small"
+                                  type="submit"
+                                >
+                                  {link.active ? "Отключить" : "Включить"}
+                                </button>
+                              </form>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </section>
           )}
 
@@ -1135,6 +1498,20 @@ export default async function CabinetPage({
                     </option>
                   </select>
                 </label>
+                <label className="field">
+                  <span>Реферальная ссылка</span>
+                  <select
+                    defaultValue={participantFilters.referralSlug}
+                    name="referralSlug"
+                  >
+                    <option value="">Все ссылки</option>
+                    {referralLinkRows.map((link) => (
+                      <option key={link.slug} value={link.slug}>
+                        {link.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <div className="filter-form__actions">
                   <button className="button button--primary" type="submit">
                     Применить фильтры
@@ -1226,6 +1603,20 @@ export default async function CabinetPage({
                     <option value="chintamanidhama.ru">
                       chintamanidhama.ru
                     </option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Реферальная ссылка</span>
+                  <select
+                    defaultValue={clientFilters.referralSlug}
+                    name="clientReferralSlug"
+                  >
+                    <option value="">Все ссылки</option>
+                    {referralLinkRows.map((link) => (
+                      <option key={link.slug} value={link.slug}>
+                        {link.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <div className="filter-form__actions">

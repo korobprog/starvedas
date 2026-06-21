@@ -1844,6 +1844,21 @@ select {
   text-underline-offset: 3px;
 }
 
+.referral-stats-table {
+  min-width: 1180px;
+}
+
+.referral-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.referral-actions form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .curators-table,
 .products-table,
 .articles-table {

@@ -97,6 +97,62 @@ function createResultUrl(
   return url.toString();
 }
 
+async function findFirstStoredReferralSlug({
+  clientId,
+  email,
+  phone,
+  sourceDomain,
+  telegram
+}: {
+  clientId?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  sourceDomain: string;
+  telegram?: string | null;
+}) {
+  if (clientId) {
+    const client = await prisma.clientProfile.findUnique({
+      where: { id: clientId },
+      select: { referralSlug: true }
+    });
+
+    if (client?.referralSlug) {
+      return client.referralSlug;
+    }
+  }
+
+  const identityWhere: Prisma.ClientProfileWhereInput[] = [];
+
+  if (telegram) {
+    identityWhere.push({ sourceDomain, telegram });
+  }
+
+  if (phone) {
+    identityWhere.push({ phone, sourceDomain });
+  }
+
+  if (email) {
+    identityWhere.push({ email, sourceDomain });
+  }
+
+  if (!identityWhere.length) {
+    return null;
+  }
+
+  const client = await prisma.clientProfile.findFirst({
+    orderBy: { createdAt: "asc" },
+    select: { referralSlug: true },
+    where: {
+      OR: identityWhere,
+      referralSlug: {
+        not: null
+      }
+    }
+  });
+
+  return client?.referralSlug ?? null;
+}
+
 export async function POST(request: Request) {
   const cookieStore = await cookies();
   const locale = normalizeLocale(cookieStore.get(localeCookieName)?.value);
@@ -124,11 +180,26 @@ export async function POST(request: Request) {
   }
 
   try {
+    const currentClient = await getCurrentClientProfile();
+    const customerEmail = normalizeOptional(data.customerEmail);
+    const customerPhone = normalizePhoneNumber(
+      data.customerPhone,
+      data.customerPhoneCountry
+    );
+    const customerTelegram = normalizeOptional(data.customerTelegram);
+    const firstStoredReferralSlug = await findFirstStoredReferralSlug({
+      clientId: currentClient?.id,
+      email: customerEmail,
+      phone: customerPhone,
+      sourceDomain,
+      telegram: customerTelegram
+    });
+    const requestedReferralSlug =
+      firstStoredReferralSlug ?? data.referralSlug ?? undefined;
     const [curator, service] = await Promise.all([
-      getCuratorForReferral(data.referralSlug),
+      getCuratorForReferral(requestedReferralSlug),
       getServiceForOrder(data.serviceSlug, locale)
     ]);
-    const currentClient = await getCurrentClientProfile();
 
     if (!curator || !service) {
       return NextResponse.json(
@@ -257,13 +328,7 @@ export async function POST(request: Request) {
     const paymentDescription = selectedOptions.length
       ? `${service.localizedTitle}: ${selectedOptions.map((option) => option.title).join(", ")}`
       : service.localizedTitle;
-    const customerEmail = normalizeOptional(data.customerEmail);
-    const customerPhone = normalizePhoneNumber(
-      data.customerPhone,
-      data.customerPhoneCountry
-    );
-    const customerTelegram = normalizeOptional(data.customerTelegram);
-    const referralSlug = data.referralSlug ?? curator.slug;
+    const referralSlug = requestedReferralSlug ?? curator.slug;
     const consentMailings = curator.showMailingConsentCheckbox
       ? data.consentMailings
       : false;

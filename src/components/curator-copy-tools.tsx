@@ -14,6 +14,8 @@ type CopyStatus = {
   type: "error" | "success";
 };
 
+const fallbackReferralOrigin = "https://chintamanidhama.ru";
+
 function copyWithTextarea(text: string) {
   const textarea = document.createElement("textarea");
 
@@ -50,6 +52,13 @@ function getBaseOrigin(origin: string) {
   return origin.replace(/\/$/, "") || window.location.origin;
 }
 
+function getReferralOrigin() {
+  return (
+    process.env.NEXT_PUBLIC_REFERRAL_SITE_URL?.replace(/\/$/, "") ||
+    fallbackReferralOrigin
+  );
+}
+
 function buildReferralUrl(
   origin: string,
   slug: string,
@@ -59,7 +68,7 @@ function buildReferralUrl(
     return fallbackReferral;
   }
 
-  return `${getBaseOrigin(origin)}/r/${encodeURIComponent(slug)}`;
+  return `${getReferralOrigin()}/r/${encodeURIComponent(slug)}`;
 }
 
 export function CuratorCopyTools({
@@ -87,8 +96,7 @@ export function CuratorCopyTools({
     );
     const missingFields = [
       !name ? "имя и фамилию" : "",
-      !email ? "email" : "",
-      !password ? "новый пароль" : ""
+      !email ? "email" : ""
     ].filter(Boolean);
 
     if (missingFields.length > 0) {
@@ -105,7 +113,7 @@ export function CuratorCopyTools({
     const copyText = [
       `Реферальная ссылка: ${referral}`,
       `Логин: ${email}`,
-      `Пароль: ${password}`,
+      ...(password ? [`Пароль: ${password}`] : []),
       `Имя и фамилия: ${name}`,
       "",
       "Краткая инструкция входа в кабинет куратора:",

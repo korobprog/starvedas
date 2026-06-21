@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 export const adminCuratorSlug = "administrator";
 export const referralCookieName = "starvedas_ref_curator";
 export const referralCookieMaxAge = 60 * 60 * 24 * 90;
+export const defaultReferralOrigin = "https://chintamanidhama.ru";
 
 export type PublicCuratorAssignment = {
   id: string;
@@ -212,6 +213,18 @@ export function buildReferralPath(slug: string) {
   return `/r/${encodeURIComponent(slug)}`;
 }
 
+export function getReferralPublicOrigin(origin?: string) {
+  return (
+    process.env.NEXT_PUBLIC_REFERRAL_SITE_URL?.trim().replace(/\/$/, "") ||
+    process.env.NEXT_PUBLIC_CHINTAMANI_SITE_URL?.trim().replace(/\/$/, "") ||
+    defaultReferralOrigin ||
+    origin?.replace(/\/$/, "") ||
+    ""
+  );
+}
+
 export function buildReferralUrl(origin: string, slug: string) {
-  return `${origin.replace(/\/$/, "")}${buildReferralPath(slug)}`;
+  const referralOrigin = getReferralPublicOrigin(origin);
+
+  return `${referralOrigin}${buildReferralPath(slug)}`;
 }

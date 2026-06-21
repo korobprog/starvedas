@@ -120,6 +120,11 @@ const cabinetSettingsSchema = z.object({
   supportUrl: optionalSupportUrl
 });
 
+const curatorReferralLinkSchema = z.object({
+  id: z.string().trim().optional(),
+  title: z.string().trim().min(2).max(120)
+});
+
 function slugify(value: string) {
   return (
     slugifyReferralValue(value) ||
@@ -234,6 +239,27 @@ function revalidateCuratorPages() {
   revalidatePath("/cabinet");
 }
 
+async function getCabinetCuratorIdForUser() {
+  const user = await requireUser(
+    [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.CURATOR],
+    "/cabinet"
+  );
+
+  return user.role === UserRole.CURATOR
+    ? user.curator?.id
+    : (await ensureSystemCurator()).id;
+}
+
+async function requireCabinetCuratorId() {
+  const curatorId = await getCabinetCuratorIdForUser();
+
+  if (!curatorId) {
+    throw new Error("Профиль куратора не найден");
+  }
+
+  return curatorId;
+}
+
 export async function createCuratorAction(
   _state: CreateCuratorState,
   formData: FormData
@@ -326,8 +352,20 @@ export async function createCuratorAction(
   };
 }
 
-export async function updateCuratorAction(formData: FormData) {
-  await requireUser([UserRole.ADMIN, UserRole.SUPER_ADMIN], "/admin/curators");
+export type UpdateCuratorState = {
+  error?: string;
+  success?: boolean;
+};
+
+export async function updateCuratorAction(
+  _state: UpdateCuratorState,
+  formData: FormData
+): Promise<UpdateCuratorState> {
+  try {
+    await requireUser([UserRole.ADMIN, UserRole.SUPER_ADMIN], "/admin/curators");
+  } catch {
+    return { error: "Нет прав для редактирования куратора" };
+  }
 
   const parsed = updateCuratorSchema.safeParse({
     active: formData.get("active") === "on",
@@ -352,7 +390,8 @@ export async function updateCuratorAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error("Некорректные данные куратора");
+    const firstError = parsed.error.issues[0]?.message;
+    return { error: firstError ?? "Проверьте правильность заполненных полей" };
   }
 
   const data = parsed.data;
@@ -365,7 +404,7 @@ export async function updateCuratorAction(formData: FormData) {
   });
 
   if (!curator) {
-    throw new Error("Куратор не найден");
+    return { error: "Куратор не найден" };
   }
 
   const slug =
@@ -377,79 +416,85 @@ export async function updateCuratorAction(formData: FormData) {
     data.email &&
     !(await ensureEmailAvailable(data.email, curator.userId ?? undefined))
   ) {
-    throw new Error("Пользователь с таким email уже существует");
+    return { error: "Пользователь с таким email уже существует" };
   }
 
-  await prisma.$transaction(async (tx) => {
-    let userId = curator.userId;
+  try {
+    await prisma.$transaction(async (tx) => {
+      let userId = curator.userId;
 
-    if (data.email && userId) {
-      await tx.user.update({
-        where: { id: userId },
+      if (data.email && userId) {
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            active: curator.isSystem ? true : data.active,
+            email: data.email,
+            name: data.name,
+            passwordHash: data.password
+              ? await hashPassword(data.password)
+              : undefined,
+            role: curator.isSystem ? UserRole.SUPER_ADMIN : undefined
+          }
+        });
+      } else if (data.email && data.password) {
+        const user = await tx.user.create({
+          data: {
+            email: data.email,
+            name: data.name,
+            passwordHash: await hashPassword(data.password),
+            role: curator.isSystem ? UserRole.SUPER_ADMIN : UserRole.CURATOR
+          },
+          select: { id: true }
+        });
+
+        userId = user.id;
+      }
+
+      await tx.curator.update({
+        where: { id: data.id },
         data: {
           active: curator.isSystem ? true : data.active,
-          email: data.email,
+          canEditPostPurchase: curator.isSystem ? true : data.canEditPostPurchase,
+          canEditSupport: curator.isSystem ? true : data.canEditSupport,
+          canViewClients: curator.isSystem ? true : data.canViewClients,
+          hidden: curator.isSystem ? false : data.hidden,
           name: data.name,
-          passwordHash: data.password
-            ? await hashPassword(data.password)
-            : undefined,
-          role: curator.isSystem ? UserRole.SUPER_ADMIN : undefined
+          postPurchaseText: data.postPurchaseText,
+          postPurchaseTitle: data.postPurchaseTitle,
+          postPurchaseUrl: data.postPurchaseUrl,
+          showMailingConsentCheckbox: data.showMailingConsentCheckbox,
+          slug,
+          supportButtonLabel: data.supportButtonLabel,
+          supportEnabled: data.supportEnabled,
+          supportUrl: data.supportUrl,
+          telegramId: data.telegramId,
+          userId
         }
       });
-    } else if (data.email && data.password) {
-      const user = await tx.user.create({
-        data: {
-          email: data.email,
-          name: data.name,
-          passwordHash: await hashPassword(data.password),
-          role: curator.isSystem ? UserRole.SUPER_ADMIN : UserRole.CURATOR
+
+      await tx.referralLink.updateMany({
+        where: {
+          curatorId: data.id
         },
-        select: { id: true }
+        data: {
+          active: curator.isSystem ? true : data.active
+        }
       });
 
-      userId = user.id;
-    }
-
-    await tx.curator.update({
-      where: { id: data.id },
-      data: {
-        active: curator.isSystem ? true : data.active,
-        canEditPostPurchase: curator.isSystem ? true : data.canEditPostPurchase,
-        canEditSupport: curator.isSystem ? true : data.canEditSupport,
-        canViewClients: curator.isSystem ? true : data.canViewClients,
-        hidden: curator.isSystem ? false : data.hidden,
-        name: data.name,
-        postPurchaseText: data.postPurchaseText,
-        postPurchaseTitle: data.postPurchaseTitle,
-        postPurchaseUrl: data.postPurchaseUrl,
-        showMailingConsentCheckbox: data.showMailingConsentCheckbox,
+      await setPrimaryReferralLink(
+        tx,
+        data.id,
         slug,
-        supportButtonLabel: data.supportButtonLabel,
-        supportEnabled: data.supportEnabled,
-        supportUrl: data.supportUrl,
-        telegramId: data.telegramId,
-        userId
-      }
+        curator.isSystem ? true : data.active
+      );
     });
-
-    await tx.referralLink.updateMany({
-      where: {
-        curatorId: data.id
-      },
-      data: {
-        active: curator.isSystem ? true : data.active
-      }
-    });
-
-    await setPrimaryReferralLink(
-      tx,
-      data.id,
-      slug,
-      curator.isSystem ? true : data.active
-    );
-  });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Ошибка сохранения";
+    return { error: message };
+  }
 
   revalidateCuratorPages();
+  return { success: true };
 }
 
 export async function deactivateCuratorAction(formData: FormData) {
@@ -561,6 +606,98 @@ export async function saveCabinetCuratorSettings(formData: FormData) {
   await prisma.curator.update({
     where: { id: curatorId },
     data: updateData
+  });
+
+  revalidateCuratorPages();
+}
+
+export async function createCabinetReferralLinkAction(formData: FormData) {
+  const curatorId = await requireCabinetCuratorId();
+  const parsed = curatorReferralLinkSchema
+    .omit({ id: true })
+    .safeParse({ title: formData.get("title") });
+
+  if (!parsed.success) {
+    throw new Error("Укажите название ссылки от 2 до 120 символов");
+  }
+
+  let slug = "";
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    slug = slugify(`ref-${crypto.randomBytes(4).toString("hex")}`);
+    const existing = await prisma.referralLink.findUnique({
+      where: { slug },
+      select: { id: true }
+    });
+
+    if (!existing) {
+      break;
+    }
+
+    slug = "";
+  }
+
+  if (!slug) {
+    throw new Error("Не удалось сгенерировать ссылку");
+  }
+
+  await prisma.referralLink.create({
+    data: {
+      active: true,
+      createdByCurator: true,
+      curatorId,
+      isPrimary: false,
+      slug,
+      title: parsed.data.title
+    }
+  });
+
+  revalidateCuratorPages();
+}
+
+export async function updateCabinetReferralLinkAction(formData: FormData) {
+  const curatorId = await requireCabinetCuratorId();
+  const parsed = curatorReferralLinkSchema.safeParse({
+    id: formData.get("id"),
+    title: formData.get("title")
+  });
+
+  if (!parsed.success || !parsed.data.id) {
+    throw new Error("Некорректные данные ссылки");
+  }
+
+  await prisma.referralLink.updateMany({
+    where: {
+      curatorId,
+      id: parsed.data.id,
+      isPrimary: false
+    },
+    data: {
+      title: parsed.data.title
+    }
+  });
+
+  revalidateCuratorPages();
+}
+
+export async function toggleCabinetReferralLinkAction(formData: FormData) {
+  const curatorId = await requireCabinetCuratorId();
+  const id = String(formData.get("id") ?? "");
+  const active = formData.get("active") === "on";
+
+  if (!id) {
+    throw new Error("Ссылка не найдена");
+  }
+
+  await prisma.referralLink.updateMany({
+    where: {
+      curatorId,
+      id,
+      isPrimary: false
+    },
+    data: {
+      active
+    }
   });
 
   revalidateCuratorPages();

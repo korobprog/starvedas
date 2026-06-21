@@ -78,10 +78,12 @@ export async function POST(request: Request) {
   const cookieStore = await cookies();
   const visitorId =
     cookieStore.get(visitorCookieName)?.value || crypto.randomUUID();
-  const referralSlug =
-    parsed.data.referralSlug || cookieStore.get(referralCookieName)?.value;
-  const curator = await getCuratorForReferral(referralSlug);
   const currentClient = await getCurrentClientProfile();
+  const referralSlug =
+    currentClient?.referralSlug ||
+    parsed.data.referralSlug ||
+    cookieStore.get(referralCookieName)?.value;
+  const curator = await getCuratorForReferral(referralSlug);
   const consentMailings = curator.showMailingConsentCheckbox
     ? parsed.data.consentMailings
     : false;

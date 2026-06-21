@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import {
   findActiveCuratorByReferralSlug,
+  getReferralPublicOrigin,
   normalizeReferralSlug,
   referralCookieMaxAge,
   referralCookieName
 } from "@/server/referrals";
 
 function getPublicOrigin(request: Request) {
+  const referralOrigin = getReferralPublicOrigin();
+
+  if (referralOrigin) {
+    return referralOrigin;
+  }
+
   const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   let configuredOriginUrl: URL | null = null;
 
@@ -40,20 +47,39 @@ export async function GET(
 ) {
   const { slug } = await params;
   const referralSlug = normalizeReferralSlug(slug);
-  const curator = await findActiveCuratorByReferralSlug(referralSlug).catch(
-    () => null
+  const existingReferralSlug = normalizeReferralSlug(
+    request.headers
+      .get("cookie")
+      ?.split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${referralCookieName}=`))
+      ?.split("=")[1]
   );
+  const existingCurator = existingReferralSlug
+    ? await findActiveCuratorByReferralSlug(existingReferralSlug).catch(
+        () => null
+      )
+    : null;
+  const requestedCurator = await findActiveCuratorByReferralSlug(
+    referralSlug
+  ).catch(() => null);
+  const appliedReferralSlug = existingCurator
+    ? existingReferralSlug
+    : requestedCurator
+      ? referralSlug
+      : "";
+  const curator = existingCurator ?? requestedCurator;
   const target = new URL("/", getPublicOrigin(request));
 
-  if (curator) {
-    target.searchParams.set("ref", referralSlug);
+  if (curator && appliedReferralSlug) {
+    target.searchParams.set("ref", appliedReferralSlug);
     target.hash = "signup";
   }
 
   const response = NextResponse.redirect(target);
 
-  if (curator) {
-    response.cookies.set(referralCookieName, referralSlug, {
+  if (curator && appliedReferralSlug && !existingCurator) {
+    response.cookies.set(referralCookieName, appliedReferralSlug, {
       httpOnly: true,
       maxAge: referralCookieMaxAge,
       path: "/",

@@ -147,7 +147,9 @@ export async function upsertClientProfileForFunnel(
         },
         select: {
           consentMailings: true,
+          curatorId: true,
           id: true,
+          referralSlug: true,
           status: true
         }
       })
@@ -158,7 +160,9 @@ export async function upsertClientProfileForFunnel(
           },
           select: {
             consentMailings: true,
+            curatorId: true,
             id: true,
+            referralSlug: true,
             status: true
           },
           where: {
@@ -168,6 +172,7 @@ export async function upsertClientProfileForFunnel(
       : null;
   const nextStatus = chooseStatus(existing?.status, input.status);
   const consentMailings = existing?.consentMailings || input.consentMailings;
+  const preservedReferralSlug = normalizeText(existing?.referralSlug);
   const data = {
     consentMailings: Boolean(consentMailings),
     consentMailingsAt:
@@ -177,11 +182,13 @@ export async function upsertClientProfileForFunnel(
         ? (input.consentMailingsSource ?? "site")
         : undefined,
     consentPersonalData: input.consentPersonalData || undefined,
-    curatorId: input.curatorId ?? undefined,
+    curatorId: preservedReferralSlug
+      ? (existing?.curatorId ?? undefined)
+      : (input.curatorId ?? undefined),
     email,
     name,
     phone,
-    referralSlug: normalizeText(input.referralSlug),
+    referralSlug: preservedReferralSlug ?? normalizeText(input.referralSlug),
     source: input.source ?? "site",
     sourceDomain,
     status: nextStatus,

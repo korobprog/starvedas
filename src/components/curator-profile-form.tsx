@@ -1,9 +1,5 @@
-import { CuratorCopyTools } from "@/components/curator-copy-tools";
-import { CuratorSlugInput } from "@/components/curator-slug-input";
-import {
-  deactivateCuratorAction,
-  updateCuratorAction
-} from "@/server/curator-actions";
+import { CuratorUpdateForm } from "@/components/curator-update-form";
+import { deactivateCuratorAction } from "@/server/curator-actions";
 import {
   type AdminCurator,
   getClientCount,
@@ -89,185 +85,28 @@ export function CuratorProfileForm({
         )}
       </dl>
 
-      <form action={updateCuratorAction} className="admin-form">
-        <input name="id" type="hidden" value={curator.id} />
-        <div className="field-grid">
-          <label className="field">
-            <span>Имя</span>
-            <input
-              defaultValue={curator.name}
-              name="name"
-              required
-              type="text"
-            />
-          </label>
-          <CuratorSlugInput
-            defaultName={curator.name}
-            defaultSlug={primaryReferralSlug}
-            disabled={curator.isSystem}
-            label="Slug"
-            required
-          />
-          {curator.isSystem && (
-            <input name="slug" type="hidden" value={primaryReferralSlug} />
-          )}
-        </div>
-
-        <div className="field-grid">
-          <label className="field">
-            <span>Email</span>
-            <input
-              defaultValue={curator.user?.email ?? ""}
-              name="email"
-              type="email"
-            />
-          </label>
-          <label className="field">
-            <span>Telegram ID куратора</span>
-            <input
-              defaultValue={curator.telegramId ?? ""}
-              inputMode="numeric"
-              name="telegramId"
-              placeholder="123456789"
-              type="text"
-            />
-          </label>
-          <label className="field">
-            <span>Новый пароль</span>
-            <input
-              name="password"
-              placeholder="Заполните только для смены"
-              type="text"
-            />
-          </label>
-        </div>
-
-        <label className="field">
-          <span>Заголовок после покупки</span>
-          <input
-            defaultValue={curator.postPurchaseTitle ?? ""}
-            name="postPurchaseTitle"
-            type="text"
-          />
-        </label>
-        <label className="field">
-          <span>Текст для клиента после покупки</span>
-          <textarea
-            defaultValue={curator.postPurchaseText ?? ""}
-            name="postPurchaseText"
-            rows={4}
-          />
-        </label>
-        <label className="field">
-          <span>Ссылка для клиента после покупки</span>
-          <input
-            defaultValue={curator.postPurchaseUrl ?? ""}
-            name="postPurchaseUrl"
-            placeholder="https://t.me/..."
-            type="url"
-          />
-        </label>
-
-        <div className="field-grid">
-          <label className="field">
-            <span>Кнопка вопроса клиенту</span>
-            <input
-              defaultValue={curator.supportButtonLabel ?? ""}
-              name="supportButtonLabel"
-              placeholder="Написать вопрос куратору"
-              type="text"
-            />
-          </label>
-          <label className="field">
-            <span>Адрес для вопросов</span>
-            <input
-              defaultValue={curator.supportUrl ?? ""}
-              name="supportUrl"
-              placeholder="https://t.me/..., @username, email или телефон"
-              type="text"
-            />
-          </label>
-        </div>
-
-        <div className="checkbox-grid">
-          <label className="checkbox-field">
-            <input
-              defaultChecked={curator.supportEnabled}
-              name="supportEnabled"
-              type="checkbox"
-            />
-            <span>Показывать кнопку вопросов клиентам</span>
-          </label>
-          <label className="checkbox-field">
-            <input
-              defaultChecked={curator.showMailingConsentCheckbox}
-              name="showMailingConsentCheckbox"
-              type="checkbox"
-            />
-            <span>Показывать чекбокс согласия на рассылку в форме заявки</span>
-          </label>
-          <label className="checkbox-field">
-            <input
-              defaultChecked={curator.active}
-              disabled={curator.isSystem}
-              name="active"
-              type="checkbox"
-            />
-            <span>Активен</span>
-          </label>
-          <label className="checkbox-field">
-            <input
-              defaultChecked={curator.hidden}
-              disabled={curator.isSystem}
-              name="hidden"
-              type="checkbox"
-            />
-            <span>Скрыть персональную версию сайта</span>
-          </label>
-          <label className="checkbox-field">
-            <input
-              defaultChecked={curator.canEditPostPurchase}
-              disabled={curator.isSystem}
-              name="canEditPostPurchase"
-              type="checkbox"
-            />
-            <span>Может менять информацию после покупки</span>
-          </label>
-          <label className="checkbox-field">
-            <input
-              defaultChecked={curator.canEditSupport}
-              disabled={curator.isSystem}
-              name="canEditSupport"
-              type="checkbox"
-            />
-            <span>Может менять кнопку поддержки</span>
-          </label>
-          <label className="checkbox-field">
-            <input
-              defaultChecked={curator.canViewClients}
-              disabled={curator.isSystem}
-              name="canViewClients"
-              type="checkbox"
-            />
-            <span>Может видеть клиентов и покупки</span>
-          </label>
-        </div>
-
-        {!curator.isSystem && (
-          <CuratorCopyTools
-            fallbackEmail={curator.user?.email ?? ""}
-            fallbackName={curator.name}
-            fallbackReferral={referral}
-            origin={origin}
-          />
-        )}
-
-        <div className="form-actions form-actions--static">
-          <button className="button button--primary" type="submit">
-            Сохранить
-          </button>
-        </div>
-      </form>
+      <CuratorUpdateForm
+        active={curator.active}
+        canEditPostPurchase={curator.canEditPostPurchase}
+        canEditSupport={curator.canEditSupport}
+        canViewClients={curator.canViewClients}
+        email={curator.user?.email ?? ""}
+        fallbackReferral={referral}
+        hidden={curator.hidden}
+        id={curator.id}
+        isSystem={curator.isSystem}
+        name={curator.name}
+        origin={origin}
+        postPurchaseText={curator.postPurchaseText ?? ""}
+        postPurchaseTitle={curator.postPurchaseTitle ?? ""}
+        postPurchaseUrl={curator.postPurchaseUrl ?? ""}
+        primaryReferralSlug={primaryReferralSlug}
+        showMailingConsentCheckbox={curator.showMailingConsentCheckbox}
+        supportButtonLabel={curator.supportButtonLabel ?? ""}
+        supportEnabled={curator.supportEnabled}
+        supportUrl={curator.supportUrl ?? ""}
+        telegramId={curator.telegramId ?? ""}
+      />
 
       {!curator.isSystem && curator.active && (
         <form action={deactivateCuratorAction}>

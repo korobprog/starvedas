@@ -11,6 +11,7 @@ import {
 } from "@/server/curator-actions";
 
 const initialState: CreateCuratorState = {};
+const fallbackReferralOrigin = "https://chintamanidhama.ru";
 
 type CreateCuratorFormProps = {
   redirectToDetail?: boolean;
@@ -25,10 +26,12 @@ export function CreateCuratorForm({
     createCuratorAction,
     initialState
   );
-  const referralUrl =
-    state.credentials && typeof window !== "undefined"
-      ? `${window.location.origin}${state.credentials.referralPath}`
-      : state.credentials?.referralPath;
+  const referralOrigin =
+    process.env.NEXT_PUBLIC_REFERRAL_SITE_URL?.replace(/\/$/, "") ||
+    fallbackReferralOrigin;
+  const referralUrl = state.credentials
+    ? `${referralOrigin}${state.credentials.referralPath}`
+    : undefined;
 
   useEffect(() => {
     if (

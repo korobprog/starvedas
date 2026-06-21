@@ -130,18 +130,21 @@ model Curator {
 }
 
 model ReferralLink {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  active    Boolean  @default(true)
-  isPrimary Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(cuid())
+  slug             String   @unique
+  title            String?
+  active           Boolean  @default(true)
+  isPrimary        Boolean  @default(false)
+  createdByCurator Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   curatorId String
   curator   Curator @relation(fields: [curatorId], references: [id], onDelete: Cascade)
 
   @@index([active])
   @@index([curatorId])
+  @@index([curatorId, createdByCurator])
 }
 
 model Service {

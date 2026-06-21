@@ -95,9 +95,12 @@ export async function POST(request: Request) {
       ? await tx.clientProfile.update({
           where: { id: existing.id },
           data: {
-            curatorId: appliedReferralSlug ? curator.id : existing.curatorId,
+            curatorId:
+              existing.referralSlug || !appliedReferralSlug
+                ? existing.curatorId
+                : curator.id,
             name: existing.name?.trim() || fallbackName,
-            referralSlug: appliedReferralSlug ?? existing.referralSlug,
+            referralSlug: existing.referralSlug ?? appliedReferralSlug,
             source: "telegram-mini-app",
             sourceDomain,
             telegram: telegram ?? existing.telegram,
@@ -149,10 +152,17 @@ export async function POST(request: Request) {
           }
         });
 
+    const eventReferralSlug = existing?.referralSlug ?? appliedReferralSlug;
+    const eventCuratorId = existing?.referralSlug
+      ? existing.curatorId
+      : appliedReferralSlug
+        ? curator.id
+        : undefined;
+
     await recordClientFunnelEvent(tx, {
       clientId: nextClient.id,
-      curatorId: appliedReferralSlug ? curator.id : undefined,
-      referralSlug: appliedReferralSlug ?? nextClient.referralSlug,
+      curatorId: eventCuratorId,
+      referralSlug: eventReferralSlug ?? nextClient.referralSlug,
       source: "telegram-mini-app",
       status: ClientFunnelStatus.VISITED
     });
@@ -164,18 +174,22 @@ export async function POST(request: Request) {
 
   const response = NextResponse.json({
     client,
-    referralSlug: appliedReferralSlug,
+    referralSlug: client.referralSlug ?? appliedReferralSlug,
     startParam: telegramData.startParam ?? null
   });
 
-  if (appliedReferralSlug) {
-    response.cookies.set(referralCookieName, appliedReferralSlug, {
-      httpOnly: true,
-      maxAge: referralCookieMaxAge,
-      path: "/",
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production"
-    });
+  if (client.referralSlug ?? appliedReferralSlug) {
+    response.cookies.set(
+      referralCookieName,
+      client.referralSlug ?? appliedReferralSlug ?? "",
+      {
+        httpOnly: true,
+        maxAge: referralCookieMaxAge,
+        path: "/",
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production"
+      }
+    );
   }
 
   return response;
