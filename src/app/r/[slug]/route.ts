@@ -1,45 +1,12 @@
 import { NextResponse } from "next/server";
 import {
   findActiveCuratorByReferralSlug,
-  getReferralPublicOrigin,
   normalizeReferralSlug,
   referralCookieMaxAge,
   referralCookieName
 } from "@/server/referrals";
 
-function getPublicOrigin(request: Request) {
-  const referralOrigin = getReferralPublicOrigin();
-
-  if (referralOrigin) {
-    return referralOrigin;
-  }
-
-  const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  let configuredOriginUrl: URL | null = null;
-
-  if (configuredOrigin) {
-    try {
-      configuredOriginUrl = new URL(configuredOrigin);
-    } catch {
-      configuredOriginUrl = null;
-    }
-  }
-
-  if (configuredOriginUrl) {
-    return configuredOriginUrl.origin;
-  }
-
-  const requestUrl = new URL(request.url);
-  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0];
-  const forwardedProto = request.headers
-    .get("x-forwarded-proto")
-    ?.split(",")[0];
-  const host = forwardedHost?.trim() || request.headers.get("host");
-  const protocol =
-    forwardedProto?.trim() || requestUrl.protocol.replace(":", "");
-
-  return host ? `${protocol}://${host}` : requestUrl.origin;
-}
+const clientReferralOrigin = "https://chintamanidhama.ru";
 
 export async function GET(
   request: Request,
@@ -69,7 +36,7 @@ export async function GET(
       ? referralSlug
       : "";
   const curator = existingCurator ?? requestedCurator;
-  const target = new URL("/", getPublicOrigin(request));
+  const target = new URL("/", clientReferralOrigin);
 
   if (curator && appliedReferralSlug) {
     target.searchParams.set("ref", appliedReferralSlug);

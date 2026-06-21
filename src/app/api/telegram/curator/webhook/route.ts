@@ -1,4 +1,6 @@
-﻿import { OrderStatus } from "@prisma/client";
+import http from "node:http";
+import tls from "node:tls";
+import { OrderStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { formatMoney } from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
@@ -36,8 +38,19 @@ type TelegramUpdate = {
   message?: TelegramMessage;
 };
 
+type TelegramResponse = {
+  body?: string;
+  ok: boolean;
+  status: number;
+  statusText: string;
+};
+
+const telegramRequestTimeoutMs = 15000;
+
 function getPublicOrigin(request: Request) {
-  const configuredOrigin = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  const configuredOrigin =
+    process.env.CURATOR_MINI_APP_SITE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_SITE_URL?.trim();
 
   if (configuredOrigin) {
     try {
@@ -75,6 +88,151 @@ function buildTelegramMiniAppReferralUrl(slug: string) {
     : "";
 }
 
+function getTelegramProxyUrl() {
+  return (
+    process.env.CURATOR_TELEGRAM_PROXY_URL?.trim() ||
+    process.env.TELEGRAM_PROXY_URL?.trim() ||
+    process.env.HTTPS_PROXY?.trim() ||
+    process.env.HTTP_PROXY?.trim() ||
+    null
+  );
+}
+
+function parseHttpStatus(rawResponse: string) {
+  const [rawHeaders, body = ""] = rawResponse.split("\r\n\r\n");
+  const statusLine = rawHeaders?.split("\r\n", 1)[0] ?? "";
+  const match = statusLine.match(/^HTTP\/\d(?:\.\d)?\s+(\d{3})\s*(.*)$/);
+
+  if (!match) {
+    throw new Error("Telegram proxy returned an invalid HTTP response");
+  }
+
+  const status = Number(match[1]);
+
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    body: body.slice(0, 500),
+    statusText: match[2] || ""
+  };
+}
+
+async function postJsonViaHttpProxy(
+  targetUrl: string,
+  payload: Record<string, unknown>,
+  proxyUrl: string
+): Promise<TelegramResponse> {
+  const target = new URL(targetUrl);
+  const proxy = new URL(proxyUrl);
+
+  if (proxy.protocol !== "http:") {
+    throw new Error("Only http:// Telegram proxy URLs are supported");
+  }
+
+  const body = JSON.stringify(payload);
+  const proxyPort = Number(proxy.port || 80);
+  const targetPort = Number(target.port || 443);
+
+  return new Promise((resolve, reject) => {
+    const request = http.request({
+      host: proxy.hostname,
+      method: "CONNECT",
+      path: `${target.hostname}:${targetPort}`,
+      port: proxyPort,
+      timeout: telegramRequestTimeoutMs
+    });
+
+    request.once("connect", (response, socket, head) => {
+      if (response.statusCode !== 200) {
+        socket.destroy();
+        reject(
+          new Error(
+            `Telegram proxy CONNECT failed: ${response.statusCode ?? "unknown"}`
+          )
+        );
+        return;
+      }
+
+      if (head.length > 0) {
+        socket.unshift(head);
+      }
+
+      const secureSocket = tls.connect({
+        servername: target.hostname,
+        socket
+      });
+      const chunks: Buffer[] = [];
+
+      secureSocket.setTimeout(telegramRequestTimeoutMs);
+      secureSocket.once("secureConnect", () => {
+        secureSocket.write(
+          [
+            `POST ${target.pathname}${target.search} HTTP/1.1`,
+            `Host: ${target.hostname}`,
+            "Content-Type: application/json",
+            `Content-Length: ${Buffer.byteLength(body)}`,
+            "Connection: close",
+            "",
+            body
+          ].join("\r\n")
+        );
+      });
+      secureSocket.on("data", (chunk: Buffer) => chunks.push(chunk));
+      secureSocket.once("end", () => {
+        try {
+          resolve(parseHttpStatus(Buffer.concat(chunks).toString("utf8")));
+        } catch (error) {
+          reject(error);
+        }
+      });
+      secureSocket.once("timeout", () => {
+        secureSocket.destroy(new Error("Telegram proxy request timed out"));
+      });
+      secureSocket.once("error", reject);
+    });
+    request.once("timeout", () => {
+      request.destroy(new Error("Telegram proxy CONNECT timed out"));
+    });
+    request.once("error", reject);
+    request.end();
+  });
+}
+
+async function postTelegramJson(
+  url: string,
+  payload: Record<string, unknown>
+): Promise<TelegramResponse> {
+  const proxyUrl = getTelegramProxyUrl();
+
+  if (proxyUrl) {
+    return postJsonViaHttpProxy(url, payload, proxyUrl);
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), telegramRequestTimeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json"
+      },
+      method: "POST",
+      signal: controller.signal
+    });
+    const body = await response.text().catch(() => "");
+
+    return {
+      body: body.slice(0, 500),
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function callTelegramMethod(
   method: string,
   payload: Record<string, unknown>
@@ -85,19 +243,15 @@ async function callTelegramMethod(
     throw new Error("CURATOR_TELEGRAM_BOT_TOKEN is not configured");
   }
 
-  const response = await fetch(
+  const response = await postTelegramJson(
     `https://api.telegram.org/bot${botToken}/${method}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    }
+    payload
   );
 
   if (!response.ok) {
-    throw new Error(`Telegram ${method} failed`);
+    throw new Error(
+      `Telegram ${method} failed: ${response.status} ${response.statusText} ${response.body ?? ""}`.trim()
+    );
   }
 }
 
@@ -150,33 +304,45 @@ function getPrimaryReferralSlug(curator: {
   );
 }
 
-function buildMenuKeyboard(request: Request) {
+function buildMenuKeyboard(request: Request, mode: "url" | "web_app" = "web_app") {
+  const clientsUrl = buildCuratorMiniAppUrl(
+    request,
+    "/cabinet?section=clients"
+  );
+  const cabinetUrl = buildCuratorMiniAppUrl(request, "/cabinet");
+  const clientsButton =
+    mode === "web_app"
+      ? { text: "👥 Клиенты", web_app: { url: clientsUrl } }
+      : { text: "👥 Клиенты", url: clientsUrl };
+  const cabinetButton =
+    mode === "web_app"
+      ? { text: "🌐 Открыть кабинет", web_app: { url: cabinetUrl } }
+      : { text: "🌐 Открыть кабинет", url: cabinetUrl };
+
   return {
     inline_keyboard: [
       [{ text: "📊 Статистика", callback_data: "stats" }],
-      [
-        {
-          text: "👥 Клиенты",
-          web_app: {
-            url: buildCuratorMiniAppUrl(request, "/cabinet?section=clients")
-          }
-        },
-        {
-          text: "💳 Оплаты",
-          web_app: {
-            url: buildCuratorMiniAppUrl(request, "/cabinet?section=payments")
-          }
-        }
-      ],
+      [clientsButton],
       [{ text: "🔗 Моя реферальная ссылка", callback_data: "referral" }],
-      [
-        {
-          text: "🌐 Открыть кабинет",
-          web_app: { url: buildCuratorMiniAppUrl(request, "/cabinet") }
-        }
-      ]
+      [cabinetButton]
     ]
   };
+}
+
+async function sendMenuMessage(
+  request: Request,
+  chatId: number,
+  text: string
+) {
+  try {
+    await sendMessage(chatId, text, buildMenuKeyboard(request));
+  } catch (error) {
+    console.error(
+      "Curator Telegram web_app menu failed, retrying with url buttons",
+      error
+    );
+    await sendMessage(chatId, text, buildMenuKeyboard(request, "url"));
+  }
 }
 
 async function buildStatsText(curator: { id: string; name: string }) {
@@ -291,35 +457,22 @@ async function handleAuthorizedCuratorMessage(
     return;
   }
 
-  await sendMessage(
+  await sendMenuMessage(
+    request,
     chatId,
-    `Здравствуйте, ${curator.name}. Выберите раздел:`,
-    buildMenuKeyboard(request)
+    `Здравствуйте, ${curator.name}. Выберите раздел:`
   );
 }
 
-export async function POST(request: Request) {
-  const configuredSecret = process.env.CURATOR_TELEGRAM_WEBHOOK_SECRET?.trim();
-  const requestSecret = request.headers.get("x-telegram-bot-api-secret-token");
-
-  if (configuredSecret && requestSecret !== configuredSecret) {
-    return NextResponse.json({ ok: false }, { status: 401 });
-  }
-
-  const update = (await request
-    .json()
-    .catch(() => null)) as TelegramUpdate | null;
-
-  if (!update) {
-    return NextResponse.json({ ok: false }, { status: 400 });
-  }
-
+async function handleTelegramUpdate(request: Request, update: TelegramUpdate) {
   try {
     if (update.callback_query) {
       const callback = update.callback_query;
       const chatId = callback.message?.chat.id;
 
-      await answerCallbackQuery(callback.id);
+      await answerCallbackQuery(callback.id).catch((error) => {
+        console.error("Curator Telegram callback answer failed", error);
+      });
 
       if (chatId) {
         await handleAuthorizedCuratorMessage(
@@ -330,7 +483,7 @@ export async function POST(request: Request) {
         );
       }
 
-      return NextResponse.json({ ok: true });
+      return;
     }
 
     const message = update.message;
@@ -353,6 +506,25 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Curator Telegram webhook failed", error);
   }
+}
+
+export async function POST(request: Request) {
+  const configuredSecret = process.env.CURATOR_TELEGRAM_WEBHOOK_SECRET?.trim();
+  const requestSecret = request.headers.get("x-telegram-bot-api-secret-token");
+
+  if (configuredSecret && requestSecret !== configuredSecret) {
+    return NextResponse.json({ ok: false }, { status: 401 });
+  }
+
+  const update = (await request
+    .json()
+    .catch(() => null)) as TelegramUpdate | null;
+
+  if (!update) {
+    return NextResponse.json({ ok: false }, { status: 400 });
+  }
+
+  void handleTelegramUpdate(request, update);
 
   return NextResponse.json({ ok: true });
 }

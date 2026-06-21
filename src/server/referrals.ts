@@ -214,10 +214,15 @@ export function buildReferralPath(slug: string) {
 }
 
 export function getReferralPublicOrigin(origin?: string) {
-  return (
-    process.env.NEXT_PUBLIC_REFERRAL_SITE_URL?.trim().replace(/\/$/, "") ||
+  const chintamaniOrigin =
     process.env.NEXT_PUBLIC_CHINTAMANI_SITE_URL?.trim().replace(/\/$/, "") ||
-    defaultReferralOrigin ||
+    defaultReferralOrigin;
+  const configuredReferralOrigin =
+    process.env.NEXT_PUBLIC_REFERRAL_SITE_URL?.trim().replace(/\/$/, "");
+
+  return (
+    chintamaniOrigin ||
+    configuredReferralOrigin ||
     origin?.replace(/\/$/, "") ||
     ""
   );

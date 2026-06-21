@@ -5,7 +5,7 @@ import {
   Prisma,
   UserRole
 } from "@prisma/client";
-import { headers } from "next/headers";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { ClientsTable } from "@/components/clients-table";
 import { ParticipantsTable } from "@/components/participants-table";
@@ -33,7 +33,8 @@ import {
 import {
   buildReferralPath,
   buildReferralUrl,
-  ensureSystemCurator
+  ensureSystemCurator,
+  getReferralPublicOrigin
 } from "@/server/referrals";
 import { getCuratorTelegramBotUsername } from "@/server/telegram-mini-app";
 import { getManagedServices } from "@/server/services";
@@ -41,14 +42,28 @@ import { getManagedServices } from "@/server/services";
 export const dynamic = "force-dynamic";
 
 async function getOrigin() {
-  const headerStore = await headers();
-  const host = headerStore.get("host");
-  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
+  return getReferralPublicOrigin();
+}
 
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
-    (host ? `${protocol}://${host}` : "")
-  );
+async function getCuratorTelegramProfile() {
+  const cookieStore = await cookies();
+
+  return {
+    name: cookieStore.get("curator_telegram_name")?.value ?? "",
+    photoUrl: cookieStore.get("curator_telegram_photo_url")?.value ?? ""
+  };
+}
+
+function getInitials(name: string) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+
+  return initials || "К";
 }
 
 function getTelegramBotUsername() {
@@ -716,13 +731,19 @@ export default async function CabinetPage({
     [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.CURATOR],
     "/cabinet"
   );
-  const [curator, origin, rawSearchParams, serviceManagementAccess] =
-    await Promise.all([
-      getCabinetCurator(user),
-      getOrigin(),
-      searchParams,
-      getServiceManagementAccess()
-    ]);
+  const [
+    curator,
+    origin,
+    rawSearchParams,
+    serviceManagementAccess,
+    telegramProfile
+  ] = await Promise.all([
+    getCabinetCurator(user),
+    getOrigin(),
+    searchParams,
+    getServiceManagementAccess(),
+    getCuratorTelegramProfile()
+  ]);
 
   if (!curator) {
     return (
@@ -754,7 +775,6 @@ export default async function CabinetPage({
     "overview",
     "content",
     ...(canOpenProductsSection ? (["products"] as const) : []),
-    "payments",
     ...(canViewClients ? (["clients"] as const) : [])
   ];
   const requestedSection = firstParam(rawSearchParams?.section) as
@@ -833,14 +853,45 @@ export default async function CabinetPage({
       webUrl
     };
   });
+  const telegramDisplayName = telegramProfile.name || curator.name;
+  const telegramInitials = getInitials(telegramDisplayName);
 
   return (
-    <main className="admin-page">
+    <main
+      className={
+        user.role === UserRole.CURATOR
+          ? "admin-page admin-page--telegram-mini-app"
+          : "admin-page"
+      }
+    >
       <div className="container admin-shell">
         <header className="admin-header">
-          <div>
-            <p className="eyebrow">Кабинет</p>
-            <h1>{curator.name}</h1>
+          <div className="cabinet-curator-profile">
+            <span
+              aria-hidden="true"
+              className={
+                telegramProfile.photoUrl
+                  ? "cabinet-curator-avatar cabinet-curator-avatar--photo"
+                  : "cabinet-curator-avatar"
+              }
+              style={
+                telegramProfile.photoUrl
+                  ? { backgroundImage: `url(${telegramProfile.photoUrl})` }
+                  : undefined
+              }
+            >
+              {telegramProfile.photoUrl ? null : telegramInitials}
+            </span>
+            <div>
+              <p className="eyebrow">Кабинет куратора</p>
+              <h1>{curator.name}</h1>
+              {telegramProfile.name &&
+                telegramProfile.name !== curator.name && (
+                  <p className="admin-muted">
+                    Telegram: {telegramProfile.name}
+                  </p>
+                )}
+            </div>
           </div>
           <nav className="admin-nav" aria-label="Кабинет">
             {user.role !== UserRole.CURATOR && (
@@ -1237,7 +1288,7 @@ export default async function CabinetPage({
               )
             ))}
 
-          {activeSection === "payments" && (
+          {activeSection === "payments" && user.role !== UserRole.CURATOR && (
             <section className="admin-card admin-card--wide">
               <h2>Способы оплаты и реквизиты</h2>
               <p className="admin-muted">
@@ -1362,85 +1413,89 @@ export default async function CabinetPage({
             </section>
           )}
 
-          {activeSection === "payments" && canViewClients && (
-            <section className="admin-card admin-card--wide">
-              <h2>Оплаты на проверке</h2>
-              <p className="admin-muted">
-                Ручное подтверждение переводит кастомную оплату в статус
-                «оплачен».
-              </p>
-              {awaitingCustomOrders.length > 0 ? (
-                <div className="table-wrap">
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Заказ</th>
-                        <th>Клиент</th>
-                        <th>Покупка</th>
-                        <th>Сумма</th>
-                        <th>Оплата</th>
-                        <th>Дата</th>
-                        <th>Действие</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {awaitingCustomOrders.map((order) => (
-                        <tr key={order.id}>
-                          <td>#{order.orderNumber}</td>
-                          <td>
-                            <strong>{order.customerName}</strong>
-                            <br />
-                            {formatContacts(order) || "Контакты не указаны"}
-                          </td>
-                          <td>
-                            {order.service.title}
-                            {order.serviceOptions.length ? (
-                              <ul className="rite-summary-list">
-                                {order.serviceOptions.map((option) => (
-                                  <li key={option.titleSnapshot}>
-                                    {option.titleSnapshot}
-                                  </li>
-                                ))}
-                              </ul>
-                            ) : null}
-                          </td>
-                          <td>
-                            {formatMoney(order.amountRub, order.currency)}
-                          </td>
-                          <td>
-                            {order.payment?.provider} /{" "}
-                            {order.payment?.status
-                              ? formatStatus(order.payment.status)
-                              : formatStatus(order.status)}
-                          </td>
-                          <td>{order.createdAt.toLocaleDateString("ru-RU")}</td>
-                          <td>
-                            <form action={confirmCustomPaymentAction}>
-                              <input
-                                name="orderId"
-                                type="hidden"
-                                value={order.id}
-                              />
-                              <button
-                                className="button button--small"
-                                type="submit"
-                              >
-                                Подтвердить оплату
-                              </button>
-                            </form>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
+          {activeSection === "payments" &&
+            user.role !== UserRole.CURATOR &&
+            canViewClients && (
+              <section className="admin-card admin-card--wide">
+                <h2>Оплаты на проверке</h2>
                 <p className="admin-muted">
-                  Нет кастомных оплат, ожидающих проверки.
+                  Ручное подтверждение переводит кастомную оплату в статус
+                  «оплачен».
                 </p>
-              )}
-            </section>
-          )}
+                {awaitingCustomOrders.length > 0 ? (
+                  <div className="table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Заказ</th>
+                          <th>Клиент</th>
+                          <th>Покупка</th>
+                          <th>Сумма</th>
+                          <th>Оплата</th>
+                          <th>Дата</th>
+                          <th>Действие</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {awaitingCustomOrders.map((order) => (
+                          <tr key={order.id}>
+                            <td>#{order.orderNumber}</td>
+                            <td>
+                              <strong>{order.customerName}</strong>
+                              <br />
+                              {formatContacts(order) || "Контакты не указаны"}
+                            </td>
+                            <td>
+                              {order.service.title}
+                              {order.serviceOptions.length ? (
+                                <ul className="rite-summary-list">
+                                  {order.serviceOptions.map((option) => (
+                                    <li key={option.titleSnapshot}>
+                                      {option.titleSnapshot}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : null}
+                            </td>
+                            <td>
+                              {formatMoney(order.amountRub, order.currency)}
+                            </td>
+                            <td>
+                              {order.payment?.provider} /{" "}
+                              {order.payment?.status
+                                ? formatStatus(order.payment.status)
+                                : formatStatus(order.status)}
+                            </td>
+                            <td>
+                              {order.createdAt.toLocaleDateString("ru-RU")}
+                            </td>
+                            <td>
+                              <form action={confirmCustomPaymentAction}>
+                                <input
+                                  name="orderId"
+                                  type="hidden"
+                                  value={order.id}
+                                />
+                                <button
+                                  className="button button--small"
+                                  type="submit"
+                                >
+                                  Подтвердить оплату
+                                </button>
+                              </form>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="admin-muted">
+                    Нет кастомных оплат, ожидающих проверки.
+                  </p>
+                )}
+              </section>
+            )}
 
           {activeSection === "clients" && canViewClients && (
             <section className="admin-card admin-card--wide">

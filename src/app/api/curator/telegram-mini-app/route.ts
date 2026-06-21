@@ -1,15 +1,18 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { setAuthSession } from "@/server/auth";
 import { prisma } from "@/lib/prisma";
 import {
   getTelegramBotToken,
+  getTelegramDisplayName,
   validateTelegramMiniAppInitData
 } from "@/server/telegram-mini-app";
 
 const curatorMiniAppAuthSchema = z.object({
   initData: z.string().min(10)
 });
+
+const telegramProfileCookieMaxAge = 60 * 60 * 24 * 30;
 
 export async function POST(request: Request) {
   const botToken = getTelegramBotToken();
@@ -74,11 +77,37 @@ export async function POST(request: Request) {
 
   await setAuthSession(curator.userId);
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     curator: {
       id: curator.id,
       name: curator.name,
       slug: curator.slug
     }
   });
+  const cookieOptions = {
+    httpOnly: false,
+    maxAge: telegramProfileCookieMaxAge,
+    path: "/",
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production"
+  };
+  const telegramDisplayName = getTelegramDisplayName(telegramData.user);
+
+  if (telegramDisplayName) {
+    response.cookies.set(
+      "curator_telegram_name",
+      telegramDisplayName,
+      cookieOptions
+    );
+  }
+
+  if (telegramData.user.photo_url) {
+    response.cookies.set(
+      "curator_telegram_photo_url",
+      telegramData.user.photo_url,
+      cookieOptions
+    );
+  }
+
+  return response;
 }

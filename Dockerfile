@@ -1,4 +1,5 @@
-FROM node:24-alpine AS builder
+ARG NODE_IMAGE=mirror.gcr.io/library/node:24-alpine
+FROM ${NODE_IMAGE} AS builder
 
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -12,7 +13,7 @@ COPY . .
 RUN npm run db:generate
 RUN npm run build
 
-FROM node:24-alpine AS runner
+FROM ${NODE_IMAGE} AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production
