@@ -28,6 +28,40 @@ type PaymentSucceededNotificationInput = OrderCreatedNotificationInput & {
   paymentProviderName: string;
 };
 
+type ParticipantListNotificationInput = {
+  body: string;
+  curatorName: string;
+  curatorTelegramId: string | null;
+  listId: string;
+  orderNumber: number;
+  senderName: string;
+  senderRole: string;
+};
+
+export async function sendParticipantListTelegramNotification(
+  input: ParticipantListNotificationInput
+) {
+  const text = [
+    "Сообщение по списку участников StarVedas",
+    "",
+    `Заказ: #${input.orderNumber}`,
+    `Куратор: ${input.curatorName}`,
+    `Отправитель: ${input.senderName}`,
+    "",
+    input.body
+  ].join("\n");
+
+  if (input.senderRole === "CURATOR") {
+    return sendTelegramMessage(text);
+  }
+
+  if (input.curatorTelegramId) {
+    return sendTelegramMessageToChat(input.curatorTelegramId, text);
+  }
+
+  return false;
+}
+
 export async function sendOrderCreatedTelegramNotification(
   input: OrderCreatedNotificationInput
 ) {
@@ -132,6 +166,48 @@ function formatSelectedOptions(input: OrderCreatedNotificationInput) {
 async function sendTelegramMessage(text: string) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
   const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
+
+  if (!botToken || !chatId) {
+    return false;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    TELEGRAM_REQUEST_TIMEOUT_MS
+  );
+
+  try {
+    const response = await fetch(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      {
+        body: JSON.stringify({
+          chat_id: chatId,
+          disable_web_page_preview: true,
+          text: trimTelegramMessage(text)
+        }),
+        headers: {
+          "Content-Type": "application/json"
+        },
+        method: "POST",
+        signal: controller.signal
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Telegram sendMessage failed");
+    }
+
+    return true;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function sendTelegramMessageToChat(chatId: string, text: string) {
+  const botToken =
+    process.env.CURATOR_TELEGRAM_BOT_TOKEN?.trim() ||
+    process.env.TELEGRAM_BOT_TOKEN?.trim();
 
   if (!botToken || !chatId) {
     return false;

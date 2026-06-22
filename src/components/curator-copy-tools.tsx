@@ -59,6 +59,29 @@ function getReferralOrigin() {
   );
 }
 
+function getCuratorTelegramBotUrl() {
+  const botUsername = (
+    process.env.NEXT_PUBLIC_CURATOR_TELEGRAM_BOT_USERNAME ?? ""
+  )
+    .trim()
+    .replace(/^@/, "");
+
+  return botUsername ? `https://t.me/${botUsername}` : "";
+}
+
+function getTelegramMiniAppInstructions(botUrl: string) {
+  return [
+    "",
+    "Вход через Telegram Mini App:",
+    botUrl
+      ? `1. Откройте Telegram-бота куратора: ${botUrl}`
+      : "1. Откройте Telegram-бота куратора.",
+    "2. Нажмите /start.",
+    "3. В меню бота нажмите «Открыть кабинет» — кабинет откроется внутри Telegram Mini App.",
+    "4. Если бот прислал ваш Telegram ID вместо меню, отправьте этот ID администратору для привязки, затем нажмите /start ещё раз."
+  ];
+}
+
 function buildReferralUrl(
   origin: string,
   slug: string,
@@ -110,6 +133,7 @@ export function CuratorCopyTools({
     const baseOrigin = getBaseOrigin(origin);
     const loginUrl = `${baseOrigin}/login?next=%2Fcabinet`;
     const cabinetUrl = `${baseOrigin}/cabinet`;
+    const botUrl = getCuratorTelegramBotUrl();
     const copyText = [
       `Реферальная ссылка: ${referral}`,
       `Логин: ${email}`,
@@ -119,7 +143,8 @@ export function CuratorCopyTools({
       "Краткая инструкция входа в кабинет куратора:",
       `1. Откройте страницу входа: ${loginUrl}`,
       "2. Введите логин и пароль из этого сообщения.",
-      `3. После входа перейдите в кабинет: ${cabinetUrl}`
+      `3. После входа перейдите в кабинет: ${cabinetUrl}`,
+      ...getTelegramMiniAppInstructions(botUrl)
     ].join("\n");
 
     await copyToClipboard(copyText);

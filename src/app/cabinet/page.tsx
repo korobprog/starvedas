@@ -9,6 +9,8 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { ClientsTable } from "@/components/clients-table";
 import { ParticipantsTable } from "@/components/participants-table";
+import { ParticipantListsPanel } from "@/components/participant-lists-panel";
+import { ReferralLinkTools } from "@/components/referral-link-tools";
 import { ServiceEditorList } from "@/components/service-form";
 import { formatMoney } from "@/i18n/pricing";
 import { formatStatus } from "@/lib/status-labels";
@@ -26,6 +28,7 @@ import {
 } from "@/server/curator-actions";
 import { saveCabinetPaymentSettings } from "@/server/curator-payment-actions";
 import { confirmCustomPaymentAction } from "@/server/order-actions";
+import { getCuratorParticipantLists } from "@/server/participant-lists";
 import {
   customPaymentProviderCodes,
   getCuratorPaymentProviderSettings
@@ -276,6 +279,7 @@ type CabinetSection =
   | "content"
   | "products"
   | "payments"
+  | "lists"
   | "clients";
 
 const cabinetSectionMeta: Record<
@@ -297,6 +301,10 @@ const cabinetSectionMeta: Record<
   payments: {
     description: "Способы и проверки",
     label: "Оплата"
+  },
+  lists: {
+    description: "Списки и уточнения",
+    label: "Списки"
   },
   clients: {
     description: "Заявки и рассылки",
@@ -778,13 +786,14 @@ export default async function CabinetPage({
     user.role !== UserRole.CURATOR || curator.canViewClients;
   const canOpenProductsSection =
     serviceManagementAccess || user.role === UserRole.CURATOR;
-  const canManageCabinetPayments = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+  const canManageCabinetPayments =
+    user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
   const availableCabinetSections: CabinetSection[] = [
     "overview",
     "content",
     ...(canOpenProductsSection ? (["products"] as const) : []),
     ...(canManageCabinetPayments ? (["payments"] as const) : []),
-    ...(canViewClients ? (["clients"] as const) : [])
+    ...(canViewClients ? (["lists", "clients"] as const) : [])
   ];
   const requestedSection = firstParam(rawSearchParams?.section) as
     | CabinetSection
@@ -806,6 +815,7 @@ export default async function CabinetPage({
     participantData,
     clientData,
     awaitingCustomOrders,
+    participantLists,
     managedServices,
     referralStats
   ] = await Promise.all([
@@ -822,6 +832,9 @@ export default async function CabinetPage({
         >),
     canViewClients
       ? getAwaitingCustomOrders(curator.id, participantFilters)
+      : Promise.resolve([]),
+    canViewClients
+      ? getCuratorParticipantLists(curator.id)
       : Promise.resolve([]),
     serviceManagementAccess ? getManagedServices() : Promise.resolve([]),
     canViewClients ? getReferralStats(curator.id) : Promise.resolve(new Map())
@@ -948,28 +961,17 @@ export default async function CabinetPage({
               <p className="admin-muted">
                 Клиенты, которые перейдут по этой ссылке, попадут к вам.
               </p>
-              <a
-                className="referral-link"
-                href={referral}
-                rel="noreferrer"
-                target="_blank"
-              >
-                {referral}
-              </a>
+              <ReferralLinkTools displayValue={referral} href={referral} />
               {telegramMiniAppReferral && (
                 <>
                   <p className="admin-muted">
                     Ссылка для Telegram Mini App: клиент сразу войдёт в кабинет,
                     а реферальный код сохранится из параметра startapp.
                   </p>
-                  <a
-                    className="referral-link"
+                  <ReferralLinkTools
+                    displayValue={telegramMiniAppReferral}
                     href={telegramMiniAppReferral}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {telegramMiniAppReferral}
-                  </a>
+                  />
                 </>
               )}
               {canViewClients ? (
@@ -1071,23 +1073,17 @@ export default async function CabinetPage({
                           </span>
                         </td>
                         <td>
-                          <a
+                          <ReferralLinkTools
+                            displayValue={link.webUrl}
                             href={link.webUrl}
-                            rel="noreferrer"
-                            target="_blank"
-                          >
-                            {link.webUrl}
-                          </a>
+                          />
                           {link.telegramUrl && (
                             <>
                               <br />
-                              <a
+                              <ReferralLinkTools
+                                displayValue={`Telegram: ${link.telegramUrl}`}
                                 href={link.telegramUrl}
-                                rel="noreferrer"
-                                target="_blank"
-                              >
-                                Telegram: {link.telegramUrl}
-                              </a>
+                              />
                             </>
                           )}
                         </td>
@@ -1505,6 +1501,21 @@ export default async function CabinetPage({
                 )}
               </section>
             )}
+
+          {activeSection === "lists" && canViewClients && (
+            <section className="admin-card admin-card--wide">
+              <h2>Списки участников</h2>
+              <p className="admin-muted">
+                Здесь видны списки участников по вашим оплаченным заказам,
+                статусы проверки статистом и переписка для уточнений.
+              </p>
+              <ParticipantListsPanel
+                emptyText="Оплаченных списков участников пока нет."
+                lists={participantLists}
+                mode="curator"
+              />
+            </section>
+          )}
 
           {activeSection === "clients" && canViewClients && (
             <section className="admin-card admin-card--wide">

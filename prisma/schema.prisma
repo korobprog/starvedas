@@ -12,6 +12,7 @@ enum UserRole {
   ADMIN
   MANAGER
   CURATOR
+  STATISTICIAN
   CLIENT
 }
 
@@ -81,6 +82,32 @@ enum ParticipantChangeAction {
   UPDATED
 }
 
+enum ParticipantListStatus {
+  NEW
+  IN_WORK
+  NEEDS_CLARIFICATION
+  CHECKED
+  READY_TO_SEND
+  SENT
+  ARCHIVED
+}
+
+enum ParticipantRowStatus {
+  NEW
+  CHECKED
+  ERROR
+  DUPLICATE
+  UPDATED
+  EXCLUDED
+}
+
+enum ParticipantListMessageRole {
+  CURATOR
+  STATISTICIAN
+  ADMIN
+  SYSTEM
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -88,12 +115,15 @@ model User {
   name         String
   role         UserRole @default(CLIENT)
   active       Boolean  @default(true)
+  telegramId   String?  @unique
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  curator             Curator?
-  changedStatuses     LeadStatusHistory[]
-  changedParticipants ParticipantChangeHistory[]
+  curator                 Curator?
+  changedStatuses         LeadStatusHistory[]
+  changedParticipants     ParticipantChangeHistory[]
+  participantListChanges  ParticipantListChange[]
+  participantListMessages ParticipantListMessage[]
 }
 
 model Curator {
@@ -320,13 +350,14 @@ model Order {
   serviceId String
   clientId  String?
 
-  curator        Curator              @relation(fields: [curatorId], references: [id], onDelete: Restrict)
-  service        Service              @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  client         ClientProfile?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  participants   OrderParticipant[]
-  serviceOptions OrderServiceOption[]
-  payment        Payment?
-  statusHistory  LeadStatusHistory[]
+  curator         Curator              @relation(fields: [curatorId], references: [id], onDelete: Restrict)
+  service         Service              @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  client          ClientProfile?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  participants    OrderParticipant[]
+  serviceOptions  OrderServiceOption[]
+  payment         Payment?
+  statusHistory   LeadStatusHistory[]
+  participantList ParticipantList?
 
   @@index([sourceDomain])
   @@index([referralSlug])
@@ -354,15 +385,74 @@ model OrderServiceOption {
 }
 
 model OrderParticipant {
-  id        String   @id @default(cuid())
-  fullName  String
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String               @id @default(cuid())
+  fullName            String
+  rowStatus           ParticipantRowStatus @default(NEW)
+  statisticianComment String?
+  sortOrder           Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   orderId String
   order   Order                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
   history ParticipantChangeHistory[]
+}
+
+model ParticipantList {
+  id                   String                @id @default(cuid())
+  status               ParticipantListStatus @default(NEW)
+  bookmarked           Boolean               @default(false)
+  serviceTitleOverride String?
+  eventStartsAt        DateTime?
+  note                 String?
+  sentAt               DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  changes  ParticipantListChange[]
+  messages ParticipantListMessage[]
+
+  @@index([status])
+  @@index([bookmarked])
+  @@index([eventStartsAt])
+  @@index([updatedAt])
+}
+
+model ParticipantListMessage {
+  id         String                     @id @default(cuid())
+  body       String
+  senderRole ParticipantListMessageRole
+  createdAt  DateTime                   @default(now())
+
+  listId   String
+  senderId String?
+
+  list   ParticipantList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  sender User?           @relation(fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([listId, createdAt])
+  @@index([senderId])
+}
+
+model ParticipantListChange {
+  id        String   @id @default(cuid())
+  fieldName String
+  fromValue String?
+  toValue   String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  listId      String
+  changedById String?
+
+  list      ParticipantList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  changedBy User?           @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([listId, createdAt])
+  @@index([changedById])
 }
 
 model Payment {

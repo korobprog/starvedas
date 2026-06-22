@@ -1,5 +1,18 @@
 export function formatStatus(status: string) {
   const labels: Record<string, string> = {
+    ADMIN: "администратор",
+    ARCHIVED: "архив",
+    CHECKED: "проверен",
+    CURATOR: "куратор",
+    DUPLICATE: "дубль",
+    ERROR: "ошибка",
+    EXCLUDED: "исключен",
+    NEEDS_CLARIFICATION: "требует уточнения",
+    READY_TO_SEND: "готов к отправке",
+    SENT: "отправлен",
+    STATISTICIAN: "статист",
+    SYSTEM: "система",
+    UPDATED: "исправлен",
     AWAITING_VERIFICATION: "ожидает проверки оплаты",
     CANCELLED: "отменен",
     BOUGHT: "купил",

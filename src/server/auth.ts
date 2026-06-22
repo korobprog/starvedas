@@ -162,7 +162,7 @@ export async function requireUser(
   }
 
   if (!roles.includes(user.role)) {
-    redirect(user.role === UserRole.CURATOR ? "/cabinet" : "/admin/curators");
+    redirect(getDefaultUserPath(user.role));
   }
 
   return user;
@@ -201,5 +201,13 @@ export async function requireServiceManager(nextPath = "/cabinet") {
 }
 
 export function getDefaultUserPath(role: UserRole) {
-  return isAdminRole(role) ? "/admin/curators" : "/cabinet";
+  if (isAdminRole(role)) {
+    return "/admin/curators";
+  }
+
+  if (role === UserRole.STATISTICIAN) {
+    return "/statistician";
+  }
+
+  return "/cabinet";
 }
