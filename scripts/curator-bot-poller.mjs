@@ -557,7 +557,7 @@ async function getUpdates() {
 
 async function pollingLoop() {
   await callTelegramMethod("deleteWebhook", {
-    drop_pending_updates: false
+    drop_pending_updates: true
   });
   console.log("Curator polling bot started");
 

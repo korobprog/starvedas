@@ -602,6 +602,9 @@ async function handleTelegramUpdate(request: Request, update: TelegramUpdate) {
 }
 
 export async function POST(request: Request) {
+  if (process.env.CURATOR_TELEGRAM_WEBHOOK_ENABLED !== "1") {
+    return NextResponse.json({ ok: true, mode: "polling" });
+  }
   const configuredSecret = process.env.CURATOR_TELEGRAM_WEBHOOK_SECRET?.trim();
   const requestSecret = request.headers.get("x-telegram-bot-api-secret-token");
 
