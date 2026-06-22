@@ -35,7 +35,10 @@ export default async function LoginPage({
       <section className="simple-card">
         <p className="eyebrow">{brand.name}</p>
         <h1>Вход в кабинет</h1>
-        <p>Введите email и пароль, выданные администратором.</p>
+        <p>
+          Введите email и пароль. Клиенты попадут в личный кабинет, кураторы и
+          администраторы — в рабочий кабинет.
+        </p>
         <LoginForm next={params.next} />
       </section>
     </main>

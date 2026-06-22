@@ -120,6 +120,7 @@ model User {
   updatedAt    DateTime @updatedAt
 
   curator                 Curator?
+  clientProfile           ClientProfile?
   changedStatuses         LeadStatusHistory[]
   changedParticipants     ParticipantChangeHistory[]
   participantListChanges  ParticipantListChange[]
@@ -289,8 +290,10 @@ model ClientProfile {
   updatedAt             DateTime           @updatedAt
 
   curatorId String?
+  userId    String? @unique
 
   curator Curator?      @relation(fields: [curatorId], references: [id], onDelete: SetNull)
+  user    User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   events  ClientEvent[]
   orders  Order[]
 

@@ -41,6 +41,8 @@ export default async function AdminLayout({
                 { href: "/admin/products", label: "Продукты" },
                 { href: "/admin/articles", label: "Статьи" },
                 { href: "/admin/participants", label: "Участники" },
+                { href: "/admin/statisticians", label: "Статисты" },
+                { href: "/statistician", label: "Кабинет статиста" },
                 { href: "/admin/clients", label: "Клиенты" },
                 { href: "/admin/schedule", label: copy.layout.schedule },
                 ...(canManageCriticalSettings

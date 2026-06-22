@@ -209,5 +209,9 @@ export function getDefaultUserPath(role: UserRole) {
     return "/statistician";
   }
 
+  if (role === UserRole.CLIENT) {
+    return "/client";
+  }
+
   return "/cabinet";
 }

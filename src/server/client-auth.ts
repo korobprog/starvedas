@@ -1,6 +1,7 @@
 ﻿import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/server/auth";
 
 export const clientSessionCookieName = "starvedas_client_session";
 
@@ -87,12 +88,26 @@ export async function getCurrentClientProfile() {
     cookieStore.get(clientSessionCookieName)?.value
   );
 
-  if (!payload) {
+  if (payload) {
+    const client = await findClientProfile({ id: payload.clientId });
+
+    if (client) {
+      return client;
+    }
+  }
+
+  const user = await getCurrentUser();
+
+  if (user?.role !== "CLIENT") {
     return null;
   }
 
+  return findClientProfile({ userId: user.id });
+}
+
+function findClientProfile(where: { id: string } | { userId: string }) {
   return prisma.clientProfile.findUnique({
-    where: { id: payload.clientId },
+    where,
     select: {
       consentMailings: true,
       consentPersonalData: true,

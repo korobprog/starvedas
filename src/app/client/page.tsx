@@ -43,9 +43,17 @@ export default async function ClientCabinetPage() {
             </p>
           </div>
           <TelegramMiniAppAutoLogin />
-          <Link className="button button--primary" href="/#signup">
-            Перейти к форме записи
-          </Link>
+          <div className="form-actions">
+            <Link className="button button--primary" href="/client/register">
+              Зарегистрироваться
+            </Link>
+            <Link className="button" href="/login?next=%2Fclient">
+              Войти по email
+            </Link>
+            <Link className="button" href="/#signup">
+              Перейти к форме записи
+            </Link>
+          </div>
         </section>
       </main>
     );
@@ -122,6 +130,9 @@ export default async function ClientCabinetPage() {
         <div className="form-actions">
           <Link className="button button--primary" href="/#signup">
             Купить новый абонемент
+          </Link>
+          <Link className="button" href="/client/logout">
+            Выйти
           </Link>
         </div>
       </section>
