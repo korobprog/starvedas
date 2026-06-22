@@ -341,6 +341,12 @@ async function sendMessage(
   });
 }
 
+async function removeReplyKeyboard(chatId: number) {
+  await sendMessage(chatId, "Меню обновлено.", {
+    remove_keyboard: true
+  });
+}
+
 async function answerCallbackQuery(callbackQueryId: string) {
   await callTelegramMethod("answerCallbackQuery", {
     callback_query_id: callbackQueryId
@@ -408,6 +414,9 @@ function buildMenuKeyboard(
 async function sendMenuMessage(request: Request, chatId: number, text: string) {
   try {
     console.log("Curator Telegram sending menu", { chatId });
+    await removeReplyKeyboard(chatId).catch((error) => {
+      console.error("Curator Telegram reply keyboard removal failed", error);
+    });
     await sendMessage(chatId, text, buildMenuKeyboard(request));
     console.log("Curator Telegram menu sent", { chatId, mode: "web_app" });
   } catch (error) {

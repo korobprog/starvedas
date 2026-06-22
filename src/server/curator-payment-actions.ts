@@ -32,14 +32,8 @@ const paymentOptionSettingsSchema = z.object({
 });
 
 export async function saveCabinetPaymentSettings(formData: FormData) {
-  const user = await requireUser(
-    [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.CURATOR],
-    "/cabinet"
-  );
-  const curatorId =
-    user.role === UserRole.CURATOR
-      ? user.curator?.id
-      : (await ensureSystemCurator()).id;
+  await requireUser([UserRole.ADMIN, UserRole.SUPER_ADMIN], "/cabinet");
+  const curatorId = (await ensureSystemCurator()).id;
 
   if (!curatorId) {
     throw new Error("Профиль куратора не найден");

@@ -771,7 +771,7 @@ export default async function CabinetPage({
     user.role !== UserRole.CURATOR || curator.canViewClients;
   const canOpenProductsSection =
     serviceManagementAccess || user.role === UserRole.CURATOR;
-  const canManageCabinetPayments = user.role !== UserRole.CURATOR;
+  const canManageCabinetPayments = false;
   const availableCabinetSections: CabinetSection[] = [
     "overview",
     "content",
