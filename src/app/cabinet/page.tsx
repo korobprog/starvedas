@@ -63,7 +63,7 @@ function getInitials(name: string) {
     .join("")
     .toUpperCase();
 
-  return initials || "К";
+  return initials || "Рљ";
 }
 
 function getTelegramBotUsername() {
@@ -276,24 +276,24 @@ const cabinetSectionMeta: Record<
   { description: string; label: string }
 > = {
   overview: {
-    description: "Ссылка и статистика",
-    label: "Обзор"
+    description: "РЎСЃС‹Р»РєР° Рё СЃС‚Р°С‚РёСЃС‚РёРєР°",
+    label: "РћР±Р·РѕСЂ"
   },
   content: {
-    description: "Текст после покупки",
-    label: "Сообщение"
+    description: "РўРµРєСЃС‚ РїРѕСЃР»Рµ РїРѕРєСѓРїРєРё",
+    label: "РЎРѕРѕР±С‰РµРЅРёРµ"
   },
   products: {
-    description: "Товары и абонементы",
-    label: "Продукты"
+    description: "РўРѕРІР°СЂС‹ Рё Р°Р±РѕРЅРµРјРµРЅС‚С‹",
+    label: "РџСЂРѕРґСѓРєС‚С‹"
   },
   payments: {
-    description: "Способы и проверки",
-    label: "Оплата"
+    description: "РЎРїРѕСЃРѕР±С‹ Рё РїСЂРѕРІРµСЂРєРё",
+    label: "РћРїР»Р°С‚Р°"
   },
   clients: {
-    description: "Заявки и рассылки",
-    label: "Клиенты"
+    description: "Р—Р°СЏРІРєРё Рё СЂР°СЃСЃС‹Р»РєРё",
+    label: "РљР»РёРµРЅС‚С‹"
   }
 };
 
@@ -603,9 +603,9 @@ function getReferralSourceLabel(link: {
   }
 
   return link.isPrimary
-    ? "Основная ссылка от администратора"
+    ? "РћСЃРЅРѕРІРЅР°СЏ СЃСЃС‹Р»РєР° РѕС‚ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°"
     : link.createdByCurator
-      ? "Партнёрская ссылка куратора"
+      ? "РџР°СЂС‚РЅС‘СЂСЃРєР°СЏ СЃСЃС‹Р»РєР° РєСѓСЂР°С‚РѕСЂР°"
       : link.slug;
 }
 
@@ -750,9 +750,9 @@ export default async function CabinetPage({
       <main className="admin-page">
         <div className="container admin-shell">
           <section className="admin-card">
-            <h1>Кабинет не найден</h1>
+            <h1>РљР°Р±РёРЅРµС‚ РЅРµ РЅР°Р№РґРµРЅ</h1>
             <p className="admin-muted">
-              Попросите администратора привязать ваш логин к куратору.
+              РџРѕРїСЂРѕСЃРёС‚Рµ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР° РїСЂРёРІСЏР·Р°С‚СЊ РІР°С€ Р»РѕРіРёРЅ Рє РєСѓСЂР°С‚РѕСЂСѓ.
             </p>
           </section>
         </div>
@@ -771,7 +771,7 @@ export default async function CabinetPage({
     user.role !== UserRole.CURATOR || curator.canViewClients;
   const canOpenProductsSection =
     serviceManagementAccess || user.role === UserRole.CURATOR;
-  const canManageCabinetPayments = false;
+  const canManageCabinetPayments = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
   const availableCabinetSections: CabinetSection[] = [
     "overview",
     "content",
@@ -885,7 +885,7 @@ export default async function CabinetPage({
               {telegramProfile.photoUrl ? null : telegramInitials}
             </span>
             <div>
-              <p className="eyebrow">Кабинет куратора</p>
+              <p className="eyebrow">РљР°Р±РёРЅРµС‚ РєСѓСЂР°С‚РѕСЂР°</p>
               <h1>{curator.name}</h1>
               {telegramProfile.name &&
                 telegramProfile.name !== curator.name && (
@@ -895,24 +895,24 @@ export default async function CabinetPage({
                 )}
             </div>
           </div>
-          <nav className="admin-nav" aria-label="Кабинет">
+          <nav className="admin-nav" aria-label="РљР°Р±РёРЅРµС‚">
             {user.role !== UserRole.CURATOR && (
               <Link className="button" href="/admin/curators">
-                Админка
+                РђРґРјРёРЅРєР°
               </Link>
             )}
             <Link className="button" href="/">
-              На сайт
+              РќР° СЃР°Р№С‚
             </Link>
             <form action={logoutAction}>
               <button className="button" type="submit">
-                Выйти
+                Р’С‹Р№С‚Рё
               </button>
             </form>
           </nav>
         </header>
 
-        <nav className="cabinet-section-menu" aria-label="Разделы кабинета">
+        <nav className="cabinet-section-menu" aria-label="Р Р°Р·РґРµР»С‹ РєР°Р±РёРЅРµС‚Р°">
           {availableCabinetSections.map((section) => {
             const meta = cabinetSectionMeta[section];
 
@@ -937,9 +937,9 @@ export default async function CabinetPage({
         <div className="admin-grid">
           {activeSection === "overview" && (
             <section className="admin-card admin-card--wide">
-              <h2>Реферальная ссылка</h2>
+              <h2>Р РµС„РµСЂР°Р»СЊРЅР°СЏ СЃСЃС‹Р»РєР°</h2>
               <p className="admin-muted">
-                Клиенты, которые перейдут по этой ссылке, попадут к вам.
+                РљР»РёРµРЅС‚С‹, РєРѕС‚РѕСЂС‹Рµ РїРµСЂРµР№РґСѓС‚ РїРѕ СЌС‚РѕР№ СЃСЃС‹Р»РєРµ, РїРѕРїР°РґСѓС‚ Рє РІР°Рј.
               </p>
               <a
                 className="referral-link"
@@ -952,8 +952,8 @@ export default async function CabinetPage({
               {telegramMiniAppReferral && (
                 <>
                   <p className="admin-muted">
-                    Ссылка для Telegram Mini App: клиент сразу войдёт в кабинет,
-                    а реферальный код сохранится из параметра startapp.
+                    РЎСЃС‹Р»РєР° РґР»СЏ Telegram Mini App: РєР»РёРµРЅС‚ СЃСЂР°Р·Сѓ РІРѕР№РґС‘С‚ РІ РєР°Р±РёРЅРµС‚,
+                    Р° СЂРµС„РµСЂР°Р»СЊРЅС‹Р№ РєРѕРґ СЃРѕС…СЂР°РЅРёС‚СЃСЏ РёР· РїР°СЂР°РјРµС‚СЂР° startapp.
                   </p>
                   <a
                     className="referral-link"
@@ -969,20 +969,20 @@ export default async function CabinetPage({
                 <div className="stats-grid">
                   <div>
                     <strong>{curator.orders.length}</strong>
-                    <span>заказов</span>
+                    <span>Р·Р°РєР°Р·РѕРІ</span>
                   </div>
                   <div>
                     <strong>{paidOrders.length}</strong>
-                    <span>оплачено</span>
+                    <span>РѕРїР»Р°С‡РµРЅРѕ</span>
                   </div>
                   <div>
                     <strong>{paidAmount.toLocaleString("ru-RU")}</strong>
-                    <span>руб.</span>
+                    <span>СЂСѓР±.</span>
                   </div>
                 </div>
               ) : (
                 <p className="admin-muted">
-                  Просмотр клиентов отключен администратором.
+                  РџСЂРѕСЃРјРѕС‚СЂ РєР»РёРµРЅС‚РѕРІ РѕС‚РєР»СЋС‡РµРЅ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј.
                 </p>
               )}
             </section>
@@ -992,11 +992,11 @@ export default async function CabinetPage({
             <section className="admin-card admin-card--wide">
               <div className="admin-card__header">
                 <div>
-                  <h2>Личные ссылки для партнёров</h2>
+                  <h2>Р›РёС‡РЅС‹Рµ СЃСЃС‹Р»РєРё РґР»СЏ РїР°СЂС‚РЅС‘СЂРѕРІ</h2>
                   <p className="admin-muted">
-                    Создавайте отдельную ссылку для клуба, партнёра или канала.
-                    Первый переход закрепляется за клиентом до регистрации, а
-                    после регистрации атрибуция сохраняется навсегда.
+                    РЎРѕР·РґР°РІР°Р№С‚Рµ РѕС‚РґРµР»СЊРЅСѓСЋ СЃСЃС‹Р»РєСѓ РґР»СЏ РєР»СѓР±Р°, РїР°СЂС‚РЅС‘СЂР° РёР»Рё РєР°РЅР°Р»Р°.
+                    РџРµСЂРІС‹Р№ РїРµСЂРµС…РѕРґ Р·Р°РєСЂРµРїР»СЏРµС‚СЃСЏ Р·Р° РєР»РёРµРЅС‚РѕРј РґРѕ СЂРµРіРёСЃС‚СЂР°С†РёРё, Р°
+                    РїРѕСЃР»Рµ СЂРµРіРёСЃС‚СЂР°С†РёРё Р°С‚СЂРёР±СѓС†РёСЏ СЃРѕС…СЂР°РЅСЏРµС‚СЃСЏ РЅР°РІСЃРµРіРґР°.
                   </p>
                 </div>
               </div>
@@ -1006,25 +1006,25 @@ export default async function CabinetPage({
                 className="admin-form filter-form"
               >
                 <label className="field">
-                  <span>Название источника</span>
+                  <span>РќР°Р·РІР°РЅРёРµ РёСЃС‚РѕС‡РЅРёРєР°</span>
                   <input
                     maxLength={120}
                     name="title"
-                    placeholder="Например: Клуб Ромашка"
+                    placeholder="РќР°РїСЂРёРјРµСЂ: РљР»СѓР± Р РѕРјР°С€РєР°"
                     required
                     type="text"
                   />
                 </label>
                 <div className="filter-form__actions">
                   <button className="button button--primary" type="submit">
-                    Сгенерировать ссылку
+                    РЎРіРµРЅРµСЂРёСЂРѕРІР°С‚СЊ СЃСЃС‹Р»РєСѓ
                   </button>
                 </div>
               </form>
 
               <div className="participant-tools">
                 <a className="button" href="/cabinet/referrals/export">
-                  Скачать всю бухгалтерию CSV
+                  РЎРєР°С‡Р°С‚СЊ РІСЃСЋ Р±СѓС…РіР°Р»С‚РµСЂРёСЋ CSV
                 </a>
               </div>
 
@@ -1032,12 +1032,12 @@ export default async function CabinetPage({
                 <table className="admin-table referral-stats-table">
                   <thead>
                     <tr>
-                      <th>Источник</th>
-                      <th>Ссылки</th>
-                      <th>Статистика</th>
-                      <th>Бухгалтерия</th>
+                      <th>РСЃС‚РѕС‡РЅРёРє</th>
+                      <th>РЎСЃС‹Р»РєРё</th>
+                      <th>РЎС‚Р°С‚РёСЃС‚РёРєР°</th>
+                      <th>Р‘СѓС…РіР°Р»С‚РµСЂРёСЏ</th>
                       <th>QR</th>
-                      <th>Управление</th>
+                      <th>РЈРїСЂР°РІР»РµРЅРёРµ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1053,14 +1053,14 @@ export default async function CabinetPage({
                                 : "badge badge--muted"
                             }
                           >
-                            {link.active ? "Активна" : "Отключена"}
+                            {link.active ? "РђРєС‚РёРІРЅР°" : "РћС‚РєР»СЋС‡РµРЅР°"}
                           </span>{" "}
                           <span className="badge badge--muted">
                             {link.isPrimary
-                              ? "ссылка от админа"
+                              ? "СЃСЃС‹Р»РєР° РѕС‚ Р°РґРјРёРЅР°"
                               : link.createdByCurator
-                                ? "ссылка куратора"
-                                : "старая ссылка"}
+                                ? "СЃСЃС‹Р»РєР° РєСѓСЂР°С‚РѕСЂР°"
+                                : "СЃС‚Р°СЂР°СЏ СЃСЃС‹Р»РєР°"}
                           </span>
                         </td>
                         <td>
@@ -1085,40 +1085,40 @@ export default async function CabinetPage({
                           )}
                         </td>
                         <td>
-                          Визитов: {link.stats.visits}
+                          Р’РёР·РёС‚РѕРІ: {link.stats.visits}
                           <br />
-                          Регистраций: {link.stats.clients}
+                          Р РµРіРёСЃС‚СЂР°С†РёР№: {link.stats.clients}
                           <br />
-                          Покупателей: {link.stats.boughtClients}
+                          РџРѕРєСѓРїР°С‚РµР»РµР№: {link.stats.boughtClients}
                           <br />
-                          Оплат: {link.stats.paidOrders}
+                          РћРїР»Р°С‚: {link.stats.paidOrders}
                           <br />
-                          Конверсия: {link.conversion}%
+                          РљРѕРЅРІРµСЂСЃРёСЏ: {link.conversion}%
                         </td>
                         <td>
-                          Оплачено:{" "}
+                          РћРїР»Р°С‡РµРЅРѕ:{" "}
                           {formatMoney(link.stats.paidAmountRub, "RUB")}
                           <br />
-                          Возвраты:{" "}
+                          Р’РѕР·РІСЂР°С‚С‹:{" "}
                           {formatMoney(link.stats.refundedAmountRub, "RUB")}
                           <br />
-                          Итого: {formatMoney(link.netAmountRub, "RUB")}
+                          РС‚РѕРіРѕ: {formatMoney(link.netAmountRub, "RUB")}
                           <br />
                           <a
                             href={`/cabinet/referrals/export?slug=${encodeURIComponent(link.slug)}`}
                           >
-                            Скачать CSV
+                            РЎРєР°С‡Р°С‚СЊ CSV
                           </a>
                         </td>
                         <td>
                           <a href={link.qrUrl} rel="noreferrer" target="_blank">
-                            Открыть QR
+                            РћС‚РєСЂС‹С‚СЊ QR
                           </a>
                         </td>
                         <td>
                           {link.isPrimary ? (
                             <span className="admin-muted">
-                              Основная ссылка редактируется админом
+                              РћСЃРЅРѕРІРЅР°СЏ СЃСЃС‹Р»РєР° СЂРµРґР°РєС‚РёСЂСѓРµС‚СЃСЏ Р°РґРјРёРЅРѕРј
                             </span>
                           ) : (
                             <div className="referral-actions">
@@ -1129,7 +1129,7 @@ export default async function CabinetPage({
                                   value={link.id}
                                 />
                                 <input
-                                  aria-label="Название ссылки"
+                                  aria-label="РќР°Р·РІР°РЅРёРµ СЃСЃС‹Р»РєРё"
                                   className="table-input"
                                   defaultValue={link.label}
                                   maxLength={120}
@@ -1141,7 +1141,7 @@ export default async function CabinetPage({
                                   className="button button--small"
                                   type="submit"
                                 >
-                                  Переименовать
+                                  РџРµСЂРµРёРјРµРЅРѕРІР°С‚СЊ
                                 </button>
                               </form>
                               <form action={toggleCabinetReferralLinkAction}>
@@ -1159,7 +1159,7 @@ export default async function CabinetPage({
                                   className="button button--small"
                                   type="submit"
                                 >
-                                  {link.active ? "Отключить" : "Включить"}
+                                  {link.active ? "РћС‚РєР»СЋС‡РёС‚СЊ" : "Р’РєР»СЋС‡РёС‚СЊ"}
                                 </button>
                               </form>
                             </div>
@@ -1175,21 +1175,21 @@ export default async function CabinetPage({
 
           {activeSection === "content" && (
             <section className="admin-card admin-card--wide">
-              <h2>Информация после покупки</h2>
+              <h2>РРЅС„РѕСЂРјР°С†РёСЏ РїРѕСЃР»Рµ РїРѕРєСѓРїРєРё</h2>
               {!curator.canEditPostPurchase && (
                 <p className="admin-muted">
-                  Редактирование информации после покупки отключено
-                  администратором.
+                  Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ РёРЅС„РѕСЂРјР°С†РёРё РїРѕСЃР»Рµ РїРѕРєСѓРїРєРё РѕС‚РєР»СЋС‡РµРЅРѕ
+                  Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј.
                 </p>
               )}
               {!curator.canEditSupport && (
                 <p className="admin-muted">
-                  Редактирование кнопки поддержки отключено администратором.
+                  Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ РєРЅРѕРїРєРё РїРѕРґРґРµСЂР¶РєРё РѕС‚РєР»СЋС‡РµРЅРѕ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј.
                 </p>
               )}
               <form action={saveCabinetCuratorSettings} className="admin-form">
                 <label className="field">
-                  <span>Заголовок</span>
+                  <span>Р—Р°РіРѕР»РѕРІРѕРє</span>
                   <input
                     defaultValue={curator.postPurchaseTitle ?? ""}
                     disabled={!curator.canEditPostPurchase}
@@ -1198,7 +1198,7 @@ export default async function CabinetPage({
                   />
                 </label>
                 <label className="field">
-                  <span>Текст для клиента</span>
+                  <span>РўРµРєСЃС‚ РґР»СЏ РєР»РёРµРЅС‚Р°</span>
                   <textarea
                     defaultValue={curator.postPurchaseText ?? ""}
                     disabled={!curator.canEditPostPurchase}
@@ -1207,7 +1207,7 @@ export default async function CabinetPage({
                   />
                 </label>
                 <label className="field">
-                  <span>Ссылка для клиента</span>
+                  <span>РЎСЃС‹Р»РєР° РґР»СЏ РєР»РёРµРЅС‚Р°</span>
                   <input
                     defaultValue={curator.postPurchaseUrl ?? ""}
                     disabled={!curator.canEditPostPurchase}
@@ -1217,28 +1217,28 @@ export default async function CabinetPage({
                   />
                 </label>
                 <label className="field">
-                  <span>Текст кнопки вопроса</span>
+                  <span>РўРµРєСЃС‚ РєРЅРѕРїРєРё РІРѕРїСЂРѕСЃР°</span>
                   <input
                     defaultValue={curator.supportButtonLabel ?? ""}
                     disabled={!curator.canEditSupport}
                     name="supportButtonLabel"
-                    placeholder="Написать вопрос куратору"
+                    placeholder="РќР°РїРёСЃР°С‚СЊ РІРѕРїСЂРѕСЃ РєСѓСЂР°С‚РѕСЂСѓ"
                     type="text"
                   />
                 </label>
                 <label className="field">
-                  <span>Адрес для вопросов</span>
+                  <span>РђРґСЂРµСЃ РґР»СЏ РІРѕРїСЂРѕСЃРѕРІ</span>
                   <input
                     defaultValue={curator.supportUrl ?? ""}
                     disabled={!curator.canEditSupport}
                     name="supportUrl"
-                    placeholder="https://t.me/..., @username, email или телефон"
+                    placeholder="https://t.me/..., @username, email РёР»Рё С‚РµР»РµС„РѕРЅ"
                     type="text"
                   />
                 </label>
                 <p className="admin-muted">
-                  Сейчас кнопка{" "}
-                  {curator.supportEnabled ? "показывается" : "скрыта админом"}.
+                  РЎРµР№С‡Р°СЃ РєРЅРѕРїРєР°{" "}
+                  {curator.supportEnabled ? "РїРѕРєР°Р·С‹РІР°РµС‚СЃСЏ" : "СЃРєСЂС‹С‚Р° Р°РґРјРёРЅРѕРј"}.
                 </p>
                 <label className="checkbox-field">
                   <input
@@ -1247,11 +1247,11 @@ export default async function CabinetPage({
                     type="checkbox"
                   />
                   <span>
-                    Показывать чекбокс согласия на рассылку в форме заявки
+                    РџРѕРєР°Р·С‹РІР°С‚СЊ С‡РµРєР±РѕРєСЃ СЃРѕРіР»Р°СЃРёСЏ РЅР° СЂР°СЃСЃС‹Р»РєСѓ РІ С„РѕСЂРјРµ Р·Р°СЏРІРєРё
                   </span>
                 </label>
                 <button className="button button--primary" type="submit">
-                  Сохранить
+                  РЎРѕС…СЂР°РЅРёС‚СЊ
                 </button>
               </form>
             </section>
@@ -1262,10 +1262,10 @@ export default async function CabinetPage({
               <section className="admin-card admin-card--wide">
                 <div className="admin-card__header">
                   <div>
-                    <h2>Продукты и абонементы</h2>
+                    <h2>РџСЂРѕРґСѓРєС‚С‹ Рё Р°Р±РѕРЅРµРјРµРЅС‚С‹</h2>
                     <p className="admin-muted">
-                      Компактный список без больших форм. Откройте карточку,
-                      чтобы изменить цены, переводы и обряды внутри раздела.
+                      РљРѕРјРїР°РєС‚РЅС‹Р№ СЃРїРёСЃРѕРє Р±РµР· Р±РѕР»СЊС€РёС… С„РѕСЂРј. РћС‚РєСЂРѕР№С‚Рµ РєР°СЂС‚РѕС‡РєСѓ,
+                      С‡С‚РѕР±С‹ РёР·РјРµРЅРёС‚СЊ С†РµРЅС‹, РїРµСЂРµРІРѕРґС‹ Рё РѕР±СЂСЏРґС‹ РІРЅСѓС‚СЂРё СЂР°Р·РґРµР»Р°.
                     </p>
                   </div>
                   <div className="admin-card__actions">
@@ -1273,7 +1273,7 @@ export default async function CabinetPage({
                       className="button button--primary"
                       href="/admin/products/new"
                     >
-                      Создать продукт
+                      РЎРѕР·РґР°С‚СЊ РїСЂРѕРґСѓРєС‚
                     </Link>
                   </div>
                 </div>
@@ -1282,9 +1282,9 @@ export default async function CabinetPage({
             ) : (
               user.role === UserRole.CURATOR && (
                 <section className="admin-card admin-card--wide">
-                  <h2>Продукты и абонементы</h2>
+                  <h2>РџСЂРѕРґСѓРєС‚С‹ Рё Р°Р±РѕРЅРµРјРµРЅС‚С‹</h2>
                   <p className="admin-muted">
-                    Управление продуктами отключено администратором.
+                    РЈРїСЂР°РІР»РµРЅРёРµ РїСЂРѕРґСѓРєС‚Р°РјРё РѕС‚РєР»СЋС‡РµРЅРѕ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј.
                   </p>
                 </section>
               )
@@ -1292,10 +1292,10 @@ export default async function CabinetPage({
 
           {activeSection === "payments" && canManageCabinetPayments && (
             <section className="admin-card admin-card--wide">
-              <h2>Способы оплаты и реквизиты</h2>
+              <h2>РЎРїРѕСЃРѕР±С‹ РѕРїР»Р°С‚С‹ Рё СЂРµРєРІРёР·РёС‚С‹</h2>
               <p className="admin-muted">
-                Выберите только из способов, разрешенных администратором, и
-                заполните инструкции для клиентов вашей ссылки.
+                Р’С‹Р±РµСЂРёС‚Рµ С‚РѕР»СЊРєРѕ РёР· СЃРїРѕСЃРѕР±РѕРІ, СЂР°Р·СЂРµС€РµРЅРЅС‹С… Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј, Рё
+                Р·Р°РїРѕР»РЅРёС‚Рµ РёРЅСЃС‚СЂСѓРєС†РёРё РґР»СЏ РєР»РёРµРЅС‚РѕРІ РІР°С€РµР№ СЃСЃС‹Р»РєРё.
               </p>
               {enabledPaymentSettings.length > 0 ? (
                 <form
@@ -1316,16 +1316,16 @@ export default async function CabinetPage({
                             name={`enabled:${provider.code}`}
                             type="checkbox"
                           />
-                          <span>Показывать этот способ клиентам</span>
+                          <span>РџРѕРєР°Р·С‹РІР°С‚СЊ СЌС‚РѕС‚ СЃРїРѕСЃРѕР± РєР»РёРµРЅС‚Р°Рј</span>
                         </label>
                         <label className="field">
-                          <span>Инструкция клиенту</span>
+                          <span>РРЅСЃС‚СЂСѓРєС†РёСЏ РєР»РёРµРЅС‚Сѓ</span>
                           <textarea
                             defaultValue={
                               provider.instructions?.instructions ?? ""
                             }
                             name={`instructions:${provider.code}`}
-                            placeholder="Например: используйте этот способ, если не получается оплатить через платежную форму."
+                            placeholder="РќР°РїСЂРёРјРµСЂ: РёСЃРїРѕР»СЊР·СѓР№С‚Рµ СЌС‚РѕС‚ СЃРїРѕСЃРѕР±, РµСЃР»Рё РЅРµ РїРѕР»СѓС‡Р°РµС‚СЃСЏ РѕРїР»Р°С‚РёС‚СЊ С‡РµСЂРµР· РїР»Р°С‚РµР¶РЅСѓСЋ С„РѕСЂРјСѓ."
                             rows={3}
                           />
                         </label>
@@ -1333,7 +1333,7 @@ export default async function CabinetPage({
                           <>
                             <div className="field-grid">
                               <label className="field">
-                                <span>Банк</span>
+                                <span>Р‘Р°РЅРє</span>
                                 <input
                                   defaultValue={
                                     provider.instructions?.bankName ?? ""
@@ -1343,7 +1343,7 @@ export default async function CabinetPage({
                                 />
                               </label>
                               <label className="field">
-                                <span>Получатель</span>
+                                <span>РџРѕР»СѓС‡Р°С‚РµР»СЊ</span>
                                 <input
                                   defaultValue={
                                     provider.instructions?.recipientName ?? ""
@@ -1353,7 +1353,7 @@ export default async function CabinetPage({
                                 />
                               </label>
                               <label className="field">
-                                <span>Карта или счет</span>
+                                <span>РљР°СЂС‚Р° РёР»Рё СЃС‡РµС‚</span>
                                 <input
                                   defaultValue={
                                     provider.instructions?.accountNumber ?? ""
@@ -1365,7 +1365,7 @@ export default async function CabinetPage({
                             </div>
                             <div className="field-grid">
                               <label className="field">
-                                <span>Телефон</span>
+                                <span>РўРµР»РµС„РѕРЅ</span>
                                 <input
                                   defaultValue={
                                     provider.instructions?.phone ?? ""
@@ -1375,7 +1375,7 @@ export default async function CabinetPage({
                                 />
                               </label>
                               <label className="field">
-                                <span>Комментарий к платежу</span>
+                                <span>РљРѕРјРјРµРЅС‚Р°СЂРёР№ Рє РїР»Р°С‚РµР¶Сѓ</span>
                                 <input
                                   defaultValue={
                                     provider.instructions?.paymentComment ?? ""
@@ -1385,14 +1385,14 @@ export default async function CabinetPage({
                                 />
                               </label>
                               <label className="field">
-                                <span>Срок проверки</span>
+                                <span>РЎСЂРѕРє РїСЂРѕРІРµСЂРєРё</span>
                                 <input
                                   defaultValue={
                                     provider.instructions?.verificationPeriod ??
                                     ""
                                   }
                                   name={`verificationPeriod:${provider.code}`}
-                                  placeholder="Например: до 1 рабочего дня"
+                                  placeholder="РќР°РїСЂРёРјРµСЂ: РґРѕ 1 СЂР°Р±РѕС‡РµРіРѕ РґРЅСЏ"
                                   type="text"
                                 />
                               </label>
@@ -1403,13 +1403,13 @@ export default async function CabinetPage({
                     ))}
                   </div>
                   <button className="button button--primary" type="submit">
-                    Сохранить способы оплаты
+                    РЎРѕС…СЂР°РЅРёС‚СЊ СЃРїРѕСЃРѕР±С‹ РѕРїР»Р°С‚С‹
                   </button>
                 </form>
               ) : (
                 <p className="admin-muted">
-                  Администратор пока не разрешил способы оплаты для этого
-                  кабинета.
+                  РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РїРѕРєР° РЅРµ СЂР°Р·СЂРµС€РёР» СЃРїРѕСЃРѕР±С‹ РѕРїР»Р°С‚С‹ РґР»СЏ СЌС‚РѕРіРѕ
+                  РєР°Р±РёРЅРµС‚Р°.
                 </p>
               )}
             </section>
@@ -1419,23 +1419,23 @@ export default async function CabinetPage({
             canManageCabinetPayments &&
             canViewClients && (
               <section className="admin-card admin-card--wide">
-                <h2>Оплаты на проверке</h2>
+                <h2>РћРїР»Р°С‚С‹ РЅР° РїСЂРѕРІРµСЂРєРµ</h2>
                 <p className="admin-muted">
-                  Ручное подтверждение переводит кастомную оплату в статус
-                  «оплачен».
+                  Р СѓС‡РЅРѕРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РїРµСЂРµРІРѕРґРёС‚ РєР°СЃС‚РѕРјРЅСѓСЋ РѕРїР»Р°С‚Сѓ РІ СЃС‚Р°С‚СѓСЃ
+                  В«РѕРїР»Р°С‡РµРЅВ».
                 </p>
                 {awaitingCustomOrders.length > 0 ? (
                   <div className="table-wrap">
                     <table className="admin-table">
                       <thead>
                         <tr>
-                          <th>Заказ</th>
-                          <th>Клиент</th>
-                          <th>Покупка</th>
-                          <th>Сумма</th>
-                          <th>Оплата</th>
-                          <th>Дата</th>
-                          <th>Действие</th>
+                          <th>Р—Р°РєР°Р·</th>
+                          <th>РљР»РёРµРЅС‚</th>
+                          <th>РџРѕРєСѓРїРєР°</th>
+                          <th>РЎСѓРјРјР°</th>
+                          <th>РћРїР»Р°С‚Р°</th>
+                          <th>Р”Р°С‚Р°</th>
+                          <th>Р”РµР№СЃС‚РІРёРµ</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1445,7 +1445,7 @@ export default async function CabinetPage({
                             <td>
                               <strong>{order.customerName}</strong>
                               <br />
-                              {formatContacts(order) || "Контакты не указаны"}
+                              {formatContacts(order) || "РљРѕРЅС‚Р°РєС‚С‹ РЅРµ СѓРєР°Р·Р°РЅС‹"}
                             </td>
                             <td>
                               {order.service.title}
@@ -1482,7 +1482,7 @@ export default async function CabinetPage({
                                   className="button button--small"
                                   type="submit"
                                 >
-                                  Подтвердить оплату
+                                  РџРѕРґС‚РІРµСЂРґРёС‚СЊ РѕРїР»Р°С‚Сѓ
                                 </button>
                               </form>
                             </td>
@@ -1493,7 +1493,7 @@ export default async function CabinetPage({
                   </div>
                 ) : (
                   <p className="admin-muted">
-                    Нет кастомных оплат, ожидающих проверки.
+                    РќРµС‚ РєР°СЃС‚РѕРјРЅС‹С… РѕРїР»Р°С‚, РѕР¶РёРґР°СЋС‰РёС… РїСЂРѕРІРµСЂРєРё.
                   </p>
                 )}
               </section>
@@ -1501,11 +1501,11 @@ export default async function CabinetPage({
 
           {activeSection === "clients" && canViewClients && (
             <section className="admin-card admin-card--wide">
-              <h2>Участники оплаченных заказов</h2>
+              <h2>РЈС‡Р°СЃС‚РЅРёРєРё РѕРїР»Р°С‡РµРЅРЅС‹С… Р·Р°РєР°Р·РѕРІ</h2>
               <form className="admin-form filter-form">
                 <input name="section" type="hidden" value="clients" />
                 <label className="field">
-                  <span>Дата с</span>
+                  <span>Р”Р°С‚Р° СЃ</span>
                   <input
                     defaultValue={participantFilters.dateFrom}
                     name="dateFrom"
@@ -1513,7 +1513,7 @@ export default async function CabinetPage({
                   />
                 </label>
                 <label className="field">
-                  <span>Дата по</span>
+                  <span>Р”Р°С‚Р° РїРѕ</span>
                   <input
                     defaultValue={participantFilters.dateTo}
                     name="dateTo"
@@ -1521,12 +1521,12 @@ export default async function CabinetPage({
                   />
                 </label>
                 <label className="field">
-                  <span>Церемония</span>
+                  <span>Р¦РµСЂРµРјРѕРЅРёСЏ</span>
                   <select
                     defaultValue={participantFilters.serviceId}
                     name="serviceId"
                   >
-                    <option value="">Все церемонии</option>
+                    <option value="">Р’СЃРµ С†РµСЂРµРјРѕРЅРёРё</option>
                     {participantServices.map((service) => (
                       <option key={service.id} value={service.id}>
                         {service.title}
@@ -1535,7 +1535,7 @@ export default async function CabinetPage({
                   </select>
                 </label>
                 <label className="field">
-                  <span>Статус оплаты</span>
+                  <span>РЎС‚Р°С‚СѓСЃ РѕРїР»Р°С‚С‹</span>
                   <select defaultValue={OrderStatus.PAID} disabled>
                     <option value={OrderStatus.PAID}>
                       {formatStatus(OrderStatus.PAID)}
@@ -1543,12 +1543,12 @@ export default async function CabinetPage({
                   </select>
                 </label>
                 <label className="field">
-                  <span>Источник</span>
+                  <span>РСЃС‚РѕС‡РЅРёРє</span>
                   <select
                     defaultValue={participantFilters.sourceDomain}
                     name="sourceDomain"
                   >
-                    <option value="">Все источники</option>
+                    <option value="">Р’СЃРµ РёСЃС‚РѕС‡РЅРёРєРё</option>
                     <option value="starvedas.ru">starvedas.ru</option>
                     <option value="chintamanidhama.ru">
                       chintamanidhama.ru
@@ -1556,12 +1556,12 @@ export default async function CabinetPage({
                   </select>
                 </label>
                 <label className="field">
-                  <span>Реферальная ссылка</span>
+                  <span>Р РµС„РµСЂР°Р»СЊРЅР°СЏ СЃСЃС‹Р»РєР°</span>
                   <select
                     defaultValue={participantFilters.referralSlug}
                     name="referralSlug"
                   >
-                    <option value="">Все ссылки</option>
+                    <option value="">Р’СЃРµ СЃСЃС‹Р»РєРё</option>
                     {referralLinkRows.map((link) => (
                       <option key={link.slug} value={link.slug}>
                         {link.label}
@@ -1571,15 +1571,15 @@ export default async function CabinetPage({
                 </label>
                 <div className="filter-form__actions">
                   <button className="button button--primary" type="submit">
-                    Применить фильтры
+                    РџСЂРёРјРµРЅРёС‚СЊ С„РёР»СЊС‚СЂС‹
                   </button>
                   <Link className="button" href="/cabinet?section=clients">
-                    Сбросить
+                    РЎР±СЂРѕСЃРёС‚СЊ
                   </Link>
                 </div>
               </form>
               <ParticipantsTable
-                emptyText="Участники по выбранным фильтрам не найдены."
+                emptyText="РЈС‡Р°СЃС‚РЅРёРєРё РїРѕ РІС‹Р±СЂР°РЅРЅС‹Рј С„РёР»СЊС‚СЂР°Рј РЅРµ РЅР°Р№РґРµРЅС‹."
                 participants={participants}
               />
             </section>
@@ -1587,15 +1587,15 @@ export default async function CabinetPage({
 
           {activeSection === "clients" && canViewClients && (
             <section className="admin-card admin-card--wide">
-              <h2>Клиентская база и рассылки</h2>
+              <h2>РљР»РёРµРЅС‚СЃРєР°СЏ Р±Р°Р·Р° Рё СЂР°СЃСЃС‹Р»РєРё</h2>
               <p className="admin-muted">
-                Фильтры помогают собрать сегменты клиентов вашего кабинета.
-                Выгрузка содержит только контакты с согласием на рассылки.
+                Р¤РёР»СЊС‚СЂС‹ РїРѕРјРѕРіР°СЋС‚ СЃРѕР±СЂР°С‚СЊ СЃРµРіРјРµРЅС‚С‹ РєР»РёРµРЅС‚РѕРІ РІР°С€РµРіРѕ РєР°Р±РёРЅРµС‚Р°.
+                Р’С‹РіСЂСѓР·РєР° СЃРѕРґРµСЂР¶РёС‚ С‚РѕР»СЊРєРѕ РєРѕРЅС‚Р°РєС‚С‹ СЃ СЃРѕРіР»Р°СЃРёРµРј РЅР° СЂР°СЃСЃС‹Р»РєРё.
               </p>
               <form className="admin-form filter-form">
                 <input name="section" type="hidden" value="clients" />
                 <label className="field">
-                  <span>Дата статуса с</span>
+                  <span>Р”Р°С‚Р° СЃС‚Р°С‚СѓСЃР° СЃ</span>
                   <input
                     defaultValue={clientFilters.dateFrom}
                     name="clientDateFrom"
@@ -1603,7 +1603,7 @@ export default async function CabinetPage({
                   />
                 </label>
                 <label className="field">
-                  <span>Дата статуса по</span>
+                  <span>Р”Р°С‚Р° СЃС‚Р°С‚СѓСЃР° РїРѕ</span>
                   <input
                     defaultValue={clientFilters.dateTo}
                     name="clientDateTo"
@@ -1611,12 +1611,12 @@ export default async function CabinetPage({
                   />
                 </label>
                 <label className="field">
-                  <span>Сегмент</span>
+                  <span>РЎРµРіРјРµРЅС‚</span>
                   <select
                     defaultValue={clientFilters.status ?? ""}
                     name="clientStatus"
                   >
-                    <option value="">Все сегменты</option>
+                    <option value="">Р’СЃРµ СЃРµРіРјРµРЅС‚С‹</option>
                     {clientStatuses.map((status) => (
                       <option key={status} value={status}>
                         {formatStatus(status)}
@@ -1625,23 +1625,23 @@ export default async function CabinetPage({
                   </select>
                 </label>
                 <label className="field">
-                  <span>Рассылка</span>
+                  <span>Р Р°СЃСЃС‹Р»РєР°</span>
                   <select
                     defaultValue={clientFilters.consent}
                     name="clientConsent"
                   >
-                    <option value="">Все</option>
-                    <option value="yes">Есть согласие</option>
-                    <option value="no">Нет согласия</option>
+                    <option value="">Р’СЃРµ</option>
+                    <option value="yes">Р•СЃС‚СЊ СЃРѕРіР»Р°СЃРёРµ</option>
+                    <option value="no">РќРµС‚ СЃРѕРіР»Р°СЃРёСЏ</option>
                   </select>
                 </label>
                 <label className="field">
-                  <span>Церемония</span>
+                  <span>Р¦РµСЂРµРјРѕРЅРёСЏ</span>
                   <select
                     defaultValue={clientFilters.serviceId}
                     name="clientServiceId"
                   >
-                    <option value="">Все церемонии</option>
+                    <option value="">Р’СЃРµ С†РµСЂРµРјРѕРЅРёРё</option>
                     {clientServices.map((service) => (
                       <option key={service.id} value={service.id}>
                         {service.title}
@@ -1650,12 +1650,12 @@ export default async function CabinetPage({
                   </select>
                 </label>
                 <label className="field">
-                  <span>Источник</span>
+                  <span>РСЃС‚РѕС‡РЅРёРє</span>
                   <select
                     defaultValue={clientFilters.sourceDomain}
                     name="clientSourceDomain"
                   >
-                    <option value="">Все источники</option>
+                    <option value="">Р’СЃРµ РёСЃС‚РѕС‡РЅРёРєРё</option>
                     <option value="starvedas.ru">starvedas.ru</option>
                     <option value="chintamanidhama.ru">
                       chintamanidhama.ru
@@ -1663,12 +1663,12 @@ export default async function CabinetPage({
                   </select>
                 </label>
                 <label className="field">
-                  <span>Реферальная ссылка</span>
+                  <span>Р РµС„РµСЂР°Р»СЊРЅР°СЏ СЃСЃС‹Р»РєР°</span>
                   <select
                     defaultValue={clientFilters.referralSlug}
                     name="clientReferralSlug"
                   >
-                    <option value="">Все ссылки</option>
+                    <option value="">Р’СЃРµ СЃСЃС‹Р»РєРё</option>
                     {referralLinkRows.map((link) => (
                       <option key={link.slug} value={link.slug}>
                         {link.label}
@@ -1678,39 +1678,39 @@ export default async function CabinetPage({
                 </label>
                 <div className="filter-form__actions">
                   <button className="button button--primary" type="submit">
-                    Применить фильтры
+                    РџСЂРёРјРµРЅРёС‚СЊ С„РёР»СЊС‚СЂС‹
                   </button>
                   <Link className="button" href="/cabinet?section=clients">
-                    Сбросить
+                    РЎР±СЂРѕСЃРёС‚СЊ
                   </Link>
                 </div>
               </form>
               <ClientsTable
                 clients={clients}
-                emptyText="Клиенты по выбранным сегментам не найдены."
+                emptyText="РљР»РёРµРЅС‚С‹ РїРѕ РІС‹Р±СЂР°РЅРЅС‹Рј СЃРµРіРјРµРЅС‚Р°Рј РЅРµ РЅР°Р№РґРµРЅС‹."
               />
             </section>
           )}
 
           {activeSection === "clients" && (
             <section className="admin-card admin-card--wide">
-              <h2>Клиенты и покупки</h2>
+              <h2>РљР»РёРµРЅС‚С‹ Рё РїРѕРєСѓРїРєРё</h2>
               {!canViewClients ? (
                 <p className="admin-muted">
-                  Просмотр клиентов и покупок отключен администратором.
+                  РџСЂРѕСЃРјРѕС‚СЂ РєР»РёРµРЅС‚РѕРІ Рё РїРѕРєСѓРїРѕРє РѕС‚РєР»СЋС‡РµРЅ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј.
                 </p>
               ) : curator.orders.length > 0 ? (
                 <div className="table-wrap">
                   <table className="admin-table">
                     <thead>
                       <tr>
-                        <th>Заказ</th>
-                        <th>Клиент</th>
-                        <th>Покупка</th>
-                        <th>Сумма</th>
-                        <th>Статус</th>
-                        <th>Контакты</th>
-                        <th>Дата</th>
+                        <th>Р—Р°РєР°Р·</th>
+                        <th>РљР»РёРµРЅС‚</th>
+                        <th>РџРѕРєСѓРїРєР°</th>
+                        <th>РЎСѓРјРјР°</th>
+                        <th>РЎС‚Р°С‚СѓСЃ</th>
+                        <th>РљРѕРЅС‚Р°РєС‚С‹</th>
+                        <th>Р”Р°С‚Р°</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1740,7 +1740,7 @@ export default async function CabinetPage({
                               ? ` / ${formatStatus(order.payment.status)}`
                               : ""}
                           </td>
-                          <td>{formatContacts(order) || "Не указаны"}</td>
+                          <td>{formatContacts(order) || "РќРµ СѓРєР°Р·Р°РЅС‹"}</td>
                           <td>{order.createdAt.toLocaleDateString("ru-RU")}</td>
                         </tr>
                       ))}
@@ -1748,7 +1748,7 @@ export default async function CabinetPage({
                   </table>
                 </div>
               ) : (
-                <p className="admin-muted">Клиентов пока нет.</p>
+                <p className="admin-muted">РљР»РёРµРЅС‚РѕРІ РїРѕРєР° РЅРµС‚.</p>
               )}
             </section>
           )}
