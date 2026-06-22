@@ -3,6 +3,7 @@ import { z } from "zod";
 import { setAuthSession } from "@/server/auth";
 import { prisma } from "@/lib/prisma";
 import {
+  encodeTelegramProfileCookieValue,
   getTelegramBotToken,
   getTelegramDisplayName,
   validateTelegramMiniAppInitData
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
   if (telegramDisplayName) {
     response.cookies.set(
       "curator_telegram_name",
-      telegramDisplayName,
+      encodeTelegramProfileCookieValue(telegramDisplayName),
       cookieOptions
     );
   }
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
   if (telegramData.user.photo_url) {
     response.cookies.set(
       "curator_telegram_photo_url",
-      telegramData.user.photo_url,
+      encodeTelegramProfileCookieValue(telegramData.user.photo_url),
       cookieOptions
     );
   }

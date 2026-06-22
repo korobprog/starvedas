@@ -144,13 +144,13 @@ const copies: Record<Locale, SignupCopy> = {
       incompleteParticipants:
         "Заполните имя и фамилию для каждого участника. Сейчас заполнено: {{count}}.",
       invalidParticipantLines:
-        "Проверьте строки {{lines}}: укажите имя и фамилию без цифр, телефонов и лишних символов.",
+        "Проверьте строки {{lines}}: укажите ровно два слова: имя и фамилию, без цифр, телефонов и лишних символов.",
       invalidPhone: "Введите корректный телефон для выбранной страны.",
       tooManyParticipants: "Можно указать не больше 200 участников."
     },
     placeholders: {
       participants:
-        "Введите участников в одно поле: каждая новая строка — отдельный участник. В каждой строке укажите имя и фамилию. Тариф считается за каждого участника.",
+        "Введите участников в одно поле: каждая новая строка — отдельный участник. В каждой строке укажите только имя и фамилию (2 слова). Тариф считается за каждого участника.",
       telegram: "@username",
       phone: "(777) ...",
       email: "mail@example.com"
@@ -223,13 +223,13 @@ const copies: Record<Locale, SignupCopy> = {
       incompleteParticipants:
         "Fill in first and last name for each participant. Completed: {{count}}.",
       invalidParticipantLines:
-        "Check lines {{lines}}: enter first and last name without numbers, phones, or extra symbols.",
+        "Check lines {{lines}}: enter exactly two words: first and last name, without numbers, phones, or extra symbols.",
       invalidPhone: "Enter a valid phone for the selected country.",
       tooManyParticipants: "You can add no more than 200 participants."
     },
     placeholders: {
       participants:
-        "Enter participants in one field: each new line is a separate participant. Add first and last name on every line. The price is counted for each participant.",
+        "Enter participants in one field: each new line is a separate participant. Add only first and last name on every line (2 words). The price is counted for each participant.",
       telegram: "@username",
       phone: "+{{code}}...",
       email: "mail@example.com"
@@ -302,13 +302,13 @@ const copies: Record<Locale, SignupCopy> = {
       incompleteParticipants:
         "हर प्रतिभागी का नाम और उपनाम भरें. पूरे भरे गए: {{count}}.",
       invalidParticipantLines:
-        "पंक्तियाँ {{lines}} जाँचें: अंक, फोन या अतिरिक्त चिन्हों के बिना नाम और उपनाम लिखें.",
+        "पंक्तियाँ {{lines}} जाँचें: केवल दो शब्द लिखें: नाम और उपनाम, बिना अंक, फोन या अतिरिक्त चिन्हों के.",
       invalidPhone: "चुने गए देश के लिए सही फोन नंबर डालें.",
       tooManyParticipants: "200 से अधिक प्रतिभागी नहीं जोड़े जा सकते."
     },
     placeholders: {
       participants:
-        "सभी प्रतिभागियों को एक ही फ़ील्ड में लिखें: हर नई पंक्ति एक अलग प्रतिभागी है. हर पंक्ति में नाम और उपनाम लिखें. कीमत हर प्रतिभागी के लिए गिनी जाएगी.",
+        "सभी प्रतिभागियों को एक ही फ़ील्ड में लिखें: हर नई पंक्ति एक अलग प्रतिभागी है. हर पंक्ति में केवल नाम और उपनाम (2 शब्द) लिखें. कीमत हर प्रतिभागी के लिए गिनी जाएगी.",
       telegram: "@username",
       phone: "+{{code}}...",
       email: "mail@example.com"

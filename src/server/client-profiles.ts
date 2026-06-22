@@ -1,4 +1,4 @@
-﻿import { ClientFunnelStatus, Prisma } from "@prisma/client";
+import { ClientFunnelStatus, Prisma } from "@prisma/client";
 
 type ClientProfileTx = Prisma.TransactionClient;
 
@@ -131,7 +131,7 @@ export async function upsertClientProfileForFunnel(
   const telegram = normalizeText(input.telegram);
   const telegramId = normalizeText(input.telegramId);
   const name =
-    normalizeText(input.name) ?? input.fallbackName ?? "РљР»РёРµРЅС‚";
+    normalizeText(input.name) ?? input.fallbackName ?? "Клиент";
   const sourceDomain = input.sourceDomain ?? "starvedas.ru";
   const identityWhere = getIdentityWhere({
     email,

@@ -112,3 +112,47 @@ export function getTelegramDisplayName(user: TelegramMiniAppUser) {
 export function getTelegramUsername(user: TelegramMiniAppUser) {
   return user.username ? `@${user.username}` : null;
 }
+
+export function encodeTelegramProfileCookieValue(value: string) {
+  return Buffer.from(value, "utf8").toString("base64url");
+}
+
+function tryDecodeUriComponent(value: string) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function tryRepairLatin1Mojibake(value: string) {
+  if (!/[ÃÂÐÑ]/.test(value)) {
+    return value;
+  }
+
+  const repaired = Buffer.from(value, "latin1").toString("utf8");
+
+  return repaired.includes("�") ? value : repaired;
+}
+
+export function decodeTelegramProfileCookieValue(value: string | undefined) {
+  const normalized = tryDecodeUriComponent((value ?? "").trim());
+
+  if (!normalized) {
+    return "";
+  }
+
+  if (/^[A-Za-z0-9_-]+={0,2}$/.test(normalized)) {
+    try {
+      const decoded = Buffer.from(normalized, "base64url").toString("utf8");
+
+      if (decoded && !decoded.includes("�")) {
+        return decoded;
+      }
+    } catch {
+      // Fall back to the raw cookie value below.
+    }
+  }
+
+  return tryRepairLatin1Mojibake(normalized);
+}

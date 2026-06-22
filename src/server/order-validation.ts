@@ -8,7 +8,7 @@ import {
 import { paymentProviderCodes } from "@/server/payment-providers";
 
 const participantNamePattern =
-  /^[\p{L}\p{M}][\p{L}\p{M}'’`.-]*(?:\s+[\p{L}\p{M}][\p{L}\p{M}'’`.-]*)+$/u;
+  /^[\p{L}\p{M}][\p{L}\p{M}'’`.-]*\s+[\p{L}\p{M}][\p{L}\p{M}'’`.-]*$/u;
 
 const phoneCountrySchema = z
   .string()
@@ -83,7 +83,7 @@ export const createOrderSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
-          "Каждая строка участника должна содержать имя и фамилию без цифр, телефонов и лишних символов",
+          "Каждая строка участника должна содержать ровно два слова: имя и фамилию, без цифр, телефонов и лишних символов",
         path: ["participantsText"]
       });
     }

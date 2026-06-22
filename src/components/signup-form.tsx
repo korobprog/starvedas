@@ -214,7 +214,7 @@ declare global {
 }
 
 const participantNamePattern =
-  /^[\p{L}\p{M}][\p{L}\p{M}'’`.-]*(?:\s+[\p{L}\p{M}][\p{L}\p{M}'’`.-]*)+$/u;
+  /^[\p{L}\p{M}][\p{L}\p{M}'’`.-]*\s+[\p{L}\p{M}][\p{L}\p{M}'’`.-]*$/u;
 
 function normalizeParticipantName(value: string) {
   return value.trim().replace(/\s+/g, " ");
