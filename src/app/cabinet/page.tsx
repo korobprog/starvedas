@@ -771,10 +771,12 @@ export default async function CabinetPage({
     user.role !== UserRole.CURATOR || curator.canViewClients;
   const canOpenProductsSection =
     serviceManagementAccess || user.role === UserRole.CURATOR;
+  const canManageCabinetPayments = user.role !== UserRole.CURATOR;
   const availableCabinetSections: CabinetSection[] = [
     "overview",
     "content",
     ...(canOpenProductsSection ? (["products"] as const) : []),
+    ...(canManageCabinetPayments ? (["payments"] as const) : []),
     ...(canViewClients ? (["clients"] as const) : [])
   ];
   const requestedSection = firstParam(rawSearchParams?.section) as
@@ -1288,7 +1290,7 @@ export default async function CabinetPage({
               )
             ))}
 
-          {activeSection === "payments" && user.role !== UserRole.CURATOR && (
+          {activeSection === "payments" && canManageCabinetPayments && (
             <section className="admin-card admin-card--wide">
               <h2>Способы оплаты и реквизиты</h2>
               <p className="admin-muted">
@@ -1414,7 +1416,7 @@ export default async function CabinetPage({
           )}
 
           {activeSection === "payments" &&
-            user.role !== UserRole.CURATOR &&
+            canManageCabinetPayments &&
             canViewClients && (
               <section className="admin-card admin-card--wide">
                 <h2>Оплаты на проверке</h2>

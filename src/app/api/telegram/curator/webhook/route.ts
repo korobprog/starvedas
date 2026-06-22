@@ -209,7 +209,10 @@ async function postTelegramJson(
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), telegramRequestTimeoutMs);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    telegramRequestTimeoutMs
+  );
 
   try {
     const response = await fetch(url, {
@@ -304,7 +307,10 @@ function getPrimaryReferralSlug(curator: {
   );
 }
 
-function buildMenuKeyboard(request: Request, mode: "url" | "web_app" = "web_app") {
+function buildMenuKeyboard(
+  request: Request,
+  mode: "url" | "web_app" = "web_app"
+) {
   const clientsUrl = buildCuratorMiniAppUrl(
     request,
     "/cabinet?section=clients"
@@ -329,11 +335,7 @@ function buildMenuKeyboard(request: Request, mode: "url" | "web_app" = "web_app"
   };
 }
 
-async function sendMenuMessage(
-  request: Request,
-  chatId: number,
-  text: string
-) {
+async function sendMenuMessage(request: Request, chatId: number, text: string) {
   try {
     await sendMessage(chatId, text, buildMenuKeyboard(request));
   } catch (error) {
@@ -490,11 +492,13 @@ async function handleTelegramUpdate(request: Request, update: TelegramUpdate) {
 
     if (message?.from && message.chat) {
       const text = message.text?.trim().toLowerCase() ?? "";
-      const command = text.startsWith("/stats")
-        ? "stats"
-        : text.startsWith("/ref")
-          ? "referral"
-          : undefined;
+      const command = text.startsWith("/start")
+        ? "menu"
+        : text.startsWith("/stats")
+          ? "stats"
+          : text.startsWith("/ref")
+            ? "referral"
+            : undefined;
 
       await handleAuthorizedCuratorMessage(
         request,
@@ -524,7 +528,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
-  void handleTelegramUpdate(request, update);
+  await handleTelegramUpdate(request, update);
 
   return NextResponse.json({ ok: true });
 }
