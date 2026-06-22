@@ -92,7 +92,7 @@ function parseHttpStatus(rawResponse) {
   const status = Number(match[1]);
 
   return {
-    body: body.slice(0, 1000),
+    body,
     ok: status >= 200 && status < 300,
     status,
     statusText: match[2] || ""
@@ -202,7 +202,7 @@ async function postJsonViaTelegramIp(targetUrl, payload, ipAddress) {
           const status = response.statusCode ?? 0;
 
           resolve({
-            body: Buffer.concat(chunks).toString("utf8").slice(0, 1000),
+            body: Buffer.concat(chunks).toString("utf8"),
             ok: status >= 200 && status < 300,
             status,
             statusText: response.statusMessage ?? ""
@@ -252,7 +252,7 @@ async function postTelegramJson(method, payload = {}) {
     const body = await response.text().catch(() => "");
 
     return {
-      body: body.slice(0, 1000),
+      body,
       ok: response.ok,
       status: response.status,
       statusText: response.statusText
