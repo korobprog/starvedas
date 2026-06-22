@@ -407,13 +407,16 @@ function buildMenuKeyboard(
 
 async function sendMenuMessage(request: Request, chatId: number, text: string) {
   try {
+    console.log("Curator Telegram sending menu", { chatId });
     await sendMessage(chatId, text, buildMenuKeyboard(request));
+    console.log("Curator Telegram menu sent", { chatId, mode: "web_app" });
   } catch (error) {
     console.error(
       "Curator Telegram web_app menu failed, retrying with url buttons",
       error
     );
     await sendMessage(chatId, text, buildMenuKeyboard(request, "url"));
+    console.log("Curator Telegram menu sent", { chatId, mode: "url" });
   }
 }
 
@@ -570,6 +573,13 @@ async function handleTelegramUpdate(request: Request, update: TelegramUpdate) {
             ? "referral"
             : undefined;
 
+      console.log("Curator Telegram message received", {
+        chatId: message.chat.id,
+        command,
+        fromId: message.from.id,
+        text
+      });
+
       await handleAuthorizedCuratorMessage(
         request,
         message.chat.id,
@@ -587,6 +597,7 @@ export async function POST(request: Request) {
   const requestSecret = request.headers.get("x-telegram-bot-api-secret-token");
 
   if (configuredSecret && requestSecret !== configuredSecret) {
+    console.error("Curator Telegram webhook rejected: invalid secret");
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
