@@ -36,4 +36,4 @@ USER nextjs
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && (node scripts/curator-bot-poller.mjs &) && node server.js"]
+CMD ["node", "scripts/start-production.mjs"]
