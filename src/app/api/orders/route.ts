@@ -30,6 +30,7 @@ import { getCuratorForReferral } from "@/server/referrals";
 import { shouldHideAdminSupportButtonsOnSourceDomain } from "@/server/organization-settings";
 import { getServiceForOrder } from "@/server/services";
 import { getSourceDomainFromHeaders } from "@/server/source-domain";
+import { saveClientParticipants } from "@/server/saved-participants";
 import { sendOrderCreatedTelegramNotification } from "@/server/telegram-notifications";
 
 function createProviderPaymentUrl({
@@ -350,6 +351,8 @@ export async function POST(request: Request) {
         telegram: customerTelegram,
         telegramId: currentClient?.telegramId
       });
+
+      await saveClientParticipants(tx, client.id, names);
 
       return tx.order.create({
         data: {

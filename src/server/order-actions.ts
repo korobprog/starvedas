@@ -18,6 +18,26 @@ const orderIdSchema = z.object({
   orderId: z.string().trim().min(1)
 });
 
+const paymentReceiptSchema = z.object({
+  orderId: z.string().trim().min(1),
+  receiptLabel: z.string().trim().max(120).optional(),
+  receiptUrl: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .refine(
+      (value) =>
+        !value ||
+        value.startsWith("/") ||
+        value.startsWith("https://") ||
+        value.startsWith("http://"),
+      {
+        message: "Укажите ссылку на чек или путь к файлу"
+      }
+    )
+});
+
 const participantUpdateSchema = z.object({
   fullName: z.string().trim().min(2).max(240),
   participantId: z.string().trim().min(1)
@@ -27,6 +47,65 @@ function revalidateOrderWorkspaces() {
   revalidatePath("/admin/participants");
   revalidatePath("/admin/clients");
   revalidatePath("/cabinet");
+}
+
+export async function savePaymentReceiptAction(formData: FormData) {
+  const user = await requireUser(
+    [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.CURATOR],
+    "/cabinet"
+  );
+  const parsed = paymentReceiptSchema.safeParse({
+    orderId: formData.get("orderId"),
+    receiptLabel: formData.get("receiptLabel") || undefined,
+    receiptUrl: formData.get("receiptUrl") || undefined
+  });
+
+  if (!parsed.success) {
+    throw new Error(
+      parsed.error.issues[0]?.message ?? "Некорректные данные чека"
+    );
+  }
+
+  const order = await prisma.order.findUnique({
+    where: {
+      id: parsed.data.orderId
+    },
+    select: {
+      curatorId: true,
+      id: true,
+      payment: {
+        select: {
+          id: true
+        }
+      },
+      publicToken: true
+    }
+  });
+
+  if (!order?.payment) {
+    throw new Error("Заказ или платёж не найден");
+  }
+
+  if (user.role === UserRole.CURATOR && order.curatorId !== user.curator?.id) {
+    throw new Error("Нет доступа к заказу");
+  }
+
+  const receiptUrl = parsed.data.receiptUrl?.trim() || null;
+  const receiptLabel = parsed.data.receiptLabel?.trim() || null;
+
+  await prisma.payment.update({
+    where: {
+      id: order.payment.id
+    },
+    data: {
+      receiptLabel,
+      receiptUploadedAt: receiptUrl ? new Date() : null,
+      receiptUrl
+    }
+  });
+
+  revalidateOrderWorkspaces();
+  revalidatePath(`/client/orders/${order.publicToken}`);
 }
 
 export async function confirmCustomPaymentAction(formData: FormData) {

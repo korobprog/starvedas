@@ -3,6 +3,7 @@ import { TelegramMiniAppAutoLogin } from "@/components/telegram-mini-app-auto-lo
 import { formatMoney } from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
 import { formatStatus } from "@/lib/status-labels";
+import { canClientEditOrderStatus } from "@/server/client-order-permissions";
 import { getCurrentClientProfile } from "@/server/client-auth";
 
 export const dynamic = "force-dynamic";
@@ -59,10 +60,11 @@ export default async function ClientCabinetPage() {
     );
   }
 
-  const orders = await prisma.order.findMany({
-    orderBy: { createdAt: "desc" },
-    where: { clientId: client.id },
-    select: {
+  const [orders, savedParticipants] = await Promise.all([
+    prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+      where: { clientId: client.id },
+      select: {
       amountRub: true,
       createdAt: true,
       currency: true,
@@ -100,9 +102,28 @@ export default async function ClientCabinetPage() {
           paymentUrl: true,
           status: true
         }
+      },
+      statusHistory: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          createdAt: true,
+          note: true,
+          toStatus: true
+        },
+        take: 1
       }
-    }
-  });
+      }
+    }),
+    prisma.savedParticipant.findMany({
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+      select: {
+        fullName: true,
+        id: true
+      },
+      take: 30,
+      where: { clientId: client.id }
+    })
+  ]);
 
   return (
     <main className="page-shell">
@@ -117,24 +138,117 @@ export default async function ClientCabinetPage() {
           </p>
         </div>
 
-        <div className="telegram-auth-card">
-          <strong>{client.telegram ?? "Telegram подключён"}</strong>
-          <p>
-            Контакты:{" "}
-            {[client.phone, client.email].filter(Boolean).join(", ") ||
-              "можно добавить при следующей записи"}
-          </p>
-          {client.curator && <p>Куратор: {client.curator.name}</p>}
+        <div className="client-dashboard-grid">
+          <div className="telegram-auth-card">
+            <strong>{client.telegram ?? "Профиль клиента"}</strong>
+            <p>
+              Контакты:{" "}
+              {[client.phone, client.email].filter(Boolean).join(", ") ||
+                "можно добавить в профиле"}
+            </p>
+            <Link className="button" href="/client/profile">
+              Редактировать профиль
+            </Link>
+          </div>
+
+          <div className="telegram-auth-card">
+            <strong>Мой куратор</strong>
+            {client.curator ? (
+              <>
+                <p>{client.curator.name}</p>
+                {client.curator.supportEnabled && client.curator.supportUrl && (
+                  <a
+                    className="button"
+                    href={client.curator.supportUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {client.curator.supportButtonLabel || "Связаться"}
+                  </a>
+                )}
+              </>
+            ) : (
+              <p>Куратор появится после первой записи.</p>
+            )}
+          </div>
         </div>
 
         <div className="form-actions">
           <Link className="button button--primary" href="/#signup">
             Купить новый абонемент
           </Link>
+          <Link className="button" href="/client/profile">
+            Профиль
+          </Link>
           <Link className="button" href="/client/logout">
             Выйти
           </Link>
         </div>
+      </section>
+
+      <section className="content-section content-section--narrow">
+        <div className="section-heading">
+          <h2>Уведомления</h2>
+          <p>Последние изменения по вашим заказам.</p>
+        </div>
+        {orders.some((order) => order.statusHistory.length > 0) ? (
+          <div className="client-order-list">
+            {orders
+              .filter((order) => order.statusHistory.length > 0)
+              .slice(0, 3)
+              .map((order) => {
+                const item = order.statusHistory[0];
+
+                return (
+                  <article
+                    className="telegram-auth-card"
+                    key={order.orderNumber}
+                  >
+                    <strong>
+                      Заказ №{order.orderNumber}: {formatStatus(item.toStatus)}
+                    </strong>
+                    <p>{formatDate(item.createdAt)}</p>
+                    {item.note && <p>{item.note}</p>}
+                    <Link
+                      className="button"
+                      href={`/client/orders/${order.publicToken}`}
+                    >
+                      Открыть покупку
+                    </Link>
+                  </article>
+                );
+              })}
+          </div>
+        ) : (
+          <div className="telegram-auth-card">
+            <strong>Пока нет уведомлений</strong>
+            <p>Когда статус заказа изменится, сообщение появится здесь.</p>
+          </div>
+        )}
+      </section>
+
+
+      <section className="content-section content-section--narrow">
+        <div className="section-heading">
+          <h2>Сохранённые участники</h2>
+          <p>
+            Эти имена можно быстро добавить в новую заявку на шаге «Участники».
+          </p>
+        </div>
+        {savedParticipants.length > 0 ? (
+          <div className="saved-participants-list">
+            {savedParticipants.map((participant) => (
+              <span className="badge badge--muted" key={participant.id}>
+                {participant.fullName}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="telegram-auth-card">
+            <strong>Список пока пуст</strong>
+            <p>Участники сохранятся после первой заявки.</p>
+          </div>
+        )}
       </section>
 
       <section className="content-section content-section--narrow">
@@ -195,10 +309,21 @@ export default async function ClientCabinetPage() {
                   <div className="form-actions">
                     <Link
                       className="button button--primary"
-                      href={buildRepeatHref(order)}
+                      href={`/client/orders/${order.publicToken}`}
                     >
+                      Подробнее
+                    </Link>
+                    <Link className="button" href={buildRepeatHref(order)}>
                       Повторить абонемент
                     </Link>
+                    {canClientEditOrderStatus(order) && (
+                      <Link
+                        className="button"
+                        href={`/client/orders/${order.publicToken}/edit`}
+                      >
+                        Редактировать
+                      </Link>
+                    )}
                     {paymentUrl && order.status !== "PAID" && (
                       <a className="button" href={paymentUrl}>
                         Перейти к оплате

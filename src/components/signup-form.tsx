@@ -57,6 +57,11 @@ type PaymentProviderOption = {
   name: string;
 };
 
+type SavedParticipantOption = {
+  fullName: string;
+  id: string;
+};
+
 function CeremonyIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
@@ -368,6 +373,9 @@ export function SignupForm({
     paymentProviders[0]?.code ?? "prodamus"
   );
   const [participantsInput, setParticipantsInput] = useState("");
+  const [savedParticipants, setSavedParticipants] = useState<
+    SavedParticipantOption[]
+  >([]);
   const [customerName, setCustomerName] = useState("");
   const [customerNameTouched, setCustomerNameTouched] = useState(false);
   const [customerTelegram, setCustomerTelegram] = useState("");
@@ -485,6 +493,12 @@ export function SignupForm({
         ? copy.actions.creating
         : copy.actions.pay
       : copy.actions.continue;
+  const clientRegisterHref = referralSlug
+    ? `/client/register?ref=${encodeURIComponent(referralSlug)}`
+    : "/client/register";
+  const clientLoginHref = "/login?next=%2Fclient";
+  const isClientCabinetActive =
+    telegramAuthState.status === "authenticated" || savedParticipants.length > 0;
 
   useEffect(() => {
     const requestedServiceSlug = new URLSearchParams(
@@ -506,6 +520,33 @@ export function SignupForm({
 
     return () => window.clearTimeout(timeoutId);
   }, [services]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetch("/api/client/saved-participants")
+      .then(async (response) => {
+        const result = (await response.json().catch(() => ({}))) as
+          | { participants?: SavedParticipantOption[] }
+          | { message?: string };
+
+        if (!response.ok || !("participants" in result)) {
+          return [];
+        }
+
+        return result.participants ?? [];
+      })
+      .then((participants) => {
+        if (!cancelled) {
+          setSavedParticipants(participants);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -743,6 +784,21 @@ export function SignupForm({
     });
   }
 
+  function addSavedParticipant(fullName: string) {
+    setParticipantsInput((current) => {
+      const names = getParticipantNamesFromText(current);
+      const exists = names.some(
+        (name) => name.toLocaleLowerCase("ru") === fullName.toLocaleLowerCase("ru")
+      );
+
+      if (exists) {
+        return current;
+      }
+
+      return [...names, fullName].join("\n");
+    });
+  }
+
   function selectService(slug: string) {
     setServiceSlug(slug);
     setSelectedServiceOptionIds([]);
@@ -925,6 +981,24 @@ export function SignupForm({
             Открыть личный кабинет
           </a>
         )}
+        {telegramAuthState.status !== "authenticated" && (
+          <div className="registration-nudge registration-nudge--success">
+            <strong>Активируйте личный кабинет</strong>
+            <p>
+              Зарегистрируйтесь с тем же email, телефоном или Telegram — заявка
+              привяжется к профилю, а участники сохранятся для следующих
+              записей.
+            </p>
+            <div className="registration-nudge__actions">
+              <a className="button button--small" href={clientRegisterHref}>
+                Активировать личный кабинет
+              </a>
+              <a className="button button--small" href={clientLoginHref}>
+                Уже есть кабинет
+              </a>
+            </div>
+          </div>
+        )}
         <SupportCta
           curatorName={submitState.curatorName}
           note="Если нужна помощь с оплатой или участниками, напишите куратору."
@@ -968,6 +1042,21 @@ export function SignupForm({
           </li>
         ))}
       </ol>
+
+      <div className="signup-auth-links" aria-label="Личный кабинет клиента">
+        {isClientCabinetActive ? (
+          <>
+            <span>Личный кабинет подключён</span>
+            <a href="/client">Открыть кабинет</a>
+          </>
+        ) : (
+          <>
+            <span>Уже записывались?</span>
+            <a href={clientLoginHref}>Войти</a>
+            <a href={clientRegisterHref}>Создать кабинет</a>
+          </>
+        )}
+      </div>
 
       {step === 0 && (
         <fieldset className="form-step">
@@ -1039,6 +1128,53 @@ export function SignupForm({
         <fieldset className="form-step">
           <legend>{copy.legend.participants}</legend>
           <p className="form-note">{copy.placeholders.participants}</p>
+          {!isClientCabinetActive && (
+            <div className="registration-nudge registration-nudge--soft">
+              <strong>Сохраните участников для следующих записей</strong>
+              <p>
+                В личном кабинете можно быстро подставлять имена из прошлых
+                заказов и не вводить список заново.
+              </p>
+              <div className="registration-nudge__actions">
+                <a className="button button--small" href={clientLoginHref}>
+                  Войти
+                </a>
+                <a className="button button--small" href={clientRegisterHref}>
+                  Создать кабинет
+                </a>
+              </div>
+            </div>
+          )}
+          {savedParticipants.length > 0 && (
+            <div className="saved-participants-panel">
+              <strong>Сохранённые участники</strong>
+              <p className="form-note">
+                Нажмите на имя, чтобы быстро добавить участника из прошлых заказов.
+              </p>
+              <div className="saved-participants-list">
+                {savedParticipants.map((participant) => {
+                  const alreadyAdded = participantFullNames.some(
+                    (name) =>
+                      name.toLocaleLowerCase("ru") ===
+                      participant.fullName.toLocaleLowerCase("ru")
+                  );
+
+                  return (
+                    <button
+                      className="button button--small"
+                      disabled={alreadyAdded}
+                      key={participant.id}
+                      onClick={() => addSavedParticipant(participant.fullName)}
+                      type="button"
+                    >
+                      {alreadyAdded ? "Добавлен: " : "+ "}
+                      {participant.fullName}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <label className="field">
             <span>{copy.fields.participantList}</span>
             <textarea
@@ -1106,6 +1242,23 @@ export function SignupForm({
               </p>
             )}
           </div>
+          {!isClientCabinetActive && (
+            <div className="registration-nudge">
+              <strong>Можно сохранить заявку в личном кабинете</strong>
+              <p>
+                Создайте кабинет сейчас или после оформления: там будут статус
+                записи, оплата, участники и связь с куратором.
+              </p>
+              <div className="registration-nudge__actions">
+                <a className="button button--small" href={clientRegisterHref}>
+                  Создать кабинет
+                </a>
+                <a className="button button--small" href={clientLoginHref}>
+                  Войти, если уже записывались
+                </a>
+              </div>
+            </div>
+          )}
           {repeatMessage && <p className="form-note">{repeatMessage}</p>}
           <label className="field">
             <span>{copy.fields.customerName}</span>
@@ -1274,6 +1427,16 @@ export function SignupForm({
               <dd>{formatMoney(estimatedAmount, selectedService.currency)}</dd>
             </div>
           </dl>
+          {!isClientCabinetActive && (
+            <div className="registration-nudge registration-nudge--review">
+              <strong>Хотите сохранить эту запись?</strong>
+              <p>
+                После оформления можно активировать личный кабинет с теми же
+                контактами и видеть статус, оплату и список участников в одном
+                месте.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

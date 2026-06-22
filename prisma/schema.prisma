@@ -294,8 +294,9 @@ model ClientProfile {
 
   curator Curator?      @relation(fields: [curatorId], references: [id], onDelete: SetNull)
   user    User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  events  ClientEvent[]
-  orders  Order[]
+  events            ClientEvent[]
+  orders            Order[]
+  savedParticipants SavedParticipant[]
 
   @@index([telegram])
   @@index([phone])
@@ -305,6 +306,19 @@ model ClientProfile {
   @@index([consentMailings])
   @@index([curatorId])
   @@index([updatedAt])
+}
+
+model SavedParticipant {
+  id        String   @id @default(cuid())
+  fullName  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clientId String
+  client   ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, fullName])
+  @@index([clientId])
 }
 
 model ClientEvent {
@@ -466,6 +480,9 @@ model Payment {
   status            PaymentStatus @default(PENDING)
   providerPaymentId String?
   paymentUrl        String?
+  receiptUrl        String?
+  receiptLabel      String?
+  receiptUploadedAt DateTime?
   rawPayload        Json?
   paidAt            DateTime?
   createdAt         DateTime      @default(now())

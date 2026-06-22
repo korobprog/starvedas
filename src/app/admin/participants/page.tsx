@@ -3,7 +3,10 @@ import Link from "next/link";
 import { ParticipantsTable } from "@/components/participants-table";
 import { formatStatus } from "@/lib/status-labels";
 import { prisma } from "@/lib/prisma";
-import { confirmCustomPaymentAction } from "@/server/order-actions";
+import {
+  confirmCustomPaymentAction,
+  savePaymentReceiptAction
+} from "@/server/order-actions";
 import { customPaymentProviderCodes } from "@/server/payment-providers";
 
 export const dynamic = "force-dynamic";
@@ -204,6 +207,8 @@ export default async function AdminParticipantsPage({
         payment: {
           select: {
             provider: true,
+            receiptLabel: true,
+            receiptUrl: true,
             status: true
           }
         },
@@ -255,6 +260,7 @@ export default async function AdminParticipantsPage({
                   <th>Сумма</th>
                   <th>Оплата</th>
                   <th>Дата</th>
+                  <th>Чек</th>
                   <th>Действие</th>
                 </tr>
               </thead>
@@ -288,6 +294,33 @@ export default async function AdminParticipantsPage({
                         : formatStatus(order.status)}
                     </td>
                     <td>{order.createdAt.toLocaleDateString("ru-RU")}</td>
+                    <td>
+                      <form action={savePaymentReceiptAction} className="receipt-form">
+                        <input name="orderId" type="hidden" value={order.id} />
+                        <input
+                          className="table-input"
+                          defaultValue={order.payment?.receiptUrl ?? ""}
+                          name="receiptUrl"
+                          placeholder="https://... или /uploads/..."
+                          type="text"
+                        />
+                        <input
+                          className="table-input"
+                          defaultValue={order.payment?.receiptLabel ?? ""}
+                          name="receiptLabel"
+                          placeholder="Название"
+                          type="text"
+                        />
+                        <button className="button button--small" type="submit">
+                          Сохранить чек
+                        </button>
+                        {order.payment?.receiptUrl && (
+                          <a href={order.payment.receiptUrl} rel="noreferrer" target="_blank">
+                            Открыть чек
+                          </a>
+                        )}
+                      </form>
+                    </td>
                     <td>
                       <form action={confirmCustomPaymentAction}>
                         <input name="orderId" type="hidden" value={order.id} />

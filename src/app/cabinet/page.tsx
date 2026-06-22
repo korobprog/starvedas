@@ -27,7 +27,10 @@ import {
   updateCabinetReferralLinkAction
 } from "@/server/curator-actions";
 import { saveCabinetPaymentSettings } from "@/server/curator-payment-actions";
-import { confirmCustomPaymentAction } from "@/server/order-actions";
+import {
+  confirmCustomPaymentAction,
+  savePaymentReceiptAction
+} from "@/server/order-actions";
 import { getCuratorParticipantLists } from "@/server/participant-lists";
 import {
   customPaymentProviderCodes,
@@ -102,6 +105,8 @@ const cabinetOrderSelect = Prisma.validator<Prisma.OrderSelect>()({
   payment: {
     select: {
       provider: true,
+      receiptLabel: true,
+      receiptUrl: true,
       status: true
     }
   },
@@ -575,6 +580,8 @@ async function getAwaitingCustomOrders(
       payment: {
         select: {
           provider: true,
+          receiptLabel: true,
+          receiptUrl: true,
           status: true
         }
       },
@@ -1438,6 +1445,7 @@ export default async function CabinetPage({
                           <th>Сумма</th>
                           <th>Оплата</th>
                           <th>Дата</th>
+                          <th>Чек</th>
                           <th>Действие</th>
                         </tr>
                       </thead>
@@ -1473,6 +1481,33 @@ export default async function CabinetPage({
                             </td>
                             <td>
                               {order.createdAt.toLocaleDateString("ru-RU")}
+                            </td>
+                            <td>
+                              <form action={savePaymentReceiptAction} className="receipt-form">
+                                <input name="orderId" type="hidden" value={order.id} />
+                                <input
+                                  className="table-input"
+                                  defaultValue={order.payment?.receiptUrl ?? ""}
+                                  name="receiptUrl"
+                                  placeholder="https://... или /uploads/..."
+                                  type="text"
+                                />
+                                <input
+                                  className="table-input"
+                                  defaultValue={order.payment?.receiptLabel ?? ""}
+                                  name="receiptLabel"
+                                  placeholder="Название"
+                                  type="text"
+                                />
+                                <button className="button button--small" type="submit">
+                                  Сохранить чек
+                                </button>
+                                {order.payment?.receiptUrl && (
+                                  <a href={order.payment.receiptUrl} rel="noreferrer" target="_blank">
+                                    Открыть чек
+                                  </a>
+                                )}
+                              </form>
                             </td>
                             <td>
                               <form action={confirmCustomPaymentAction}>
@@ -1728,6 +1763,7 @@ export default async function CabinetPage({
                         <th>Сумма</th>
                         <th>Статус</th>
                         <th>Контакты</th>
+                        <th>Чек</th>
                         <th>Дата</th>
                       </tr>
                     </thead>
@@ -1759,6 +1795,33 @@ export default async function CabinetPage({
                               : ""}
                           </td>
                           <td>{formatContacts(order) || "Не указаны"}</td>
+                          <td>
+                            <form action={savePaymentReceiptAction} className="receipt-form">
+                              <input name="orderId" type="hidden" value={order.id} />
+                              <input
+                                className="table-input"
+                                defaultValue={order.payment?.receiptUrl ?? ""}
+                                name="receiptUrl"
+                                placeholder="https://... или /uploads/..."
+                                type="text"
+                              />
+                              <input
+                                className="table-input"
+                                defaultValue={order.payment?.receiptLabel ?? ""}
+                                name="receiptLabel"
+                                placeholder="Название"
+                                type="text"
+                              />
+                              <button className="button button--small" type="submit">
+                                Сохранить
+                              </button>
+                              {order.payment?.receiptUrl && (
+                                <a href={order.payment.receiptUrl} rel="noreferrer" target="_blank">
+                                  Открыть
+                                </a>
+                              )}
+                            </form>
+                          </td>
                           <td>{order.createdAt.toLocaleDateString("ru-RU")}</td>
                         </tr>
                       ))}
