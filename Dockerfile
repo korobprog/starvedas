@@ -29,10 +29,11 @@ COPY --from=builder --chown=nextjs:nextjs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nextjs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nextjs /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=nextjs:nextjs /app/src/server/password.ts ./src/server/password.ts
+COPY --from=builder --chown=nextjs:nextjs /app/scripts ./scripts
 COPY --from=builder --chown=nextjs:nextjs /app/node_modules ./node_modules
 
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && node server.js"]
+CMD ["sh", "-c", "node scripts/register-curator-webhook.mjs && npx prisma migrate deploy && npx prisma db seed && node server.js"]

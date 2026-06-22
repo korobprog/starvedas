@@ -1,4 +1,5 @@
 import http from "node:http";
+import https from "node:https";
 import tls from "node:tls";
 import { OrderStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
@@ -46,6 +47,7 @@ type TelegramResponse = {
 };
 
 const telegramRequestTimeoutMs = 15000;
+const defaultTelegramApiIps = ["149.154.167.220"];
 
 function getPublicOrigin(request: Request) {
   const configuredOrigin =
@@ -95,6 +97,14 @@ function getTelegramProxyUrl() {
     process.env.HTTPS_PROXY?.trim() ||
     process.env.HTTP_PROXY?.trim() ||
     null
+  );
+}
+
+function getTelegramApiIps() {
+  return (
+    process.env.TELEGRAM_API_IPS?.split(",")
+      .map((ip) => ip.trim())
+      .filter(Boolean) ?? defaultTelegramApiIps
   );
 }
 
@@ -198,6 +208,54 @@ async function postJsonViaHttpProxy(
   });
 }
 
+async function postJsonViaTelegramIp(
+  targetUrl: string,
+  payload: Record<string, unknown>,
+  ipAddress: string
+): Promise<TelegramResponse> {
+  const target = new URL(targetUrl);
+  const body = JSON.stringify(payload);
+
+  return new Promise((resolve, reject) => {
+    const request = https.request(
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Host: target.hostname
+        },
+        hostname: ipAddress,
+        method: "POST",
+        path: `${target.pathname}${target.search}`,
+        port: 443,
+        servername: target.hostname,
+        timeout: telegramRequestTimeoutMs
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+
+        response.on("data", (chunk: Buffer) => chunks.push(chunk));
+        response.once("end", () => {
+          const status = response.statusCode ?? 0;
+
+          resolve({
+            body: Buffer.concat(chunks).toString("utf8").slice(0, 500),
+            ok: status >= 200 && status < 300,
+            status,
+            statusText: response.statusMessage ?? ""
+          });
+        });
+      }
+    );
+
+    request.once("timeout", () => {
+      request.destroy(new Error("Telegram pinned-IP request timed out"));
+    });
+    request.once("error", reject);
+    request.write(body);
+    request.end();
+  });
+}
+
 async function postTelegramJson(
   url: string,
   payload: Record<string, unknown>
@@ -231,6 +289,18 @@ async function postTelegramJson(
       status: response.status,
       statusText: response.statusText
     };
+  } catch (error) {
+    let lastError = error;
+
+    for (const ipAddress of getTelegramApiIps()) {
+      try {
+        return await postJsonViaTelegramIp(url, payload, ipAddress);
+      } catch (pinnedIpError) {
+        lastError = pinnedIpError;
+      }
+    }
+
+    throw lastError;
   } finally {
     clearTimeout(timeout);
   }
