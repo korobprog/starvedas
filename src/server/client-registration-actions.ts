@@ -15,6 +15,7 @@ import {
 import { setAuthSession } from "@/server/auth";
 import { setClientSession } from "@/server/client-auth";
 import { recordClientFunnelEvent } from "@/server/client-profiles";
+import { sendClientRegistrationEmail } from "@/server/email/client-emails";
 import { hashPassword } from "@/server/password";
 import { getCuratorForReferral, referralCookieName } from "@/server/referrals";
 import { getSourceDomainFromHeaders } from "@/server/source-domain";
@@ -243,6 +244,16 @@ export async function registerClientAction(
 
     await setAuthSession(userId);
     await setClientSession(clientId);
+
+    try {
+      await sendClientRegistrationEmail({
+        email,
+        name: parsed.data.name,
+        sourceDomain
+      });
+    } catch {
+      console.error("Client registration email failed");
+    }
   } catch (error) {
     if (
       error instanceof Error &&

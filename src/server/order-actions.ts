@@ -12,6 +12,10 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/server/auth";
 import { markOrderClientBought } from "@/server/client-profiles";
+import {
+  sendPaymentReceiptEmail,
+  sendPaymentSucceededEmail
+} from "@/server/email/order-emails";
 import { isCustomPaymentProviderCode } from "@/server/payment-providers";
 
 const orderIdSchema = z.object({
@@ -106,6 +110,14 @@ export async function savePaymentReceiptAction(formData: FormData) {
 
   revalidateOrderWorkspaces();
   revalidatePath(`/client/orders/${order.publicToken}`);
+
+  if (receiptUrl) {
+    try {
+      await sendPaymentReceiptEmail(order.id);
+    } catch {
+      console.error("Payment receipt email failed");
+    }
+  }
 }
 
 export async function confirmCustomPaymentAction(formData: FormData) {
@@ -190,6 +202,12 @@ export async function confirmCustomPaymentAction(formData: FormData) {
       });
     }
   });
+
+  try {
+    await sendPaymentSucceededEmail(order.id);
+  } catch {
+    console.error("Manual payment confirmation email failed");
+  }
 
   revalidateOrderWorkspaces();
 }

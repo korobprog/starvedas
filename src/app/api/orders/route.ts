@@ -31,6 +31,7 @@ import { shouldHideAdminSupportButtonsOnSourceDomain } from "@/server/organizati
 import { getServiceForOrder } from "@/server/services";
 import { getSourceDomainFromHeaders } from "@/server/source-domain";
 import { saveClientParticipants } from "@/server/saved-participants";
+import { sendOrderCreatedEmail } from "@/server/email/order-emails";
 import { sendOrderCreatedTelegramNotification } from "@/server/telegram-notifications";
 
 function createProviderPaymentUrl({
@@ -513,6 +514,12 @@ export async function POST(request: Request) {
       });
     } catch {
       console.error("Telegram order notification failed");
+    }
+
+    try {
+      await sendOrderCreatedEmail(order.id);
+    } catch {
+      console.error("Order created email failed");
     }
 
     return NextResponse.json({

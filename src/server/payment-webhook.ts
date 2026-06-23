@@ -2,6 +2,7 @@ import { LeadStatus, OrderStatus, PaymentStatus, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { markOrderClientBought } from "@/server/client-profiles";
+import { sendPaymentStatusEmail } from "@/server/email/order-emails";
 import { type PayformData, verifyPayformSignature } from "@/server/payform";
 import { sendPaymentSucceededTelegramNotification } from "@/server/telegram-notifications";
 
@@ -45,6 +46,24 @@ function getOrderNumber(payload: Record<string, unknown>) {
   const orderNumber = Number(value);
 
   return Number.isInteger(orderNumber) ? orderNumber : undefined;
+}
+
+function getSafeReceiptUrl(payload: Record<string, unknown>) {
+  const value = getString(payload, [
+    "receipt_url",
+    "receiptUrl",
+    "check_url",
+    "fiscal_receipt_url",
+    "ofd_url",
+    "receipt",
+    "receipt_link"
+  ]);
+
+  if (!value?.startsWith("https://") && !value?.startsWith("http://")) {
+    return undefined;
+  }
+
+  return value;
 }
 
 function getPaymentStatus(payload: Record<string, unknown>) {
@@ -180,6 +199,11 @@ export async function handlePaymentWebhook({
     "transaction_id",
     "id"
   ]);
+  const receiptUrl = getSafeReceiptUrl(payload);
+  const receiptLabel = receiptUrl
+    ? (getString(payload, ["receipt_label", "receiptLabel", "check_label"]) ??
+      "Открыть чек")
+    : undefined;
 
   const order = await prisma.order.findUnique({
     where: {
@@ -249,6 +273,9 @@ export async function handlePaymentWebhook({
         paidAt: paidAt ?? undefined,
         providerPaymentId,
         rawPayload: payload as Prisma.InputJsonObject,
+        receiptLabel,
+        receiptUploadedAt: receiptUrl ? new Date() : undefined,
+        receiptUrl,
         status: paymentStatus
       }
     });
@@ -306,6 +333,12 @@ export async function handlePaymentWebhook({
     } catch {
       console.error("Telegram payment notification failed");
     }
+  }
+
+  try {
+    await sendPaymentStatusEmail(order.id, paymentStatus);
+  } catch {
+    console.error("Payment status email failed");
   }
 
   return NextResponse.json({ ok: true });
