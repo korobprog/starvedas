@@ -108,13 +108,13 @@ select {
 
 .client-cabinet-shell {
   display: grid;
+  align-content: start;
   gap: clamp(18px, 3vw, 28px);
   width: min(1080px, 100%);
   margin: 0 auto;
-  padding:
-    max(28px, env(safe-area-inset-top, 0px))
-    clamp(18px, 4vw, 36px)
+  padding: max(28px, env(safe-area-inset-top, 0px)) clamp(18px, 4vw, 36px)
     max(32px, calc(env(safe-area-inset-bottom, 0px) + 24px));
+  overflow-x: hidden;
 }
 
 .client-cabinet-section {
@@ -130,7 +130,8 @@ select {
 .client-cabinet-section--login {
   justify-self: center;
   width: min(760px, 100%);
-  margin-top: clamp(12px, 8vh, 72px);
+  max-width: calc(100vw - 32px);
+  margin-top: clamp(12px, 7vh, 64px);
   border: 1px solid var(--border);
   border-radius: 30px;
   padding: clamp(24px, 5vw, 44px);
@@ -144,14 +145,22 @@ select {
   text-align: center;
 }
 
+.client-cabinet-section--login .section-heading h1,
+.client-cabinet-section--login .section-heading p {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
 .client-cabinet-section--login .section-heading p {
   justify-self: center;
 }
 
 .client-login-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, auto));
+  grid-template-columns: repeat(3, minmax(0, max-content));
   justify-content: center;
+  max-width: 100%;
   margin-top: 4px;
 }
 
@@ -2539,8 +2548,7 @@ select {
 
   .client-cabinet-shell {
     gap: 18px;
-    padding:
-      max(18px, env(safe-area-inset-top, 0px))
+    padding: max(18px, env(safe-area-inset-top, 0px))
       max(16px, env(safe-area-inset-left, 0px))
       max(28px, calc(env(safe-area-inset-bottom, 0px) + 20px))
       max(16px, env(safe-area-inset-right, 0px));
@@ -2552,6 +2560,7 @@ select {
 
   .client-cabinet-section--login {
     width: 100%;
+    max-width: 100%;
     margin-top: 8px;
     border-radius: 24px;
     padding: 22px 18px;
@@ -2589,6 +2598,11 @@ select {
   .client-cabinet-shell .form-actions .button {
     width: 100%;
     min-height: 50px;
+  }
+
+  .client-cabinet-shell .client-login-actions {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
   }
 
   .client-cabinet-shell .saved-participants-list {

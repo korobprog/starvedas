@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   getPublicClientPath,
   waitForTelegramWebApp
@@ -9,8 +8,6 @@ import {
 
 export function TelegramMiniAppAutoLogin() {
   const [message, setMessage] = useState<string | null>(null);
-  const router = useRouter();
-
   useEffect(() => {
     let cancelled = false;
 
@@ -37,14 +34,7 @@ export function TelegramMiniAppAutoLogin() {
           throw new Error("Не удалось войти через Telegram");
         }
 
-        const clientPath = getPublicClientPath("/client");
-
-        if (clientPath.startsWith("http")) {
-          window.location.replace(clientPath);
-          return;
-        }
-
-        router.refresh();
+        window.location.replace(getPublicClientPath("/client"));
       })
       .catch((error: Error) => {
         if (!cancelled) {
@@ -55,7 +45,7 @@ export function TelegramMiniAppAutoLogin() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, []);
 
   return message ? <p className="form-note">{message}</p> : null;
 }

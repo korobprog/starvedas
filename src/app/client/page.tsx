@@ -65,53 +65,53 @@ export default async function ClientCabinetPage() {
       orderBy: { createdAt: "desc" },
       where: { clientId: client.id },
       select: {
-      amountRub: true,
-      createdAt: true,
-      currency: true,
-      curator: {
-        select: {
-          name: true,
-          slug: true,
-          supportButtonLabel: true,
-          supportEnabled: true,
-          supportUrl: true
-        }
-      },
-      customerEmail: true,
-      customerPhone: true,
-      customerTelegram: true,
-      leadStatus: true,
-      orderNumber: true,
-      participantCount: true,
-      publicToken: true,
-      referralSlug: true,
-      service: {
-        select: {
-          title: true
-        }
-      },
-      serviceOptions: {
-        orderBy: { sortOrder: "asc" },
-        select: {
-          titleSnapshot: true
-        }
-      },
-      status: true,
-      payment: {
-        select: {
-          paymentUrl: true,
-          status: true
-        }
-      },
-      statusHistory: {
-        orderBy: { createdAt: "desc" },
-        select: {
-          createdAt: true,
-          note: true,
-          toStatus: true
+        amountRub: true,
+        createdAt: true,
+        currency: true,
+        curator: {
+          select: {
+            name: true,
+            slug: true,
+            supportButtonLabel: true,
+            supportEnabled: true,
+            supportUrl: true
+          }
         },
-        take: 1
-      }
+        customerEmail: true,
+        customerPhone: true,
+        customerTelegram: true,
+        leadStatus: true,
+        orderNumber: true,
+        participantCount: true,
+        publicToken: true,
+        referralSlug: true,
+        service: {
+          select: {
+            title: true
+          }
+        },
+        serviceOptions: {
+          orderBy: { sortOrder: "asc" },
+          select: {
+            titleSnapshot: true
+          }
+        },
+        status: true,
+        payment: {
+          select: {
+            paymentUrl: true,
+            status: true
+          }
+        },
+        statusHistory: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            createdAt: true,
+            note: true,
+            toStatus: true
+          },
+          take: 1
+        }
       }
     }),
     prisma.savedParticipant.findMany({
@@ -226,7 +226,6 @@ export default async function ClientCabinetPage() {
           </div>
         )}
       </section>
-
 
       <section className="content-section content-section--narrow client-cabinet-section">
         <div className="section-heading">
