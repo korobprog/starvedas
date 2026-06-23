@@ -1,6 +1,7 @@
 import { CopyAccountingLinkButton } from "@/components/copy-accounting-link-button";
 import {
   saveAccountantEmailAction,
+  saveAccountingSpreadsheetAction,
   syncAccountingReportAction
 } from "@/server/accounting-actions";
 import {
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 function formatDateTime(value: Date | null) {
   if (!value) {
-    return "—";
+    return "?";
   }
 
   return new Intl.DateTimeFormat("ru-RU", {
@@ -25,13 +26,13 @@ function formatDateTime(value: Date | null) {
 function statusLabel(status: string) {
   switch (status) {
     case "OK":
-      return "Готово";
+      return "??????";
     case "ERROR":
-      return "Ошибка";
+      return "??????";
     case "SYNCING":
-      return "Синхронизация";
+      return "?????????????";
     default:
-      return "Еще не запускали";
+      return "??? ?? ?????????";
   }
 }
 
@@ -46,19 +47,18 @@ export default async function AdminAccountingPage() {
         <div className="admin-card__header">
           <div>
             <p className="eyebrow">Google Sheets</p>
-            <h2>Бухгалтерия</h2>
+            <h2>???????????</h2>
           </div>
         </div>
         <p className="admin-muted">
-          Здесь создаются и обновляются две независимые Google Sheets-витрины:
-          для starvedas.ru и chintamanidhama.ru. Основное хранилище данных —
-          база сайта; таблицы нужны для отчетности и доступа бухгалтера.
+          ????? ??????????? ??? ??????????? Google Sheets-???????: ???
+          starvedas.ru ? chintamanidhama.ru. ???????? ????????? ?????? ? ????
+          ?????; ??????? ????? ??? ?????????? ? ??????? ??????????.
         </p>
         <p className="form-warning">
-          Для синхронизации настройте service account в переменных окружения:
-          GOOGLE_SERVICE_ACCOUNT_JSON или GOOGLE_SERVICE_ACCOUNT_EMAIL +
-          GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY. Бухгалтеру выдается доступ только
-          на чтение по email.
+          ???? ????????? ??????? ?? ????? ??????? ??????? ?????????????,
+          ???????? Google Sheet ???????, ????????? ?? ?????????? ???????? ???
+          Editor ? ???????? ?????? ??? ID ??????? ? ??????????????? ???? ????.
         </p>
       </section>
 
@@ -73,37 +73,37 @@ export default async function AdminAccountingPage() {
 
           <dl className="admin-summary-list">
             <div>
-              <dt>Статус</dt>
+              <dt>??????</dt>
               <dd>{statusLabel(report.lastSyncStatus)}</dd>
             </div>
             <div>
-              <dt>Последняя синхронизация</dt>
+              <dt>????????? ?????????????</dt>
               <dd>{formatDateTime(report.lastSyncedAt)}</dd>
             </div>
             <div>
-              <dt>Операций</dt>
+              <dt>????????</dt>
               <dd>{report.operationCount}</dd>
             </div>
             <div>
-              <dt>Период данных</dt>
+              <dt>?????? ??????</dt>
               <dd>
-                {formatDateTime(report.lastSyncedPeriodStart)} —{" "}
+                {formatDateTime(report.lastSyncedPeriodStart)} ?{" "}
                 {formatDateTime(report.lastSyncedPeriodEnd)}
               </dd>
             </div>
             <div>
-              <dt>Email бухгалтера</dt>
-              <dd>{report.accountantEmail || "не задан"}</dd>
+              <dt>Email ??????????</dt>
+              <dd>{report.accountantEmail || "?? ?????"}</dd>
             </div>
             <div>
-              <dt>Google таблица</dt>
+              <dt>Google ???????</dt>
               <dd>
                 {report.spreadsheetUrl ? (
                   <a href={report.spreadsheetUrl} rel="noreferrer" target="_blank">
-                    Открыть таблицу
+                    ??????? ???????
                   </a>
                 ) : (
-                  "будет создана при первой синхронизации"
+                  "?? ??????"
                 )}
               </dd>
             </div>
@@ -121,7 +121,7 @@ export default async function AdminAccountingPage() {
               target="_blank"
               aria-disabled={!report.spreadsheetUrl}
             >
-              Открыть таблицу
+              ??????? ???????
             </a>
             <CopyAccountingLinkButton url={report.spreadsheetUrl} />
             <form action={syncAccountingReportAction}>
@@ -131,10 +131,30 @@ export default async function AdminAccountingPage() {
                 value={report.sourceDomain}
               />
               <button className="button" type="submit">
-                Обновить сейчас
+                ???????? ??????
               </button>
             </form>
           </div>
+
+          <form action={saveAccountingSpreadsheetAction} className="admin-form">
+            <input
+              name="sourceDomain"
+              type="hidden"
+              value={report.sourceDomain}
+            />
+            <label className="field">
+              <span>Google ??????? ??? ??????</span>
+              <input
+                defaultValue={report.spreadsheetUrl ?? report.spreadsheetId ?? ""}
+                name="spreadsheet"
+                placeholder="https://docs.google.com/spreadsheets/d/... ??? ID"
+                type="text"
+              />
+            </label>
+            <button className="button button--primary" type="submit">
+              ????????? ???????
+            </button>
+          </form>
 
           <form action={saveAccountantEmailAction} className="admin-form">
             <input
@@ -143,7 +163,7 @@ export default async function AdminAccountingPage() {
               value={report.sourceDomain}
             />
             <label className="field">
-              <span>Настроить доступ бухгалтеру</span>
+              <span>????????? ?????? ??????????</span>
               <input
                 defaultValue={report.accountantEmail ?? ""}
                 name="accountantEmail"
@@ -152,21 +172,21 @@ export default async function AdminAccountingPage() {
               />
             </label>
             <button className="button button--primary" type="submit">
-              Сохранить email и выдать доступ
+              ????????? email ? ?????? ??????
             </button>
           </form>
 
           <div>
-            <h3>Последние синхронизации</h3>
+            <h3>????????? ?????????????</h3>
             {report.logs.length > 0 ? (
               <div className="table-wrap">
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>Старт</th>
-                      <th>Статус</th>
-                      <th>Операций</th>
-                      <th>Сообщение</th>
+                      <th>?????</th>
+                      <th>??????</th>
+                      <th>????????</th>
+                      <th>?????????</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -175,14 +195,14 @@ export default async function AdminAccountingPage() {
                         <td>{formatDateTime(log.startedAt)}</td>
                         <td>{statusLabel(log.status)}</td>
                         <td>{log.operationCount}</td>
-                        <td>{log.message ?? "—"}</td>
+                        <td>{log.message ?? "?"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <p className="admin-muted">Логов синхронизации пока нет.</p>
+              <p className="admin-muted">????? ????????????? ???? ???.</p>
             )}
           </div>
         </section>

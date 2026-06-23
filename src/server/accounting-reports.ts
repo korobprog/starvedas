@@ -228,6 +228,26 @@ function spreadsheetUrl(spreadsheetId: string) {
   return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
 }
 
+function parseSpreadsheetId(value: string | null | undefined) {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const match = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+
+  if (match?.[1]) {
+    return match[1];
+  }
+
+  if (/^[a-zA-Z0-9-_]{20,}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  throw new Error("Введите корректную ссылку или ID Google таблицы");
+}
+
 function range(tab: AccountingSheetTab, cell = "A1") {
   return `'${tab.replaceAll("'", "''")}'!${cell}`;
 }
@@ -829,4 +849,21 @@ export async function updateAccountantEmail(params: {
   }
 
   return updated;
+}
+
+export async function updateAccountingSpreadsheet(params: {
+  sourceDomain: string;
+  spreadsheet: string | null;
+}) {
+  const sourceDomain = normalizeSourceDomain(params.sourceDomain);
+  const spreadsheetId = parseSpreadsheetId(params.spreadsheet);
+  const report = await ensureAccountingReport(sourceDomain);
+
+  return prisma.accountingReport.update({
+    data: {
+      spreadsheetId,
+      spreadsheetUrl: spreadsheetId ? spreadsheetUrl(spreadsheetId) : null
+    },
+    where: { id: report.id }
+  });
 }
