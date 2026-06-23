@@ -34,6 +34,23 @@ export default async function ClientCabinetPage() {
   if (!client) {
     return (
       <main className="page-shell client-cabinet-shell">
+        <style>{`
+          @media (max-width: 760px) {
+            .client-cabinet-shell .client-login-actions {
+              display: grid !important;
+              grid-template-columns: 1fr !important;
+              justify-content: stretch !important;
+              width: 100% !important;
+            }
+
+            .client-cabinet-shell .client-login-actions .button {
+              width: 100% !important;
+              min-width: 0 !important;
+              white-space: normal !important;
+              text-align: center !important;
+            }
+          }
+        `}</style>
         <section className="content-section content-section--narrow client-cabinet-section client-cabinet-section--login">
           <div className="section-heading">
             <p className="eyebrow">Личный кабинет</p>
