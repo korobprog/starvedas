@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import Script from "next/script";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { localeCookieName, normalizeLocale } from "@/i18n/config";
 import { applySiteBrandToText } from "@/lib/site-branding";
@@ -30,10 +29,6 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang={locale}>
       <body>
-        <Script
-          src="https://telegram.org/js/telegram-web-app.js?62"
-          strategy="beforeInteractive"
-        />
         <LanguageSwitcher currentLocale={locale} />
         {children}
       </body>

@@ -127,6 +127,34 @@ select {
   gap: 22px;
 }
 
+.client-cabinet-section--login {
+  justify-self: center;
+  width: min(760px, 100%);
+  margin-top: clamp(12px, 8vh, 72px);
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  padding: clamp(24px, 5vw, 44px);
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 88%), rgb(255 244 223 / 82%)),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.client-cabinet-section--login .section-heading {
+  text-align: center;
+}
+
+.client-cabinet-section--login .section-heading p {
+  justify-self: center;
+}
+
+.client-login-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, auto));
+  justify-content: center;
+  margin-top: 4px;
+}
+
 .client-cabinet-shell .section-heading {
   display: grid;
   gap: 10px;
@@ -175,6 +203,10 @@ select {
 .client-cabinet-actions,
 .client-cabinet-shell .form-actions {
   justify-content: flex-start;
+}
+
+.client-cabinet-shell .client-login-actions {
+  justify-content: center;
 }
 
 .simple-page {
@@ -2516,6 +2548,17 @@ select {
 
   .client-cabinet-section {
     gap: 14px;
+  }
+
+  .client-cabinet-section--login {
+    width: 100%;
+    margin-top: 8px;
+    border-radius: 24px;
+    padding: 22px 18px;
+  }
+
+  .client-cabinet-section--login .section-heading {
+    text-align: left;
   }
 
   .client-cabinet-shell .section-heading {

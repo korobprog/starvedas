@@ -1,51 +1,50 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
-
-type TelegramWebApp = {
-  expand?: () => void;
-  initData?: string;
-  ready?: () => void;
-};
-
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: TelegramWebApp;
-    };
-  }
-}
+import { useRouter } from "next/navigation";
+import {
+  getPublicClientPath,
+  waitForTelegramWebApp
+} from "@/lib/telegram-web-app-client";
 
 export function TelegramMiniAppAutoLogin() {
   const [message, setMessage] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
-    const webApp = window.Telegram?.WebApp;
-
-    if (!webApp?.initData) {
-      return;
-    }
-
     let cancelled = false;
 
-    webApp.ready?.();
-    webApp.expand?.();
+    void waitForTelegramWebApp()
+      .then(async (webApp) => {
+        if (!webApp || cancelled) {
+          return;
+        }
 
-    void fetch("/api/client/telegram-mini-app", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        initData: webApp.initData
-      })
-    })
-      .then((response) => {
+        webApp.ready?.();
+        webApp.expand?.();
+
+        const response = await fetch("/api/client/telegram-mini-app", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            initData: webApp.initData
+          })
+        });
+
         if (!response.ok) {
           throw new Error("Не удалось войти через Telegram");
         }
 
-        window.location.reload();
+        const clientPath = getPublicClientPath("/client");
+
+        if (clientPath.startsWith("http")) {
+          window.location.replace(clientPath);
+          return;
+        }
+
+        router.refresh();
       })
       .catch((error: Error) => {
         if (!cancelled) {
@@ -56,7 +55,7 @@ export function TelegramMiniAppAutoLogin() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
 
   return message ? <p className="form-note">{message}</p> : null;
 }

@@ -22,6 +22,7 @@ import {
   type PhoneCountryCode
 } from "@/lib/phone-validation";
 import type { SiteServiceList } from "@/lib/site-data";
+import { waitForTelegramWebApp } from "@/lib/telegram-web-app-client";
 import type {
   PaymentInstructions,
   PaymentProviderCode
@@ -563,28 +564,32 @@ export function SignupForm({
   }, [fetchSavedParticipants]);
 
   useEffect(() => {
-    const webApp = window.Telegram?.WebApp;
-
-    if (!webApp?.initData) {
-      return;
-    }
-
     let cancelled = false;
 
-    webApp.ready?.();
-    webApp.expand?.();
+    void waitForTelegramWebApp()
+      .then(async (webApp) => {
+        if (!webApp || cancelled) {
+          return null;
+        }
 
-    void fetch("/api/client/telegram-mini-app", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        initData: webApp.initData,
-        referralSlug
+        webApp.ready?.();
+        webApp.expand?.();
+
+        return fetch("/api/client/telegram-mini-app", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            initData: webApp.initData,
+            referralSlug
+          })
+        });
       })
-    })
       .then(async (response) => {
+        if (!response) {
+          return null;
+        }
         const result = (await response.json().catch(() => ({}))) as
           | {
               client: TelegramMiniAppClient;
@@ -603,7 +608,7 @@ export function SignupForm({
         return result;
       })
       .then((result) => {
-        if (cancelled) {
+        if (!result || cancelled) {
           return;
         }
 
@@ -815,7 +820,8 @@ export function SignupForm({
     setParticipantsInput((current) => {
       const names = getParticipantNamesFromText(current);
       const exists = names.some(
-        (name) => name.toLocaleLowerCase("ru") === fullName.toLocaleLowerCase("ru")
+        (name) =>
+          name.toLocaleLowerCase("ru") === fullName.toLocaleLowerCase("ru")
       );
 
       if (exists) {
@@ -1176,7 +1182,8 @@ export function SignupForm({
             <div className="saved-participants-panel">
               <strong>Сохранённые участники</strong>
               <p className="form-note">
-                Нажмите на имя, чтобы быстро добавить участника из прошлых заказов.
+                Нажмите на имя, чтобы быстро добавить участника из прошлых
+                заказов.
               </p>
               <div className="saved-participants-list">
                 {savedParticipants.map((participant) => {

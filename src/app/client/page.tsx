@@ -44,7 +44,7 @@ export default async function ClientCabinetPage() {
             </p>
           </div>
           <TelegramMiniAppAutoLogin />
-          <div className="form-actions">
+          <div className="form-actions client-cabinet-actions client-login-actions">
             <Link className="button button--primary" href="/client/register">
               Зарегистрироваться
             </Link>
