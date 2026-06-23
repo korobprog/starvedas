@@ -2177,21 +2177,34 @@ select {
 
 .accounting-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, max-content));
-  justify-content: start;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  justify-content: stretch;
+  width: 100%;
   max-width: 100%;
 }
 
 .accounting-actions form {
+  display: grid;
   min-width: 0;
+  max-width: 100%;
 }
 
 .accounting-actions .button,
 .accounting-actions button {
-  width: auto;
+  width: 100%;
   max-width: 100%;
+  min-width: 0;
   min-height: 52px;
   overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.accounting-card .admin-form .button,
+.accounting-card .admin-form button {
+  width: 100%;
+  min-width: 0;
+  justify-self: stretch;
+  text-align: center;
 }
 
 .accounting-log-wrap {
