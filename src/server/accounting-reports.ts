@@ -1,5 +1,4 @@
-﻿import { google } from "googleapis";
-import type { sheets_v4 } from "googleapis";
+import crypto from "node:crypto";
 import { PaymentStatus, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
@@ -65,6 +64,32 @@ type AccountingTable = {
   values: Array<Array<string | number>>;
 };
 
+type GoogleApiError = {
+  error?: {
+    code?: number;
+    message?: string;
+    status?: string;
+  };
+};
+
+type GoogleSpreadsheet = {
+  sheets?: Array<{
+    properties?: {
+      title?: string;
+    };
+  }>;
+  spreadsheetId?: string;
+  spreadsheetUrl?: string;
+};
+
+type GoogleBatchUpdateRequest = {
+  addSheet: {
+    properties: {
+      title: string;
+    };
+  };
+};
+
 function getEnv(name: string) {
   return process.env[name]?.trim() || undefined;
 }
@@ -101,18 +126,97 @@ function readServiceAccountCredentials(): GoogleCredentials {
   return { clientEmail, privateKey };
 }
 
-function getGoogleClients() {
+function base64Url(value: string | Buffer) {
+  return Buffer.from(value).toString("base64url");
+}
+
+function createServiceAccountJwt(credentials: GoogleCredentials) {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const header = {
+    alg: "RS256",
+    typ: "JWT"
+  };
+  const payload = {
+    aud: "https://oauth2.googleapis.com/token",
+    exp: nowSeconds + 3600,
+    iat: nowSeconds,
+    iss: credentials.clientEmail,
+    scope: sheetsScopes.join(" ")
+  };
+  const unsignedJwt = `${base64Url(JSON.stringify(header))}.${base64Url(
+    JSON.stringify(payload)
+  )}`;
+  const signature = crypto
+    .createSign("RSA-SHA256")
+    .update(unsignedJwt)
+    .sign(credentials.privateKey);
+
+  return `${unsignedJwt}.${base64Url(signature)}`;
+}
+
+async function getGoogleAccessToken() {
   const credentials = readServiceAccountCredentials();
-  const auth = new google.auth.JWT({
-    email: credentials.clientEmail,
-    key: credentials.privateKey,
-    scopes: sheetsScopes
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    body: new URLSearchParams({
+      assertion: createServiceAccountJwt(credentials),
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer"
+    }),
+    headers: {
+      "content-type": "application/x-www-form-urlencoded"
+    },
+    method: "POST"
   });
 
-  return {
-    drive: google.drive({ auth, version: "v3" }),
-    sheets: google.sheets({ auth, version: "v4" })
-  };
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as
+      | GoogleApiError
+      | null;
+
+    throw new Error(
+      error?.error?.message ??
+        `Google OAuth error: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const data = (await response.json()) as { access_token?: string };
+
+  if (!data.access_token) {
+    throw new Error("Google OAuth не вернул access_token");
+  }
+
+  return data.access_token;
+}
+
+async function googleApi<T>(
+  url: string,
+  init: Omit<RequestInit, "headers"> & { headers?: Record<string, string> } = {}
+) {
+  const token = await getGoogleAccessToken();
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      authorization: `Bearer ${token}`,
+      ...(init.body ? { "content-type": "application/json" } : {}),
+      ...init.headers
+    }
+  });
+
+  if (!response.ok) {
+    const error = (await response.json().catch(() => null)) as
+      | GoogleApiError
+      | null;
+
+    throw new Error(
+      error?.error?.message ??
+        `Google API error: ${response.status} ${response.statusText}`
+    );
+  }
+
+  if (response.status === 204) {
+    return null as T;
+  }
+
+  return (await response.json()) as T;
 }
 
 function spreadsheetUrl(spreadsheetId: string) {
@@ -428,20 +532,23 @@ function buildSheetTables(params: {
 }
 
 async function createSpreadsheet(sourceDomain: SourceDomain) {
-  const { sheets } = getGoogleClients();
-  const response = await sheets.spreadsheets.create({
-    requestBody: {
-      properties: {
-        title: accountingReportTitles[sourceDomain]
-      },
-      sheets: accountingSheetTabs.map((tab) => ({
+  const response = await googleApi<GoogleSpreadsheet>(
+    "https://sheets.googleapis.com/v4/spreadsheets",
+    {
+      body: JSON.stringify({
         properties: {
-          title: tab
-        }
-      }))
+          title: accountingReportTitles[sourceDomain]
+        },
+        sheets: accountingSheetTabs.map((tab) => ({
+          properties: {
+            title: tab
+          }
+        }))
+      }),
+      method: "POST"
     }
-  });
-  const spreadsheetId = response.data.spreadsheetId;
+  );
+  const spreadsheetId = response.spreadsheetId;
 
   if (!spreadsheetId) {
     throw new Error("Google Sheets API не вернул ID таблицы");
@@ -449,19 +556,20 @@ async function createSpreadsheet(sourceDomain: SourceDomain) {
 
   return {
     spreadsheetId,
-    spreadsheetUrl: response.data.spreadsheetUrl ?? spreadsheetUrl(spreadsheetId)
+    spreadsheetUrl: response.spreadsheetUrl ?? spreadsheetUrl(spreadsheetId)
   };
 }
 
 async function ensureSpreadsheetTabs(spreadsheetId: string) {
-  const { sheets } = getGoogleClients();
-  const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+  const spreadsheet = await googleApi<GoogleSpreadsheet>(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`
+  );
   const existingTitles = new Set(
-    spreadsheet.data.sheets
+    spreadsheet.sheets
       ?.map((sheet) => sheet.properties?.title)
       .filter((title): title is string => Boolean(title)) ?? []
   );
-  const requests: sheets_v4.Schema$Request[] = accountingSheetTabs
+  const requests: GoogleBatchUpdateRequest[] = accountingSheetTabs
     .filter((tab) => !existingTitles.has(tab))
     .map((tab) => ({
       addSheet: {
@@ -472,10 +580,13 @@ async function ensureSpreadsheetTabs(spreadsheetId: string) {
     }));
 
   if (requests.length > 0) {
-    await sheets.spreadsheets.batchUpdate({
-      requestBody: { requests },
-      spreadsheetId
-    });
+    await googleApi(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+      {
+        body: JSON.stringify({ requests }),
+        method: "POST"
+      }
+    );
   }
 }
 
@@ -486,40 +597,45 @@ async function writeSpreadsheet(params: {
   sourceDomain: SourceDomain;
   spreadsheetId: string;
 }) {
-  const { sheets } = getGoogleClients();
   const tables = buildSheetTables(params);
 
   await ensureSpreadsheetTabs(params.spreadsheetId);
-  await sheets.spreadsheets.values.batchClear({
-    requestBody: {
-      ranges: accountingSheetTabs.map((tab) => range(tab, "A:Z"))
-    },
-    spreadsheetId: params.spreadsheetId
-  });
-  await sheets.spreadsheets.values.batchUpdate({
-    requestBody: {
-      data: tables,
-      valueInputOption: "USER_ENTERED"
-    },
-    spreadsheetId: params.spreadsheetId
-  });
+  await googleApi(
+    `https://sheets.googleapis.com/v4/spreadsheets/${params.spreadsheetId}/values:batchClear`,
+    {
+      body: JSON.stringify({
+        ranges: accountingSheetTabs.map((tab) => range(tab, "A:Z"))
+      }),
+      method: "POST"
+    }
+  );
+  await googleApi(
+    `https://sheets.googleapis.com/v4/spreadsheets/${params.spreadsheetId}/values:batchUpdate`,
+    {
+      body: JSON.stringify({
+        data: tables,
+        valueInputOption: "USER_ENTERED"
+      }),
+      method: "POST"
+    }
+  );
 }
 
 async function grantAccountantAccess(params: {
   email: string;
   spreadsheetId: string;
 }) {
-  const { drive } = getGoogleClients();
-
-  await drive.permissions.create({
-    fileId: params.spreadsheetId,
-    requestBody: {
-      emailAddress: params.email,
-      role: "reader",
-      type: "user"
-    },
-    sendNotificationEmail: true
-  });
+  await googleApi(
+    `https://www.googleapis.com/drive/v3/files/${params.spreadsheetId}/permissions?sendNotificationEmail=true`,
+    {
+      body: JSON.stringify({
+        emailAddress: params.email,
+        role: "reader",
+        type: "user"
+      }),
+      method: "POST"
+    }
+  );
 }
 
 export async function ensureAccountingReport(sourceDomain: SourceDomain) {
