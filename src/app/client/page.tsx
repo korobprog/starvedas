@@ -33,8 +33,8 @@ export default async function ClientCabinetPage() {
 
   if (!client) {
     return (
-      <main className="page-shell">
-        <section className="content-section content-section--narrow">
+      <main className="page-shell client-cabinet-shell">
+        <section className="content-section content-section--narrow client-cabinet-section">
           <div className="section-heading">
             <p className="eyebrow">Личный кабинет</p>
             <h1>Войдите через Telegram</h1>
@@ -126,8 +126,8 @@ export default async function ClientCabinetPage() {
   ]);
 
   return (
-    <main className="page-shell">
-      <section className="content-section content-section--narrow">
+    <main className="page-shell client-cabinet-shell">
+      <section className="content-section content-section--narrow client-cabinet-section client-cabinet-section--hero">
         <div className="section-heading">
           <p className="eyebrow">Личный кабинет</p>
           <h1>{client.name}</h1>
@@ -138,7 +138,7 @@ export default async function ClientCabinetPage() {
           </p>
         </div>
 
-        <div className="client-dashboard-grid">
+        <div className="client-dashboard-grid client-summary-grid">
           <div className="telegram-auth-card">
             <strong>{client.telegram ?? "Профиль клиента"}</strong>
             <p>
@@ -173,7 +173,7 @@ export default async function ClientCabinetPage() {
           </div>
         </div>
 
-        <div className="form-actions">
+        <div className="form-actions client-cabinet-actions">
           <Link className="button button--primary" href="/#signup">
             Купить новый абонемент
           </Link>
@@ -186,7 +186,7 @@ export default async function ClientCabinetPage() {
         </div>
       </section>
 
-      <section className="content-section content-section--narrow">
+      <section className="content-section content-section--narrow client-cabinet-section">
         <div className="section-heading">
           <h2>Уведомления</h2>
           <p>Последние изменения по вашим заказам.</p>
@@ -228,7 +228,7 @@ export default async function ClientCabinetPage() {
       </section>
 
 
-      <section className="content-section content-section--narrow">
+      <section className="content-section content-section--narrow client-cabinet-section">
         <div className="section-heading">
           <h2>Сохранённые участники</h2>
           <p>
@@ -251,7 +251,7 @@ export default async function ClientCabinetPage() {
         )}
       </section>
 
-      <section className="content-section content-section--narrow">
+      <section className="content-section content-section--narrow client-cabinet-section">
         <div className="section-heading">
           <h2>Мои абонементы</h2>
           <p>История заявок, оплат и быстрый повтор прошлых абонементов.</p>

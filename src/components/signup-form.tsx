@@ -3,6 +3,7 @@
 import {
   FormEvent,
   type SVGProps,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -60,6 +61,11 @@ type PaymentProviderOption = {
 type SavedParticipantOption = {
   fullName: string;
   id: string;
+};
+
+type SavedParticipantsResponse = {
+  authenticated?: boolean;
+  participants?: SavedParticipantOption[];
 };
 
 function CeremonyIcon(props: SVGProps<SVGSVGElement>) {
@@ -376,6 +382,7 @@ export function SignupForm({
   const [savedParticipants, setSavedParticipants] = useState<
     SavedParticipantOption[]
   >([]);
+  const [isClientSessionActive, setIsClientSessionActive] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerNameTouched, setCustomerNameTouched] = useState(false);
   const [customerTelegram, setCustomerTelegram] = useState("");
@@ -498,7 +505,22 @@ export function SignupForm({
     : "/client/register";
   const clientLoginHref = "/login?next=%2Fclient";
   const isClientCabinetActive =
-    telegramAuthState.status === "authenticated" || savedParticipants.length > 0;
+    isClientSessionActive ||
+    telegramAuthState.status === "authenticated" ||
+    savedParticipants.length > 0;
+
+  const fetchSavedParticipants = useCallback(async () => {
+    const response = await fetch("/api/client/saved-participants");
+    const result = (await response.json().catch(() => ({}))) as
+      | SavedParticipantsResponse
+      | { message?: string };
+
+    if (!response.ok || !("participants" in result)) {
+      return null;
+    }
+
+    return result;
+  }, []);
 
   useEffect(() => {
     const requestedServiceSlug = new URLSearchParams(
@@ -524,29 +546,21 @@ export function SignupForm({
   useEffect(() => {
     let cancelled = false;
 
-    void fetch("/api/client/saved-participants")
-      .then(async (response) => {
-        const result = (await response.json().catch(() => ({}))) as
-          | { participants?: SavedParticipantOption[] }
-          | { message?: string };
-
-        if (!response.ok || !("participants" in result)) {
-          return [];
+    void fetchSavedParticipants()
+      .then((result) => {
+        if (cancelled || !result) {
+          return;
         }
 
-        return result.participants ?? [];
-      })
-      .then((participants) => {
-        if (!cancelled) {
-          setSavedParticipants(participants);
-        }
+        setIsClientSessionActive(Boolean(result.authenticated));
+        setSavedParticipants(result.participants ?? []);
       })
       .catch(() => undefined);
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchSavedParticipants]);
 
   useEffect(() => {
     const webApp = window.Telegram?.WebApp;
@@ -597,6 +611,7 @@ export function SignupForm({
           status: "authenticated",
           client: result.client
         });
+        setIsClientSessionActive(true);
         setCustomerName((current) => current || result.client.name || "");
         setCustomerNameTouched(
           (current) => current || Boolean(result.client.name)
@@ -619,7 +634,19 @@ export function SignupForm({
           url.searchParams.set("ref", result.referralSlug);
           url.hash = "signup";
           window.location.replace(url.toString());
+          return;
         }
+
+        void fetchSavedParticipants()
+          .then((savedResult) => {
+            if (!savedResult) {
+              return;
+            }
+
+            setIsClientSessionActive(Boolean(savedResult.authenticated));
+            setSavedParticipants(savedResult.participants ?? []);
+          })
+          .catch(() => undefined);
       })
       .catch((error: Error) => {
         if (!cancelled) {
@@ -633,7 +660,7 @@ export function SignupForm({
     return () => {
       cancelled = true;
     };
-  }, [referralSlug]);
+  }, [fetchSavedParticipants, referralSlug]);
 
   useEffect(() => {
     const repeatToken = new URLSearchParams(window.location.search).get(
@@ -1224,11 +1251,12 @@ export function SignupForm({
                     : ""}
                 </strong>
                 <p>
-                  Контакты сохранятся в личном кабинете, а прошлые абонементы
+                  Регистрация не нужна — личный кабинет уже подключён через
+                  Telegram. Контакты и участники сохранятся, а прошлые записи
                   можно будет повторить без повторного ввода данных.
                 </p>
                 <a className="button button--small" href="/client">
-                  Мои абонементы
+                  Открыть личный кабинет
                 </a>
               </>
             ) : telegramAuthState.status === "loading" ? (

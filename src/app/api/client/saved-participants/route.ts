@@ -8,7 +8,7 @@ export async function GET() {
   const client = await getCurrentClientProfile();
 
   if (!client) {
-    return NextResponse.json({ participants: [] });
+    return NextResponse.json({ authenticated: false, participants: [] });
   }
 
   const participants = await prisma.savedParticipant.findMany({
@@ -23,5 +23,5 @@ export async function GET() {
     }
   });
 
-  return NextResponse.json({ participants });
+  return NextResponse.json({ authenticated: true, participants });
 }
