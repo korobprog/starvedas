@@ -35,9 +35,84 @@ export default async function ClientCabinetPage() {
     return (
       <main className="page-shell client-cabinet-shell">
         <style>{`
+          .client-cabinet-shell {
+            display: grid !important;
+            align-content: start !important;
+            gap: clamp(18px, 3vw, 28px) !important;
+            width: min(1080px, 100%) !important;
+            margin: 0 auto !important;
+            padding: max(28px, env(safe-area-inset-top, 0px)) clamp(18px, 4vw, 36px)
+              max(32px, calc(env(safe-area-inset-bottom, 0px) + 24px)) !important;
+            overflow-x: hidden !important;
+          }
+
+          .client-cabinet-section--login {
+            justify-self: center !important;
+            display: grid !important;
+            gap: 18px !important;
+            width: min(760px, 100%) !important;
+            max-width: calc(100vw - 32px) !important;
+            margin-top: clamp(12px, 7vh, 64px) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 30px !important;
+            padding: clamp(24px, 5vw, 44px) !important;
+            background:
+              linear-gradient(135deg, rgb(255 255 255 / 88%), rgb(255 244 223 / 82%)),
+              var(--surface) !important;
+            box-shadow: var(--shadow) !important;
+          }
+
+          .client-cabinet-section--login .section-heading {
+            display: grid !important;
+            gap: 10px !important;
+            text-align: center !important;
+          }
+
+          .client-cabinet-section--login .section-heading h1,
+          .client-cabinet-section--login .section-heading p,
+          .client-cabinet-section--login .section-heading .eyebrow {
+            max-width: 100% !important;
+            margin: 0 !important;
+            overflow-wrap: anywhere !important;
+            text-wrap: balance !important;
+          }
+
+          .client-cabinet-section--login .section-heading h1 {
+            font-size: clamp(2.2rem, 6vw, 3.8rem) !important;
+            line-height: 1.04 !important;
+          }
+
+          .client-cabinet-section--login .section-heading p {
+            justify-self: center !important;
+            color: var(--text) !important;
+            line-height: 1.55 !important;
+          }
+
+          .client-cabinet-shell .client-login-actions {
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            justify-self: center !important;
+            justify-content: center !important;
+            width: min(640px, 100%) !important;
+            max-width: 100% !important;
+            margin-top: 4px !important;
+          }
+
+          .client-cabinet-shell .client-login-actions .button {
+            min-width: 0 !important;
+            white-space: normal !important;
+            text-align: center !important;
+            line-height: 1.2 !important;
+          }
+
           @media (max-width: 760px) {
+            .client-cabinet-section--login {
+              width: 100% !important;
+              max-width: 100% !important;
+              margin-top: 8px !important;
+            }
+
             .client-cabinet-shell .client-login-actions {
-              display: grid !important;
               grid-template-columns: 1fr !important;
               justify-content: stretch !important;
               width: 100% !important;
@@ -48,6 +123,35 @@ export default async function ClientCabinetPage() {
               min-width: 0 !important;
               white-space: normal !important;
               text-align: center !important;
+            }
+          }
+
+          @media (max-width: 640px) {
+            .language-switcher {
+              width: min(calc(100% - 28px), 420px) !important;
+              margin: 8px auto 0 !important;
+              padding: 4px !important;
+              justify-content: center !important;
+            }
+
+            .language-switcher__button {
+              flex: 1 1 0 !important;
+              min-width: 0 !important;
+              padding-inline: 8px !important;
+              white-space: nowrap !important;
+            }
+
+            .client-cabinet-shell {
+              gap: 18px !important;
+              padding: max(18px, env(safe-area-inset-top, 0px))
+                max(16px, env(safe-area-inset-left, 0px))
+                max(28px, calc(env(safe-area-inset-bottom, 0px) + 20px))
+                max(16px, env(safe-area-inset-right, 0px)) !important;
+            }
+
+            .client-cabinet-section--login {
+              border-radius: 24px !important;
+              padding: 22px 18px !important;
             }
           }
         `}</style>
