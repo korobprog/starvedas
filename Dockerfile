@@ -7,7 +7,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN apk add --no-cache openssl
 
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN (while sleep 20; do echo "[docker] npm ci still running"; done) & keepalive=$!; npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000; status=$?; kill $keepalive || true; exit $status
 
 COPY . .
 RUN npm run db:generate
