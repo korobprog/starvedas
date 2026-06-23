@@ -48,6 +48,7 @@ body {
     "Segoe UI",
     sans-serif;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 h1,
@@ -127,7 +128,8 @@ select {
   gap: 22px;
 }
 
-.client-cabinet-section--login {
+.client-cabinet-section--login,
+.client-cabinet-shell > .client-cabinet-section:only-child {
   justify-self: center;
   width: min(760px, 100%);
   max-width: calc(100vw - 32px);
@@ -141,27 +143,33 @@ select {
   box-shadow: var(--shadow);
 }
 
-.client-cabinet-section--login .section-heading {
+.client-cabinet-section--login .section-heading,
+.client-cabinet-shell > .client-cabinet-section:only-child .section-heading {
   text-align: center;
 }
 
 .client-cabinet-section--login .section-heading h1,
-.client-cabinet-section--login .section-heading p {
+.client-cabinet-section--login .section-heading p,
+.client-cabinet-shell > .client-cabinet-section:only-child .section-heading h1,
+.client-cabinet-shell > .client-cabinet-section:only-child .section-heading p {
   max-width: 100%;
   overflow-wrap: anywhere;
   text-wrap: balance;
 }
 
-.client-cabinet-section--login .section-heading p {
+.client-cabinet-section--login .section-heading p,
+.client-cabinet-shell > .client-cabinet-section:only-child .section-heading p {
   justify-self: center;
 }
 
 .client-login-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, max-content));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   justify-content: center;
+  width: min(640px, 100%);
   max-width: 100%;
   margin-top: 4px;
+  justify-self: center;
 }
 
 .client-cabinet-shell .section-heading {
@@ -207,6 +215,13 @@ select {
 
 .client-cabinet-shell .telegram-auth-card {
   padding: clamp(16px, 3vw, 22px);
+}
+
+.client-cabinet-shell .button {
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .client-cabinet-actions,
@@ -2475,9 +2490,46 @@ select {
   }
 }
 
+@media (max-width: 760px) {
+  .client-cabinet-section--login,
+  .client-cabinet-shell > .client-cabinet-section:only-child {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 8px;
+  }
+
+  .client-cabinet-shell .form-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+
+  .client-cabinet-shell .form-actions .button {
+    width: 100%;
+  }
+
+  .client-cabinet-shell .client-login-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   [id] {
     scroll-margin-top: 84px;
+  }
+
+  .language-switcher {
+    width: min(calc(100% - 28px), 420px);
+    margin: 8px auto 0;
+    padding: 4px;
+    justify-content: center;
+  }
+
+  .language-switcher__button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 8px;
+    white-space: nowrap;
   }
 
   .site-header__inner {

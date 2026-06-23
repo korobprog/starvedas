@@ -34,7 +34,7 @@ export default async function ClientCabinetPage() {
   if (!client) {
     return (
       <main className="page-shell client-cabinet-shell">
-        <section className="content-section content-section--narrow client-cabinet-section">
+        <section className="content-section content-section--narrow client-cabinet-section client-cabinet-section--login">
           <div className="section-heading">
             <p className="eyebrow">Личный кабинет</p>
             <h1>Войдите через Telegram</h1>
