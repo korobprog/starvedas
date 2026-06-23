@@ -14,7 +14,12 @@ export async function generateMetadata(): Promise<Metadata> {
     description: applySiteBrandToText(
       "Клиентский сайт StarVedas для записи на ягью, пуджу, абхишеку и связанные церемонии.",
       brand.name
-    )
+    ),
+    icons: {
+      icon: "/images/logo.ico",
+      shortcut: "/images/logo.ico",
+      apple: "/images/logo.ico"
+    }
   };
 }
 
