@@ -1076,7 +1076,16 @@ export function SignupForm({
         ))}
       </ol>
 
-      <div className="signup-auth-links" aria-label="Личный кабинет клиента">
+      <div
+        className="signup-auth-links"
+        aria-label="Личный кабинет клиента"
+        style={{
+          alignItems: "center",
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "10px"
+        }}
+      >
         {isClientCabinetActive ? (
           <>
             <span>Личный кабинет подключён</span>
@@ -1084,9 +1093,30 @@ export function SignupForm({
           </>
         ) : (
           <>
-            <span>Уже записывались?</span>
-            <a href={clientLoginHref}>Войти</a>
-            <a href={clientRegisterHref}>Создать кабинет</a>
+            <span className="signup-auth-links__label">
+              Уже записывались?
+            </span>
+            <span
+              className="signup-auth-links__actions"
+              style={{
+                display: "inline-flex",
+                flexWrap: "wrap",
+                gap: "6px"
+              }}
+            >
+              <a
+                className="button button--small signup-auth-links__button"
+                href={clientLoginHref}
+              >
+                Войти
+              </a>
+              <a
+                className="button button--small button--primary signup-auth-links__button"
+                href={clientRegisterHref}
+              >
+                Создать кабинет
+              </a>
+            </span>
           </>
         )}
       </div>

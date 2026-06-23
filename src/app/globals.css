@@ -1398,13 +1398,40 @@ select {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 14px;
-  margin-top: -6px;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: -2px;
+  border: 1px solid rgb(216 154 43 / 24%);
+  border-radius: 999px;
+  padding: 6px;
+  background: rgb(255 247 230 / 72%);
   color: var(--muted);
   font-size: 0.95rem;
+  box-shadow: 0 10px 26px rgb(86 48 13 / 7%);
 }
 
-.signup-auth-links a {
+.signup-auth-links__label {
+  padding-inline: 8px 2px;
+  color: var(--text);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.signup-auth-links__actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.signup-auth-links .signup-auth-links__button {
+  min-height: 38px;
+  padding-inline: 16px;
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.signup-auth-links a:not(.button) {
   color: var(--primary-dark);
   font-weight: 800;
   text-decoration: underline;
@@ -2805,6 +2832,28 @@ select {
   .signup-form--actions-visible .form-actions .button:not(.button--primary) {
     flex: 0 0 auto;
     padding-inline: 16px;
+  }
+
+  .signup-auth-links {
+    width: 100%;
+    border-radius: 22px;
+    padding: 8px;
+  }
+
+  .signup-auth-links__label {
+    width: 100%;
+    padding-inline: 4px;
+    text-align: center;
+  }
+
+  .signup-auth-links__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .signup-auth-links .signup-auth-links__button {
+    width: 100%;
   }
 
   .form-progress {
