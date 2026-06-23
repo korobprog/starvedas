@@ -42,7 +42,7 @@ export default async function AdminAccountingPage() {
   const reports = await getAccountingDashboard();
 
   return (
-    <div className="admin-grid">
+    <div className="admin-grid accounting-grid">
       <section className="admin-card admin-card--wide">
         <div className="admin-card__header">
           <div>
@@ -59,7 +59,7 @@ export default async function AdminAccountingPage() {
       </section>
 
       {reports.map((report) => (
-        <section className="admin-card" key={report.sourceDomain}>
+        <section className="admin-card accounting-card" key={report.sourceDomain}>
           <div className="admin-card__header">
             <div>
               <p className="eyebrow">{report.sourceDomain}</p>
@@ -79,9 +79,9 @@ export default async function AdminAccountingPage() {
             </div>
           </dl>
 
-          {report.lastSyncError ? <p className="form-error">{report.lastSyncError}</p> : null}
+          {report.lastSyncError ? <p className="form-error accounting-error">{report.lastSyncError}</p> : null}
 
-          <div className="admin-card__actions">
+          <div className="admin-card__actions accounting-actions">
             <a className="button button--primary" href={report.spreadsheetUrl ?? "#"} rel="noreferrer" target="_blank" aria-disabled={!report.spreadsheetUrl}>&#x041e;&#x0442;&#x043a;&#x0440;&#x044b;&#x0442;&#x044c; &#x0442;&#x0430;&#x0431;&#x043b;&#x0438;&#x0446;&#x0443;</a>
             <CopyAccountingLinkButton url={report.spreadsheetUrl} />
             <form action={syncAccountingReportAction}>
@@ -94,7 +94,7 @@ export default async function AdminAccountingPage() {
             <input name="sourceDomain" type="hidden" value={report.sourceDomain} />
             <label className="field">
               <span>Google &#x0442;&#x0430;&#x0431;&#x043b;&#x0438;&#x0446;&#x0430; &#x0434;&#x043b;&#x044f; &#x043e;&#x0442;&#x0447;&#x0435;&#x0442;&#x0430;</span>
-              <input defaultValue={report.spreadsheetUrl ?? report.spreadsheetId ?? ""} name="spreadsheet" placeholder={"https://docs.google.com/spreadsheets/d/... \\u0438\\u043b\\u0438 ID"} type="text" />
+              <input defaultValue={report.spreadsheetUrl ?? report.spreadsheetId ?? ""} name="spreadsheet" placeholder={"https://docs.google.com/spreadsheets/d/... \u0438\u043b\u0438 ID"} type="text" />
             </label>
             <button className="button button--primary" type="submit">&#x0421;&#x043e;&#x0445;&#x0440;&#x0430;&#x043d;&#x0438;&#x0442;&#x044c; &#x0442;&#x0430;&#x0431;&#x043b;&#x0438;&#x0446;&#x0443;</button>
           </form>
@@ -111,7 +111,7 @@ export default async function AdminAccountingPage() {
           <div>
             <h3>&#x041f;&#x043e;&#x0441;&#x043b;&#x0435;&#x0434;&#x043d;&#x0438;&#x0435; &#x0441;&#x0438;&#x043d;&#x0445;&#x0440;&#x043e;&#x043d;&#x0438;&#x0437;&#x0430;&#x0446;&#x0438;&#x0438;</h3>
             {report.logs.length > 0 ? (
-              <div className="table-wrap"><table className="admin-table"><thead><tr><th>&#x0421;&#x0442;&#x0430;&#x0440;&#x0442;</th><th>&#x0421;&#x0442;&#x0430;&#x0442;&#x0443;&#x0441;</th><th>&#x041e;&#x043f;&#x0435;&#x0440;&#x0430;&#x0446;&#x0438;&#x0439;</th><th>&#x0421;&#x043e;&#x043e;&#x0431;&#x0449;&#x0435;&#x043d;&#x0438;&#x0435;</th></tr></thead><tbody>{report.logs.map((log) => (<tr key={log.id}><td>{formatDateTime(log.startedAt)}</td><td>{statusLabel(log.status)}</td><td>{log.operationCount}</td><td>{log.message ?? "\u2014"}</td></tr>))}</tbody></table></div>
+              <div className="table-wrap accounting-log-wrap"><table className="admin-table accounting-log-table"><thead><tr><th>&#x0421;&#x0442;&#x0430;&#x0440;&#x0442;</th><th>&#x0421;&#x0442;&#x0430;&#x0442;&#x0443;&#x0441;</th><th>&#x041e;&#x043f;&#x0435;&#x0440;&#x0430;&#x0446;&#x0438;&#x0439;</th><th>&#x0421;&#x043e;&#x043e;&#x0431;&#x0449;&#x0435;&#x043d;&#x0438;&#x0435;</th></tr></thead><tbody>{report.logs.map((log) => (<tr key={log.id}><td>{formatDateTime(log.startedAt)}</td><td>{statusLabel(log.status)}</td><td>{log.operationCount}</td><td>{log.message ?? "\u2014"}</td></tr>))}</tbody></table></div>
             ) : (<p className="admin-muted">&#x041b;&#x043e;&#x0433;&#x043e;&#x0432; &#x0441;&#x0438;&#x043d;&#x0445;&#x0440;&#x043e;&#x043d;&#x0438;&#x0437;&#x0430;&#x0446;&#x0438;&#x0438; &#x043f;&#x043e;&#x043a;&#x0430; &#x043d;&#x0435;&#x0442;.</p>)}
           </div>
         </section>
