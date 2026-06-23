@@ -31,7 +31,7 @@ export const accountingReportTitles: Record<SourceDomain, string> = {
 
 const sheetsScopes = [
   "https://www.googleapis.com/auth/spreadsheets",
-  "https://www.googleapis.com/auth/drive.file"
+  "https://www.googleapis.com/auth/drive"
 ];
 
 type GoogleCredentials = {
@@ -189,7 +189,10 @@ async function getGoogleAccessToken() {
 
 async function googleApi<T>(
   url: string,
-  init: Omit<RequestInit, "headers"> & { headers?: Record<string, string> } = {}
+  init: Omit<RequestInit, "headers"> & {
+    headers?: Record<string, string>;
+    operation?: string;
+  } = {}
 ) {
   const token = await getGoogleAccessToken();
   const response = await fetch(url, {
@@ -206,9 +209,11 @@ async function googleApi<T>(
       | GoogleApiError
       | null;
 
+    const operation = init.operation ?? `${init.method ?? "GET"} ${new URL(url).pathname}`;
+    const message = error?.error?.message ?? response.statusText;
+
     throw new Error(
-      error?.error?.message ??
-        `Google API error: ${response.status} ${response.statusText}`
+      `Google API ${operation} failed (${response.status}): ${message}`
     );
   }
 
@@ -545,7 +550,8 @@ async function createSpreadsheet(sourceDomain: SourceDomain) {
           }
         }))
       }),
-      method: "POST"
+      method: "POST",
+      operation: "create spreadsheet"
     }
   );
   const spreadsheetId = response.spreadsheetId;
@@ -562,7 +568,8 @@ async function createSpreadsheet(sourceDomain: SourceDomain) {
 
 async function ensureSpreadsheetTabs(spreadsheetId: string) {
   const spreadsheet = await googleApi<GoogleSpreadsheet>(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+    { operation: "get spreadsheet" }
   );
   const existingTitles = new Set(
     spreadsheet.sheets
@@ -584,7 +591,8 @@ async function ensureSpreadsheetTabs(spreadsheetId: string) {
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
       {
         body: JSON.stringify({ requests }),
-        method: "POST"
+        method: "POST",
+        operation: "add missing sheets"
       }
     );
   }
@@ -606,7 +614,8 @@ async function writeSpreadsheet(params: {
       body: JSON.stringify({
         ranges: accountingSheetTabs.map((tab) => range(tab, "A:Z"))
       }),
-      method: "POST"
+      method: "POST",
+      operation: "clear spreadsheet values"
     }
   );
   await googleApi(
@@ -616,7 +625,8 @@ async function writeSpreadsheet(params: {
         data: tables,
         valueInputOption: "USER_ENTERED"
       }),
-      method: "POST"
+      method: "POST",
+      operation: "update spreadsheet values"
     }
   );
 }
@@ -633,7 +643,8 @@ async function grantAccountantAccess(params: {
         role: "reader",
         type: "user"
       }),
-      method: "POST"
+      method: "POST",
+      operation: "grant spreadsheet access"
     }
   );
 }
