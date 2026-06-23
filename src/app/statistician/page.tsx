@@ -1,9 +1,14 @@
 ﻿import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { ParticipantListsPanel } from "@/components/participant-lists-panel";
-import { requireUser } from "@/server/auth";
+import { isAdminRole, requireUser } from "@/server/auth";
 import { logoutAction } from "@/server/auth-actions";
 import { getStatisticianParticipantLists } from "@/server/participant-lists";
+import { hasAcceptedStatisticianRole } from "@/server/statistician-role";
+import {
+  acceptStatisticianRoleAction,
+  leaveStatisticianRoleAction
+} from "@/server/statistician-role-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +17,8 @@ export default async function StatisticianPage() {
     [UserRole.STATISTICIAN, UserRole.ADMIN, UserRole.SUPER_ADMIN],
     "/statistician"
   );
+  const adminUser = isAdminRole(user.role);
+  const acceptedStatisticianRole = await hasAcceptedStatisticianRole(user);
   const lists = await getStatisticianParticipantLists();
   const newCount = lists.filter((list) => list.status === "NEW").length;
   const clarificationCount = lists.filter(
@@ -35,6 +42,25 @@ export default async function StatisticianPage() {
             </p>
           </div>
           <nav className="admin-nav" aria-label="Кабинет статиста">
+            {adminUser && !acceptedStatisticianRole ? (
+              <form action={acceptStatisticianRoleAction}>
+                <button className="button button--primary" type="submit">
+                  Принять роль статиста
+                </button>
+              </form>
+            ) : null}
+            {adminUser && acceptedStatisticianRole ? (
+              <form action={leaveStatisticianRoleAction}>
+                <button className="button" type="submit">
+                  Вернуться в роль администратора
+                </button>
+              </form>
+            ) : null}
+            {adminUser ? (
+              <Link className="button" href="/admin/statisticians">
+                Админка статистов
+              </Link>
+            ) : null}
             <Link className="button" href="/statistician-mini-app">
               Вход через Telegram
             </Link>
@@ -51,6 +77,13 @@ export default async function StatisticianPage() {
 
         <section className="admin-card admin-card--wide">
           <h2>Подсказка</h2>
+          {adminUser ? (
+            <p className="admin-muted">
+              {acceptedStatisticianRole
+                ? "Вы приняли роль статиста: сообщения по спискам будут уходить от роли «статист»."
+                : "Вы вошли как администратор. Нажмите «Принять роль статиста», чтобы работать в этом кабинете от роли статиста."}
+            </p>
+          ) : null}
           <p className="admin-muted">
             Списки приходят через Telegram. Если дата начала мероприятия
             указана, отправьте список заранее. Если дата не указана — запросите

@@ -11,6 +11,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole, requireUser, type SessionUser } from "@/server/auth";
+import { hasAcceptedStatisticianRole } from "@/server/statistician-role";
 import { sendParticipantListTelegramNotification } from "@/server/telegram-notifications";
 
 const participantListStatuses = Object.values(ParticipantListStatus) as [
@@ -159,12 +160,12 @@ function firstEventDate(order: {
   );
 }
 
-function userMessageRole(user: SessionUser) {
+async function userMessageRole(user: SessionUser) {
   if (user.role === UserRole.CURATOR) {
     return ParticipantListMessageRole.CURATOR;
   }
 
-  if (user.role === UserRole.STATISTICIAN) {
+  if (await hasAcceptedStatisticianRole(user)) {
     return ParticipantListMessageRole.STATISTICIAN;
   }
 
@@ -508,7 +509,7 @@ export async function sendParticipantListMessageAction(formData: FormData) {
   }
 
   const list = await getListAccess(parsed.data.listId, user);
-  const senderRole = userMessageRole(user);
+  const senderRole = await userMessageRole(user);
 
   await prisma.participantListMessage.create({
     data: {

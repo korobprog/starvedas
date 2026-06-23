@@ -9,6 +9,7 @@ import {
   setAuthSession
 } from "@/server/auth";
 import { verifyPassword } from "@/server/password";
+import { clearStatisticianRole } from "@/server/statistician-role";
 
 export type LoginActionState = {
   error?: string;
@@ -70,5 +71,6 @@ export async function loginAction(
 
 export async function logoutAction() {
   await clearAuthSession();
+  await clearStatisticianRole();
   redirect("/login");
 }

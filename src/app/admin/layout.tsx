@@ -6,6 +6,7 @@ import { getAdminCopy } from "@/i18n/admin-copy";
 import { localeCookieName } from "@/i18n/config";
 import { requireUser } from "@/server/auth";
 import { logoutAction } from "@/server/auth-actions";
+import { acceptStatisticianRoleAction } from "@/server/statistician-role-actions";
 
 export const metadata = {
   robots: {
@@ -42,7 +43,6 @@ export default async function AdminLayout({
                 { href: "/admin/articles", label: "Статьи" },
                 { href: "/admin/participants", label: "Участники" },
                 { href: "/admin/statisticians", label: "Статисты" },
-                { href: "/statistician", label: "Кабинет статиста" },
                 { href: "/admin/clients", label: "Клиенты" },
                 { href: "/admin/schedule", label: copy.layout.schedule },
                 ...(canManageCriticalSettings
@@ -65,6 +65,11 @@ export default async function AdminLayout({
                 { href: "/cabinet", label: "Кабинет" }
               ]}
             />
+            <form action={acceptStatisticianRoleAction}>
+              <button className="button button--primary" type="submit">
+                Войти как статист
+              </button>
+            </form>
             <form action={logoutAction}>
               <button className="button" type="submit">
                 Выйти, {user.name}

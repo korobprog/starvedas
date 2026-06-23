@@ -1,6 +1,7 @@
 ﻿import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { saveStatisticianAction } from "@/server/statistician-actions";
+import { acceptStatisticianRoleAction } from "@/server/statistician-role-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,11 @@ export default async function AdminStatisticiansPage() {
           Статист получает списки участников через кабинет и может входить через
           Telegram Mini Apps после привязки Telegram ID.
         </p>
+        <form action={acceptStatisticianRoleAction} className="admin-form">
+          <button className="button button--primary" type="submit">
+            Войти в кабинет и принять роль статиста
+          </button>
+        </form>
         <form action={saveStatisticianAction} className="admin-form">
           <label className="field">
             <span>Имя</span>
