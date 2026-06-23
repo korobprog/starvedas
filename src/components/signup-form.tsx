@@ -453,7 +453,7 @@ export function SignupForm({
   const [customerPhoneCountry, setCustomerPhoneCountry] =
     useState<PhoneCountryCode>(() => getDefaultPhoneCountry(locale));
   const [customerEmail, setCustomerEmail] = useState("");
-  const [consentPersonalData, setConsentPersonalData] = useState(false);
+  const [consentPersonalData, setConsentPersonalData] = useState(true);
   const [consentMailings, setConsentMailings] = useState(false);
   const [submitState, setSubmitState] = useState<SubmitState>({
     status: "idle"
@@ -554,8 +554,7 @@ export function SignupForm({
       isSingleRiteSelected &&
       selectedServiceOptionIds.length < 1) ||
     (step === 1 && (hasInvalidParticipants || participantCount < 1)) ||
-    (step === 2 &&
-      (!hasContact || !consentPersonalData || !isCustomerPhoneValid)) ||
+    (step === 2 && (!hasContact || !isCustomerPhoneValid)) ||
     (step === 4 && paymentProviders.length === 0);
   const submitButtonLabel =
     step === formSteps.length - 1
@@ -928,7 +927,7 @@ export function SignupForm({
           customerPhone,
           customerPhoneCountry,
           customerEmail,
-          consentPersonalData,
+          consentPersonalData: true,
           consentMailings: showMailingConsentCheckbox ? consentMailings : false,
           paymentProvider,
           referralSlug
@@ -1013,7 +1012,7 @@ export function SignupForm({
 
       if (
         step === 2 &&
-        (!hasContact || !consentPersonalData || !isCustomerPhoneValid)
+        (!hasContact || !isCustomerPhoneValid)
       ) {
         return;
       }
@@ -1482,7 +1481,6 @@ export function SignupForm({
             <input
               checked={consentPersonalData}
               onChange={(event) => setConsentPersonalData(event.target.checked)}
-              required
               type="checkbox"
             />
             <span>
