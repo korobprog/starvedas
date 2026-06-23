@@ -2156,7 +2156,7 @@ select {
 
 .accounting-card {
   max-width: 100%;
-  overflow: hidden;
+  overflow-x: clip;
 }
 
 .accounting-card > *,
@@ -2199,7 +2199,7 @@ a.button[aria-disabled="true"] {
 
 .accounting-actions {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 1fr;
   align-items: stretch;
   width: 100%;
   max-width: 100%;
@@ -2208,6 +2208,7 @@ a.button[aria-disabled="true"] {
 
 .accounting-actions form {
   display: grid;
+  grid-column: 1 / -1;
   min-width: 0;
   max-width: 100%;
 }
