@@ -26,13 +26,13 @@ function formatDateTime(value: Date | null) {
 function statusLabel(status: string) {
   switch (status) {
     case "OK":
-      return "\u0413\u043e\u0442\u043e\u0432\u043e";
+      return { text: "\u0413\u043e\u0442\u043e\u0432\u043e", cls: "accounting-status--ok" };
     case "ERROR":
-      return "\u041e\u0448\u0438\u0431\u043a\u0430";
+      return { text: "\u041e\u0448\u0438\u0431\u043a\u0430", cls: "accounting-status--error" };
     case "SYNCING":
-      return "\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f";
+      return { text: "\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f", cls: "accounting-status--syncing" };
     default:
-      return "\u0415\u0449\u0435 \u043d\u0435 \u0437\u0430\u043f\u0443\u0441\u043a\u0430\u043b\u0438";
+      return { text: "\u0415\u0449\u0435 \u043d\u0435 \u0437\u0430\u043f\u0443\u0441\u043a\u0430\u043b\u0438", cls: "" };
   }
 }
 
@@ -68,7 +68,7 @@ export default async function AdminAccountingPage() {
           </div>
 
           <dl className="admin-summary-list">
-            <div><dt>&#x0421;&#x0442;&#x0430;&#x0442;&#x0443;&#x0441;</dt><dd>{statusLabel(report.lastSyncStatus)}</dd></div>
+            <div><dt>&#x0421;&#x0442;&#x0430;&#x0442;&#x0443;&#x0441;</dt><dd className={statusLabel(report.lastSyncStatus).cls}>{statusLabel(report.lastSyncStatus).text}</dd></div>
             <div><dt>&#x041f;&#x043e;&#x0441;&#x043b;&#x0435;&#x0434;&#x043d;&#x044f;&#x044f; &#x0441;&#x0438;&#x043d;&#x0445;&#x0440;&#x043e;&#x043d;&#x0438;&#x0437;&#x0430;&#x0446;&#x0438;&#x044f;</dt><dd>{formatDateTime(report.lastSyncedAt)}</dd></div>
             <div><dt>&#x041e;&#x043f;&#x0435;&#x0440;&#x0430;&#x0446;&#x0438;&#x0439;</dt><dd>{report.operationCount}</dd></div>
             <div><dt>&#x041f;&#x0435;&#x0440;&#x0438;&#x043e;&#x0434; &#x0434;&#x0430;&#x043d;&#x043d;&#x044b;&#x0445;</dt><dd>{formatDateTime(report.lastSyncedPeriodStart)} &mdash; {formatDateTime(report.lastSyncedPeriodEnd)}</dd></div>
@@ -111,7 +111,7 @@ export default async function AdminAccountingPage() {
           <div>
             <h3>&#x041f;&#x043e;&#x0441;&#x043b;&#x0435;&#x0434;&#x043d;&#x0438;&#x0435; &#x0441;&#x0438;&#x043d;&#x0445;&#x0440;&#x043e;&#x043d;&#x0438;&#x0437;&#x0430;&#x0446;&#x0438;&#x0438;</h3>
             {report.logs.length > 0 ? (
-              <div className="table-wrap accounting-log-wrap"><table className="admin-table accounting-log-table"><thead><tr><th>&#x0421;&#x0442;&#x0430;&#x0440;&#x0442;</th><th>&#x0421;&#x0442;&#x0430;&#x0442;&#x0443;&#x0441;</th><th>&#x041e;&#x043f;&#x0435;&#x0440;&#x0430;&#x0446;&#x0438;&#x0439;</th><th>&#x0421;&#x043e;&#x043e;&#x0431;&#x0449;&#x0435;&#x043d;&#x0438;&#x0435;</th></tr></thead><tbody>{report.logs.map((log) => (<tr key={log.id}><td>{formatDateTime(log.startedAt)}</td><td>{statusLabel(log.status)}</td><td>{log.operationCount}</td><td>{log.message ?? "\u2014"}</td></tr>))}</tbody></table></div>
+              <div className="table-wrap accounting-log-wrap"><table className="admin-table accounting-log-table"><thead><tr><th>&#x0421;&#x0442;&#x0430;&#x0440;&#x0442;</th><th>&#x0421;&#x0442;&#x0430;&#x0442;&#x0443;&#x0441;</th><th>&#x041e;&#x043f;&#x0435;&#x0440;&#x0430;&#x0446;&#x0438;&#x0439;</th><th>&#x0421;&#x043e;&#x043e;&#x0431;&#x0449;&#x0435;&#x043d;&#x0438;&#x0435;</th></tr></thead><tbody>{report.logs.map((log) => (<tr key={log.id}><td>{formatDateTime(log.startedAt)}</td><td className={statusLabel(log.status).cls}>{statusLabel(log.status).text}</td><td>{log.operationCount}</td><td>{log.message ?? "\u2014"}</td></tr>))}</tbody></table></div>
             ) : (<p className="admin-muted">&#x041b;&#x043e;&#x0433;&#x043e;&#x0432; &#x0441;&#x0438;&#x043d;&#x0445;&#x0440;&#x043e;&#x043d;&#x0438;&#x0437;&#x0430;&#x0446;&#x0438;&#x0438; &#x043f;&#x043e;&#x043a;&#x0430; &#x043d;&#x0435;&#x0442;.</p>)}
           </div>
         </section>

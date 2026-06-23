@@ -2175,12 +2175,35 @@ select {
   word-break: break-word;
 }
 
+.accounting-status--ok {
+  color: var(--color-success, #2e7d32);
+  font-weight: 600;
+}
+
+.accounting-status--error {
+  color: var(--color-error, #c62828);
+  font-weight: 600;
+}
+
+.accounting-status--syncing {
+  color: var(--color-warning, #e65100);
+  font-weight: 600;
+}
+
+.button[aria-disabled="true"],
+a.button[aria-disabled="true"] {
+  opacity: 0.45;
+  pointer-events: none;
+  cursor: default;
+}
+
 .accounting-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
-  justify-content: stretch;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: stretch;
   width: 100%;
   max-width: 100%;
+  gap: 8px;
 }
 
 .accounting-actions form {
