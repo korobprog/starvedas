@@ -61,6 +61,7 @@ process.once("SIGTERM", () => shutdown(0));
 process.once("SIGINT", () => shutdown(0));
 
 try {
+  await run("node", ["scripts/repair-accounting-migration.mjs"]);
   await run("npx", ["prisma", "migrate", "deploy"]);
   await run("npx", ["prisma", "db", "seed"]);
   start("node", ["scripts/curator-bot-poller.mjs"], "curator-poller");
@@ -69,3 +70,4 @@ try {
   console.error("[startup] failed", error);
   shutdown(1);
 }
+
