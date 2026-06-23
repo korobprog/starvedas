@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type CSSProperties,
   FormEvent,
   type SVGProps,
   useCallback,
@@ -67,6 +68,67 @@ type SavedParticipantOption = {
 type SavedParticipantsResponse = {
   authenticated?: boolean;
   participants?: SavedParticipantOption[];
+};
+
+const signupAuthLinksInlineStyle: CSSProperties = {
+  alignItems: "center",
+  background: "rgba(255, 247, 230, 0.86)",
+  border: "1px solid rgba(216, 154, 43, 0.28)",
+  borderRadius: "999px",
+  boxShadow: "0 14px 34px rgba(86, 48, 13, 0.11)",
+  color: "var(--muted)",
+  display: "inline-flex",
+  flexWrap: "wrap",
+  fontSize: "0.95rem",
+  gap: "10px",
+  marginTop: "-2px",
+  maxWidth: "100%",
+  padding: "6px",
+  width: "fit-content"
+};
+
+const signupAuthLinksLabelInlineStyle: CSSProperties = {
+  color: "var(--text)",
+  fontWeight: 700,
+  paddingInline: "8px 2px",
+  whiteSpace: "nowrap"
+};
+
+const signupAuthLinksActionsInlineStyle: CSSProperties = {
+  display: "inline-flex",
+  flexWrap: "wrap",
+  gap: "6px"
+};
+
+const signupAuthButtonInlineStyle: CSSProperties = {
+  alignItems: "center",
+  borderRadius: "999px",
+  display: "inline-flex",
+  fontSize: "0.86rem",
+  fontWeight: 800,
+  justifyContent: "center",
+  minHeight: "38px",
+  padding: "0 16px",
+  textDecoration: "none",
+  transition: "transform 0.15s ease, box-shadow 0.15s ease",
+  whiteSpace: "nowrap"
+};
+
+const signupAuthLoginButtonInlineStyle: CSSProperties = {
+  ...signupAuthButtonInlineStyle,
+  background: "rgba(255, 255, 255, 0.96)",
+  border: "1px solid rgba(216, 154, 43, 0.38)",
+  boxShadow: "0 8px 18px rgba(86, 48, 13, 0.08)",
+  color: "var(--primary-dark)"
+};
+
+const signupAuthRegisterButtonInlineStyle: CSSProperties = {
+  ...signupAuthButtonInlineStyle,
+  background:
+    "linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)",
+  border: "1px solid rgba(129, 64, 15, 0.18)",
+  boxShadow: "0 12px 24px rgba(178, 91, 24, 0.22)",
+  color: "#fff"
 };
 
 function CeremonyIcon(props: SVGProps<SVGSVGElement>) {
@@ -1079,40 +1141,47 @@ export function SignupForm({
       <div
         className="signup-auth-links"
         aria-label="Личный кабинет клиента"
-        style={{
-          alignItems: "center",
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "10px"
-        }}
+        style={signupAuthLinksInlineStyle}
       >
         {isClientCabinetActive ? (
           <>
-            <span>Личный кабинет подключён</span>
-            <a href="/client">Открыть кабинет</a>
+            <span
+              className="signup-auth-links__label"
+              style={signupAuthLinksLabelInlineStyle}
+            >
+              Личный кабинет подключён
+            </span>
+            <a
+              className="button button--small button--primary signup-auth-links__button"
+              href="/client"
+              style={signupAuthRegisterButtonInlineStyle}
+            >
+              Открыть кабинет
+            </a>
           </>
         ) : (
           <>
-            <span className="signup-auth-links__label">
+            <span
+              className="signup-auth-links__label"
+              style={signupAuthLinksLabelInlineStyle}
+            >
               Уже записывались?
             </span>
             <span
               className="signup-auth-links__actions"
-              style={{
-                display: "inline-flex",
-                flexWrap: "wrap",
-                gap: "6px"
-              }}
+              style={signupAuthLinksActionsInlineStyle}
             >
               <a
                 className="button button--small signup-auth-links__button"
                 href={clientLoginHref}
+                style={signupAuthLoginButtonInlineStyle}
               >
                 Войти
               </a>
               <a
                 className="button button--small button--primary signup-auth-links__button"
                 href={clientRegisterHref}
+                style={signupAuthRegisterButtonInlineStyle}
               >
                 Создать кабинет
               </a>
