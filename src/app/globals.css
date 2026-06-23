@@ -1926,12 +1926,14 @@ select {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   gap: 20px;
+  min-width: 0;
 }
 
 .admin-card {
   display: grid;
   align-content: start;
   gap: 18px;
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 28px;
   padding: 24px;
@@ -1948,24 +1950,40 @@ select {
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
+  min-width: 0;
 }
 
 .admin-card__actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  align-items: stretch;
+  justify-content: flex-start;
   gap: 10px;
+  min-width: 0;
+}
+
+.admin-card__actions > *,
+.admin-card__actions form {
+  min-width: 0;
+}
+
+.admin-card__actions .button,
+.admin-card__actions button {
+  max-width: 100%;
+  white-space: normal;
 }
 
 .admin-card h2 {
   margin: 0;
   font-size: clamp(1.5rem, 3vw, 2.25rem);
+  overflow-wrap: anywhere;
 }
 
 .admin-muted {
   margin: 0;
   color: var(--muted);
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .admin-success {
@@ -1985,6 +2003,14 @@ select {
 .admin-list-item {
   display: grid;
   gap: 14px;
+  min-width: 0;
+}
+
+.admin-form .button,
+.admin-form button {
+  justify-self: start;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .admin-list {
@@ -2515,6 +2541,10 @@ select {
   .hero__grid {
     gap: 28px;
   }
+
+  .admin-card {
+    padding: 20px;
+  }
 }
 
 @media (max-width: 760px) {
@@ -2557,6 +2587,20 @@ select {
     min-width: 0;
     padding-inline: 8px;
     white-space: nowrap;
+  }
+
+  .admin-card__actions,
+  .admin-card__actions form,
+  .admin-card__actions .button,
+  .admin-card__actions button,
+  .admin-form .button,
+  .admin-form button {
+    width: 100%;
+  }
+
+  .admin-summary-list div {
+    grid-template-columns: 1fr;
+    gap: 4px;
   }
 
   .site-header__inner {
@@ -3200,12 +3244,14 @@ select {
   display: grid;
   gap: 10px;
   margin: 0;
+  min-width: 0;
 }
 
 .admin-summary-list div {
   display: grid;
   grid-template-columns: minmax(130px, 0.45fr) minmax(0, 1fr);
   gap: 12px;
+  min-width: 0;
   border-bottom: 1px solid var(--border);
   padding-bottom: 10px;
 }
@@ -3230,4 +3276,6 @@ select {
   background: #fef3f2;
   color: #b42318;
   font-weight: 700;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
