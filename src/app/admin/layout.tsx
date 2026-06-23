@@ -54,6 +54,10 @@ export default async function AdminLayout({
                       {
                         href: "/admin/payments",
                         label: copy.layout.payments
+                      },
+                      {
+                        href: "/admin/accounting",
+                        label: "Бухгалтерия"
                       }
                     ]
                   : []),

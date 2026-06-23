@@ -3195,3 +3195,39 @@ select {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+.admin-summary-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.admin-summary-list div {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.45fr) minmax(0, 1fr);
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.admin-summary-list dt {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.admin-summary-list dd {
+  margin: 0;
+  color: var(--primary-dark);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.form-error {
+  margin: 0;
+  border: 1px solid rgb(180 35 24 / 28%);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: #fef3f2;
+  color: #b42318;
+  font-weight: 700;
+}

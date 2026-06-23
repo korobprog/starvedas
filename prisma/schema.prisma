@@ -492,6 +492,44 @@ model Payment {
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
+model AccountingReport {
+  id                    String    @id @default(cuid())
+  sourceDomain          String    @unique
+  spreadsheetId         String?
+  spreadsheetUrl        String?
+  accountantEmail       String?
+  lastSyncedAt          DateTime?
+  lastSyncStatus        String    @default("NEVER")
+  lastSyncError         String?
+  lastSyncedPeriodStart DateTime?
+  lastSyncedPeriodEnd   DateTime?
+  operationCount        Int       @default(0)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  syncLogs AccountingSyncLog[]
+
+  @@index([sourceDomain])
+}
+
+model AccountingSyncLog {
+  id             String    @id @default(cuid())
+  sourceDomain   String
+  status         String
+  message        String?
+  rowsAdded      Int       @default(0)
+  rowsUpdated    Int       @default(0)
+  operationCount Int       @default(0)
+  startedAt      DateTime  @default(now())
+  finishedAt     DateTime?
+
+  reportId String?
+  report   AccountingReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+
+  @@index([sourceDomain, startedAt])
+  @@index([reportId])
+}
+
 model OrganizationSettings {
   id                                String     @id @default(cuid())
   sellerType                        SellerType @default(IP)
