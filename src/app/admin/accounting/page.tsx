@@ -6,7 +6,8 @@ import {
 } from "@/server/accounting-actions";
 import {
   accountingReportTitles,
-  getAccountingDashboard
+  getAccountingDashboard,
+  getGoogleServiceAccountEmail
 } from "@/server/accounting-reports";
 import { requireSuperAdminUser } from "@/server/auth";
 
@@ -40,6 +41,7 @@ export default async function AdminAccountingPage() {
   await requireSuperAdminUser("/admin/accounting");
 
   const reports = await getAccountingDashboard();
+  const serviceAccountEmail = getGoogleServiceAccountEmail();
 
   return (
     <div className="admin-grid accounting-grid">
@@ -55,6 +57,12 @@ export default async function AdminAccountingPage() {
         </p>
         <p className="form-warning">
           &#x0415;&#x0441;&#x043b;&#x0438; &#x0441;&#x0435;&#x0440;&#x0432;&#x0438;&#x0441;&#x043d;&#x044b;&#x0439; &#x0430;&#x043a;&#x043a;&#x0430;&#x0443;&#x043d;&#x0442; &#x043d;&#x0435; &#x043c;&#x043e;&#x0436;&#x0435;&#x0442; &#x0441;&#x043e;&#x0437;&#x0434;&#x0430;&#x0442;&#x044c; &#x0442;&#x0430;&#x0431;&#x043b;&#x0438;&#x0446;&#x0443; &#x0430;&#x0432;&#x0442;&#x043e;&#x043c;&#x0430;&#x0442;&#x0438;&#x0447;&#x0435;&#x0441;&#x043a;&#x0438;, &#x0441;&#x043e;&#x0437;&#x0434;&#x0430;&#x0439;&#x0442;&#x0435; Google Sheet &#x0432;&#x0440;&#x0443;&#x0447;&#x043d;&#x0443;&#x044e;, &#x0440;&#x0430;&#x0441;&#x0448;&#x0430;&#x0440;&#x044c;&#x0442;&#x0435; &#x0435;&#x0435; &#x0441;&#x0435;&#x0440;&#x0432;&#x0438;&#x0441;&#x043d;&#x043e;&#x043c;&#x0443; &#x0430;&#x043a;&#x043a;&#x0430;&#x0443;&#x043d;&#x0442;&#x0443; &#x043a;&#x0430;&#x043a; Editor &#x0438; &#x0432;&#x0441;&#x0442;&#x0430;&#x0432;&#x044c;&#x0442;&#x0435; &#x0441;&#x0441;&#x044b;&#x043b;&#x043a;&#x0443; &#x0438;&#x043b;&#x0438; ID &#x0442;&#x0430;&#x0431;&#x043b;&#x0438;&#x0446;&#x044b; &#x0432; &#x0441;&#x043e;&#x043e;&#x0442;&#x0432;&#x0435;&#x0442;&#x0441;&#x0442;&#x0432;&#x0443;&#x044e;&#x0449;&#x0435;&#x0435; &#x043f;&#x043e;&#x043b;&#x0435; &#x043d;&#x0438;&#x0436;&#x0435;.
+          {serviceAccountEmail ? (
+            <>
+              <br />
+              Service account: <code>{serviceAccountEmail}</code>
+            </>
+          ) : null}
         </p>
       </section>
 

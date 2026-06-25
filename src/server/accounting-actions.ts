@@ -38,7 +38,12 @@ export async function syncAccountingReportAction(formData: FormData) {
     throw new Error("Некорректный сайт для бухгалтерского отчета");
   }
 
-  await syncAccountingReport(parsed.data);
+  try {
+    await syncAccountingReport(parsed.data);
+  } catch {
+    // syncAccountingReport already saves the visible error on the report.
+  }
+
   revalidatePath("/admin/accounting");
 }
 

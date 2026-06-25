@@ -94,6 +94,26 @@ function getEnv(name: string) {
   return process.env[name]?.trim() || undefined;
 }
 
+export function getGoogleServiceAccountEmail() {
+  const json = getEnv("GOOGLE_SERVICE_ACCOUNT_JSON");
+
+  if (json) {
+    try {
+      const parsed = JSON.parse(json.replace(/^'|'$/g, "")) as {
+        client_email?: string;
+      };
+
+      if (parsed.client_email) {
+        return parsed.client_email;
+      }
+    } catch {
+      // The full credentials parser reports malformed JSON during API calls.
+    }
+  }
+
+  return getEnv("GOOGLE_SERVICE_ACCOUNT_EMAIL");
+}
+
 function readServiceAccountCredentials(): GoogleCredentials {
   const json = getEnv("GOOGLE_SERVICE_ACCOUNT_JSON");
 
@@ -154,6 +174,27 @@ function createServiceAccountJwt(credentials: GoogleCredentials) {
   return `${unsignedJwt}.${base64Url(signature)}`;
 }
 
+function googlePermissionHint(operation: string) {
+  const serviceAccountEmail = getGoogleServiceAccountEmail();
+  const accountHint = serviceAccountEmail ? ` (${serviceAccountEmail})` : "";
+
+  if (operation === "create spreadsheet") {
+    return `Проверьте права сервисного аккаунта${accountHint} на создание Google Sheets. Если в Google Workspace создание файлов для сервисных аккаунтов запрещено, создайте таблицу вручную, расшарьте ее сервисному аккаунту как Editor, сохраните ссылку на этой странице и повторите действие.`;
+  }
+
+  if (
+    operation === "grant spreadsheet access" ||
+    operation === "get spreadsheet" ||
+    operation === "add missing sheets" ||
+    operation === "clear spreadsheet values" ||
+    operation === "update spreadsheet values"
+  ) {
+    return `Проверьте, что Google таблица расшарена сервисному аккаунту${accountHint} с правами Editor, а затем повторите действие.`;
+  }
+
+  return "";
+}
+
 async function getGoogleAccessToken() {
   const credentials = readServiceAccountCredentials();
   const response = await fetch("https://oauth2.googleapis.com/token", {
@@ -211,9 +252,10 @@ async function googleApi<T>(
 
     const operation = init.operation ?? `${init.method ?? "GET"} ${new URL(url).pathname}`;
     const message = error?.error?.message ?? response.statusText;
+    const hint = response.status === 403 ? googlePermissionHint(operation) : "";
 
     throw new Error(
-      `Google API ${operation} failed (${response.status}): ${message}`
+      `Google API ${operation} failed (${response.status}): ${message}${hint ? `. ${hint}` : ""}`
     );
   }
 
@@ -842,10 +884,30 @@ export async function updateAccountantEmail(params: {
   });
 
   if (email && updated.spreadsheetId) {
-    await grantAccountantAccess({
-      email,
-      spreadsheetId: updated.spreadsheetId
-    });
+    try {
+      await grantAccountantAccess({
+        email,
+        spreadsheetId: updated.spreadsheetId
+      });
+
+      return prisma.accountingReport.update({
+        data: {
+          lastSyncError: null
+        },
+        where: { id: updated.id }
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Неизвестная ошибка Google API";
+
+      return prisma.accountingReport.update({
+        data: {
+          lastSyncedAt: new Date(),
+          lastSyncError: message,
+          lastSyncStatus: "ERROR"
+        },
+        where: { id: updated.id }
+      });
+    }
   }
 
   return updated;
@@ -861,6 +923,7 @@ export async function updateAccountingSpreadsheet(params: {
 
   return prisma.accountingReport.update({
     data: {
+      lastSyncError: null,
       spreadsheetId,
       spreadsheetUrl: spreadsheetId ? spreadsheetUrl(spreadsheetId) : null
     },
