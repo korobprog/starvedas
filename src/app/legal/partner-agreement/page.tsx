@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { MarkdownContent } from "@/components/markdown-content";
 import { partnerAgreementMarkdown } from "@/lib/partner-agreement-content";
+import { getPartnerProgramAgreementText } from "@/server/partner-applications";
 
 export const metadata: Metadata = {
   title: "Партнёрское соглашение, StarVedas",
@@ -9,12 +10,17 @@ export const metadata: Metadata = {
     "Документ партнёрской программы StarVedas для кураторов и партнёров."
 };
 
-export default function PartnerAgreementPage() {
+export const dynamic = "force-dynamic";
+
+export default async function PartnerAgreementPage() {
+  const savedAgreementText = await getPartnerProgramAgreementText();
+  const content = savedAgreementText.trim() || partnerAgreementMarkdown;
+
   return (
     <main className="legal-page">
       <article className="legal-card">
         <p className="eyebrow">Юридические документы</p>
-        <MarkdownContent content={partnerAgreementMarkdown} />
+        <MarkdownContent content={content} />
 
         <div className="legal-actions">
           <Link className="button button--primary" href="/cabinet">
