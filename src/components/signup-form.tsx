@@ -413,6 +413,7 @@ function PaymentInstructionsBox({
 export function SignupForm({
   assignedCurator,
   brandName,
+  highlightMonthlyPassBonus = false,
   initialServiceSlug,
   locale,
   paymentProviders,
@@ -421,6 +422,7 @@ export function SignupForm({
 }: {
   assignedCurator: AssignedCurator;
   brandName: string;
+  highlightMonthlyPassBonus?: boolean;
   initialServiceSlug?: string;
   locale?: string | null;
   paymentProviders: PaymentProviderOption[];
@@ -1193,22 +1195,36 @@ export function SignupForm({
         <fieldset className="form-step">
           <legend>{copy.legend.ceremony}</legend>
           <div className="option-grid">
-            {services.map((service) => (
-              <label
-                className="choice-card choice-card--stacked"
-                key={service.slug}
-              >
-                <input
-                  checked={serviceSlug === service.slug}
-                  name="service"
-                  onChange={() => selectService(service.slug)}
-                  type="radio"
-                  value={service.slug}
-                />
-                <span>{service.title}</span>
-                <small>{service.priceLabel}</small>
-              </label>
-            ))}
+            {services.map((service) => {
+              const showMonthlyPassBonus =
+                highlightMonthlyPassBonus && service.slug === "monthly-pass";
+
+              return (
+                <label
+                  className={
+                    showMonthlyPassBonus
+                      ? "choice-card choice-card--stacked choice-card--bonus"
+                      : "choice-card choice-card--stacked"
+                  }
+                  key={service.slug}
+                >
+                  <input
+                    checked={serviceSlug === service.slug}
+                    name="service"
+                    onChange={() => selectService(service.slug)}
+                    type="radio"
+                    value={service.slug}
+                  />
+                  <span>{service.title}</span>
+                  <small>{service.priceLabel}</small>
+                  {showMonthlyPassBonus && (
+                    <small className="service-gift-note service-gift-note--compact">
+                      🎁 Бонус: ведическая астрология — разбор
+                    </small>
+                  )}
+                </label>
+              );
+            })}
           </div>
 
           {isSingleRiteSelected && (
