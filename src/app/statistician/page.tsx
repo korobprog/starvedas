@@ -1,10 +1,12 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { ParticipantListsPanel } from "@/components/participant-lists-panel";
+import { VedicGiftRequestsPanel } from "@/components/vedic-gift-requests-panel";
 import { isAdminRole, requireUser } from "@/server/auth";
 import { logoutAction } from "@/server/auth-actions";
 import { getStatisticianParticipantLists } from "@/server/participant-lists";
 import { hasAcceptedStatisticianRole } from "@/server/statistician-role";
+import { getVedicGiftRequests } from "@/server/vedic-gifts";
 import {
   acceptStatisticianRoleAction,
   leaveStatisticianRoleAction
@@ -19,7 +21,10 @@ export default async function StatisticianPage() {
   );
   const adminUser = isAdminRole(user.role);
   const acceptedStatisticianRole = await hasAcceptedStatisticianRole(user);
-  const lists = await getStatisticianParticipantLists();
+  const [lists, vedicGiftRequests] = await Promise.all([
+    getStatisticianParticipantLists(),
+    getVedicGiftRequests()
+  ]);
   const newCount = lists.filter((list) => list.status === "NEW").length;
   const clarificationCount = lists.filter(
     (list) => list.status === "NEEDS_CLARIFICATION"
@@ -112,6 +117,8 @@ export default async function StatisticianPage() {
             </div>
           </div>
         </section>
+
+        <VedicGiftRequestsPanel requests={vedicGiftRequests} />
 
         <ParticipantListsPanel
           emptyText="Оплаченных списков участников пока нет."

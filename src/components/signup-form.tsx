@@ -1012,10 +1012,7 @@ export function SignupForm({
         }
       }
 
-      if (
-        step === 2 &&
-        (!hasContact || !isCustomerPhoneValid)
-      ) {
+      if (step === 2 && (!hasContact || !isCustomerPhoneValid)) {
         return;
       }
 

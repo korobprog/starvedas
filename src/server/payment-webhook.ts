@@ -330,15 +330,15 @@ export async function handlePaymentWebhook({
         sourceDomain: order.sourceDomain,
         statusText: "оплачен"
       });
-    } catch {
-      console.error("Telegram payment notification failed");
+    } catch (error) {
+      console.error("Telegram payment notification failed", error);
     }
   }
 
   try {
     await sendPaymentStatusEmail(order.id, paymentStatus);
-  } catch {
-    console.error("Payment status email failed");
+  } catch (error) {
+    console.error("Payment status email failed", error);
   }
 
   return NextResponse.json({ ok: true });

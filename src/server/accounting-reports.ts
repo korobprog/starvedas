@@ -174,7 +174,7 @@ function createServiceAccountJwt(credentials: GoogleCredentials) {
   return `${unsignedJwt}.${base64Url(signature)}`;
 }
 
-function googlePermissionHint(operation: string) {
+function googlePermissionHint(operation: string, status?: number) {
   const serviceAccountEmail = getGoogleServiceAccountEmail();
   const accountHint = serviceAccountEmail ? ` (${serviceAccountEmail})` : "";
 
@@ -189,6 +189,10 @@ function googlePermissionHint(operation: string) {
     operation === "clear spreadsheet values" ||
     operation === "update spreadsheet values"
   ) {
+    if (status === 404) {
+      return `Google не видит эту таблицу для сервисного аккаунта${accountHint}. Проверьте, что ID/ссылка таблицы корректные и что таблица расшарена сервисному аккаунту с правами Editor. Если таблица лежит на Shared Drive, запрос выполняется с supportsAllDrives=true — повторите действие после сохранения.`;
+    }
+
     return `Проверьте, что Google таблица расшарена сервисному аккаунту${accountHint} с правами Editor, а затем повторите действие.`;
   }
 
@@ -252,7 +256,10 @@ async function googleApi<T>(
 
     const operation = init.operation ?? `${init.method ?? "GET"} ${new URL(url).pathname}`;
     const message = error?.error?.message ?? response.statusText;
-    const hint = response.status === 403 ? googlePermissionHint(operation) : "";
+    const hint =
+      response.status === 403 || response.status === 404
+        ? googlePermissionHint(operation, response.status)
+        : "";
 
     throw new Error(
       `Google API ${operation} failed (${response.status}): ${message}${hint ? `. ${hint}` : ""}`
@@ -698,7 +705,7 @@ async function grantAccountantAccess(params: {
   spreadsheetId: string;
 }) {
   await googleApi(
-    `https://www.googleapis.com/drive/v3/files/${params.spreadsheetId}/permissions?sendNotificationEmail=true`,
+    `https://www.googleapis.com/drive/v3/files/${params.spreadsheetId}/permissions?sendNotificationEmail=true&supportsAllDrives=true`,
     {
       body: JSON.stringify({
         emailAddress: params.email,

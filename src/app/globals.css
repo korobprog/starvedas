@@ -3434,7 +3434,6 @@ a.button[aria-disabled="true"] {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
-
 .service-gift-note {
   display: grid;
   gap: 4px;
@@ -3448,6 +3447,10 @@ a.button[aria-disabled="true"] {
   line-height: 1.45;
 }
 
+.service-gift-note strong {
+  font-weight: 900;
+}
+
 .service-gift-note--compact {
   margin-top: 2px;
   border-color: rgb(163 82 25 / 42%);
@@ -3456,4 +3459,79 @@ a.button[aria-disabled="true"] {
   color: var(--primary-dark);
   font-weight: 800;
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 62%);
+}
+
+.vedic-gift-form,
+.vedic-gift-form-success {
+  display: grid;
+  gap: 16px;
+}
+
+.vedic-gift-form h3,
+.vedic-gift-form-success h3 {
+  margin: 0;
+  color: var(--primary-dark);
+  font-size: 1.35rem;
+}
+
+.vedic-gift-form__lead,
+.vedic-gift-form-success p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.form-field {
+  display: grid;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.form-field--full {
+  grid-column: 1 / -1;
+}
+
+.form-field input,
+.form-field textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+.form-field input:disabled {
+  background: var(--surface-warm);
+  color: var(--muted);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
+.vedic-gift-table td {
+  vertical-align: top;
+}
+
+@media (max-width: 720px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }

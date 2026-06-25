@@ -130,13 +130,13 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  curator                 Curator?
-  clientProfile           ClientProfile?
-  changedStatuses         LeadStatusHistory[]
-  changedParticipants     ParticipantChangeHistory[]
+  curator                     Curator?
+  clientProfile               ClientProfile?
+  changedStatuses             LeadStatusHistory[]
+  changedParticipants         ParticipantChangeHistory[]
   reviewedPartnerApplications CuratorPartnerApplication[]
-  participantListChanges  ParticipantListChange[]
-  participantListMessages ParticipantListMessage[]
+  participantListChanges      ParticipantListChange[]
+  participantListMessages     ParticipantListMessage[]
 }
 
 model Curator {
@@ -164,12 +164,12 @@ model Curator {
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
-  user           User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
-  clients        ClientProfile[]
-  clientEvents   ClientEvent[]
-  orders         Order[]
-  referralLinks  ReferralLink[]
-  paymentOptions CuratorPaymentOption[]
+  user               User?                      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  clients            ClientProfile[]
+  clientEvents       ClientEvent[]
+  orders             Order[]
+  referralLinks      ReferralLink[]
+  paymentOptions     CuratorPaymentOption[]
   partnerApplication CuratorPartnerApplication?
 }
 
@@ -191,7 +191,7 @@ model CuratorPartnerApplication {
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
 
-  curatorId    String @unique
+  curatorId    String  @unique
   reviewedById String?
 
   curator    Curator @relation(fields: [curatorId], references: [id], onDelete: Cascade)
@@ -333,8 +333,8 @@ model ClientProfile {
   curatorId String?
   userId    String? @unique
 
-  curator Curator?      @relation(fields: [curatorId], references: [id], onDelete: SetNull)
-  user    User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  curator           Curator?           @relation(fields: [curatorId], references: [id], onDelete: SetNull)
+  user              User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
   events            ClientEvent[]
   orders            Order[]
   savedParticipants SavedParticipant[]
@@ -416,6 +416,7 @@ model Order {
   payment         Payment?
   statusHistory   LeadStatusHistory[]
   participantList ParticipantList?
+  vedicGiftData   VedicGiftData?
 
   @@index([sourceDomain])
   @@index([referralSlug])
@@ -685,4 +686,27 @@ model ParticipantChangeHistory {
 
   @@index([participantId])
   @@index([changedById])
+}
+
+model VedicGiftData {
+  id               String   @id @default(cuid())
+  lastName         String
+  firstName        String
+  email            String
+  birthDate        DateTime
+  birthTime        String?
+  birthTimeUnknown Boolean  @default(false)
+  phone            String?
+  telegram         String?
+  notes            String?
+  processed        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  orderId String? @unique
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([processed])
+  @@index([createdAt])
 }

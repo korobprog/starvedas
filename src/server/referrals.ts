@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { slugifyReferralValue } from "@/lib/slugs";
 import { prisma } from "@/lib/prisma";
 
 export const adminCuratorSlug = "administrator";
@@ -41,6 +42,10 @@ function decodeSlug(slug: string) {
 }
 
 function normalizeSlug(slug: string | undefined) {
+  return slug ? slugifyReferralValue(decodeSlug(slug).normalize("NFC")) : "";
+}
+
+function normalizeLegacySlug(slug: string | undefined) {
   return slug
     ? decodeSlug(slug)
         .normalize("NFC")
@@ -50,6 +55,12 @@ function normalizeSlug(slug: string | undefined) {
         .replace(/[^a-zа-я0-9]+/g, "-")
         .replace(/^-+|-+$/g, "")
     : "";
+}
+
+function slugLookupValues(slug: string | undefined) {
+  return Array.from(
+    new Set([normalizeSlug(slug), normalizeLegacySlug(slug)].filter(Boolean))
+  );
 }
 
 export function normalizeReferralSlug(slug: string | undefined) {
@@ -151,9 +162,9 @@ export async function ensureSystemCurator() {
 }
 
 export async function findActiveCuratorBySlug(slug: string) {
-  const normalizedSlug = normalizeSlug(slug);
+  const slugs = slugLookupValues(slug);
 
-  if (!normalizedSlug) {
+  if (slugs.length === 0) {
     return null;
   }
 
@@ -161,23 +172,27 @@ export async function findActiveCuratorBySlug(slug: string) {
     where: {
       active: true,
       hidden: false,
-      slug: normalizedSlug
+      slug: {
+        in: slugs
+      }
     },
     select: publicCuratorSelect
   });
 }
 
 export async function findActiveCuratorByReferralSlug(slug: string) {
-  const normalizedSlug = normalizeSlug(slug);
+  const slugs = slugLookupValues(slug);
 
-  if (!normalizedSlug) {
+  if (slugs.length === 0) {
     return null;
   }
 
   const referralLink = await prisma.referralLink.findFirst({
     where: {
       active: true,
-      slug: normalizedSlug,
+      slug: {
+        in: slugs
+      },
       curator: {
         active: true,
         hidden: false

@@ -34,7 +34,10 @@ export default async function AdminSchedulePage({
   const params = await searchParams;
   const copy = getAdminCopy(cookieStore.get(localeCookieName)?.value);
   const schedules = await getSchedules();
-  const activeSchedule = schedules.find((schedule) => schedule.active);
+  const activeSchedule =
+    schedules.find(
+      (schedule) => schedule.active && schedule.id !== "seed-active-schedule"
+    ) ?? schedules.find((schedule) => schedule.active);
 
   return (
     <div className="admin-grid">

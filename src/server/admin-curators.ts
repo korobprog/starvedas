@@ -1,7 +1,9 @@
 import { headers } from "next/headers";
 import { Prisma } from "@prisma/client";
+import { slugifyReferralValue } from "@/lib/slugs";
 import { prisma } from "@/lib/prisma";
 import {
+  adminCuratorSlug,
   buildReferralPath,
   buildReferralUrl,
   ensureSystemCurator
@@ -73,8 +75,124 @@ export async function getAdminOrigin() {
   );
 }
 
+async function createUniqueLatinReferralSlug(value: string, currentId: string) {
+  const base =
+    slugifyReferralValue(value) ||
+    `curator-${currentId.slice(0, 8).toLocaleLowerCase("en")}`;
+  let slug = base;
+  let index = 2;
+
+  while (true) {
+    const [curator, referralLink] = await Promise.all([
+      prisma.curator.findFirst({
+        where: {
+          id: { not: currentId },
+          slug
+        },
+        select: { id: true }
+      }),
+      prisma.referralLink.findFirst({
+        where: {
+          curatorId: { not: currentId },
+          slug
+        },
+        select: { id: true }
+      })
+    ]);
+
+    if (!curator && !referralLink) {
+      return slug;
+    }
+
+    slug = `${base}-${index}`;
+    index += 1;
+  }
+}
+
+async function normalizeCuratorReferralSlugs() {
+  const curators = await prisma.curator.findMany({
+    select: {
+      id: true,
+      isSystem: true,
+      name: true,
+      referralLinks: {
+        orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+        select: {
+          id: true,
+          isPrimary: true,
+          slug: true
+        }
+      },
+      slug: true
+    }
+  });
+
+  for (const curator of curators) {
+    const primarySlug =
+      curator.referralLinks.find((link) => link.isPrimary)?.slug ??
+      curator.slug;
+    const normalizedSlug = curator.isSystem
+      ? adminCuratorSlug
+      : await createUniqueLatinReferralSlug(
+          primarySlug || curator.slug || curator.name,
+          curator.id
+        );
+
+    if (normalizedSlug === primarySlug && normalizedSlug === curator.slug) {
+      continue;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.curator.update({
+        where: { id: curator.id },
+        data: {
+          slug: normalizedSlug
+        }
+      });
+
+      await tx.referralLink.updateMany({
+        where: {
+          curatorId: curator.id,
+          slug: { not: normalizedSlug }
+        },
+        data: {
+          isPrimary: false
+        }
+      });
+
+      const existingLink = await tx.referralLink.findUnique({
+        where: { slug: normalizedSlug },
+        select: { curatorId: true, id: true }
+      });
+
+      if (existingLink?.curatorId === curator.id) {
+        await tx.referralLink.update({
+          where: { id: existingLink.id },
+          data: {
+            active: true,
+            isPrimary: true
+          }
+        });
+        return;
+      }
+
+      if (!existingLink) {
+        await tx.referralLink.create({
+          data: {
+            active: true,
+            curatorId: curator.id,
+            isPrimary: true,
+            slug: normalizedSlug
+          }
+        });
+      }
+    });
+  }
+}
+
 export async function getAdminCurators() {
   await ensureSystemCurator();
+  await normalizeCuratorReferralSlugs();
 
   return prisma.curator.findMany({
     orderBy: [{ isSystem: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
@@ -84,6 +202,7 @@ export async function getAdminCurators() {
 
 export async function getAdminCurator(id: string) {
   await ensureSystemCurator();
+  await normalizeCuratorReferralSlugs();
 
   return prisma.curator.findUnique({
     where: { id },

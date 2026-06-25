@@ -512,14 +512,14 @@ export async function POST(request: Request) {
           ? "ожидает проверки оплаты"
           : "ожидает оплаты"
       });
-    } catch {
-      console.error("Telegram order notification failed");
+    } catch (error) {
+      console.error("Telegram order notification failed", error);
     }
 
     try {
       await sendOrderCreatedEmail(order.id);
-    } catch {
-      console.error("Order created email failed");
+    } catch (error) {
+      console.error("Order created email failed", error);
     }
 
     return NextResponse.json({
@@ -539,8 +539,8 @@ export async function POST(request: Request) {
       supportEnabled,
       supportUrl: curator.supportUrl
     });
-  } catch {
-    console.error("Order creation failed");
+  } catch (error) {
+    console.error("Order creation failed", error);
 
     return NextResponse.json(
       { message: "Не удалось создать заказ" },

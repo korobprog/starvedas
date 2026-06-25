@@ -362,19 +362,21 @@ async function main() {
     );
   }
 
-  await prisma.schedule.upsert({
-    where: { id: "seed-active-schedule" },
-    create: {
-      id: "seed-active-schedule",
-      month: "Июнь 2026",
-      title: "Расписание уточняется",
-      body: "Актуальное расписание будет опубликовано администратором.",
-      active: true
-    },
-    update: {
-      active: true
-    }
+  const existingSchedule = await prisma.schedule.findFirst({
+    select: { id: true }
   });
+
+  if (!existingSchedule) {
+    await prisma.schedule.create({
+      data: {
+        id: "seed-active-schedule",
+        month: "Июнь 2026",
+        title: "Расписание уточняется",
+        body: "Актуальное расписание будет опубликовано администратором.",
+        active: true
+      }
+    });
+  }
 
   await Promise.all(
     paymentMethods.map((method) =>

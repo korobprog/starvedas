@@ -21,15 +21,22 @@ export const dynamic = "force-dynamic";
 
 async function getActiveSchedule() {
   try {
-    return await prisma.schedule.findFirst({
+    const schedules = await prisma.schedule.findMany({
       where: { active: true },
       orderBy: { updatedAt: "desc" },
       select: {
         body: true,
+        id: true,
         month: true,
         title: true
       }
     });
+
+    return (
+      schedules.find((schedule) => schedule.id !== "seed-active-schedule") ??
+      schedules[0] ??
+      null
+    );
   } catch {
     return null;
   }
@@ -154,6 +161,14 @@ export default async function Home({
                 <h3>{service.title}</h3>
                 <p>{service.description}</p>
                 <span className="price">{service.priceLabel}</span>
+                {service.slug === "monthly-pass" && (
+                  <div className="service-gift-note">
+                    <strong>🎁 Подарок при покупке месяца</strong>
+                    <span>
+                      Разбор по ведической астрологии входит в абонемент.
+                    </span>
+                  </div>
+                )}
                 {service.options.length > 0 && (
                   <small>Выбрать обряды списком</small>
                 )}

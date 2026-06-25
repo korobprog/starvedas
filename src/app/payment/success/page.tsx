@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { SupportCta } from "@/components/support-cta";
+import { VedicGiftForm } from "@/components/vedic-gift-form";
 import { getPaymentResultCopy } from "@/i18n/payment-result-copy";
 import { localeCookieName } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
@@ -31,8 +32,31 @@ async function getOrderPostPurchase(publicToken?: string) {
             supportUrl: true
           }
         },
+        id: true,
         orderNumber: true,
-        sourceDomain: true
+        service: {
+          select: {
+            slug: true
+          }
+        },
+        sourceDomain: true,
+        client: {
+          select: {
+            email: true,
+            name: true,
+            phone: true,
+            telegram: true
+          }
+        },
+        customerEmail: true,
+        customerName: true,
+        customerPhone: true,
+        customerTelegram: true,
+        vedicGiftData: {
+          select: {
+            id: true
+          }
+        }
       }
     });
   } catch {
@@ -59,6 +83,15 @@ export default async function PaymentSuccessPage({
         sourceDomain
       })
     : false;
+
+  const isMonthlyPass = order?.service?.slug === "monthly-pass";
+  const initialContactName = order?.client?.name ?? order?.customerName;
+  const initialContactEmail =
+    order?.client?.email ?? order?.customerEmail ?? undefined;
+  const initialContactPhone =
+    order?.client?.phone ?? order?.customerPhone ?? undefined;
+  const initialContactTelegram =
+    order?.client?.telegram ?? order?.customerTelegram ?? undefined;
 
   return (
     <main className="simple-page">
@@ -105,6 +138,18 @@ export default async function PaymentSuccessPage({
           {copy.success.backHome}
         </Link>
       </section>
+      {isMonthlyPass && order?.service && order?.curator && order?.id && (
+        <section className="simple-card">
+          <VedicGiftForm
+            alreadySubmitted={Boolean(order.vedicGiftData)}
+            initialEmail={initialContactEmail}
+            initialName={initialContactName}
+            initialPhone={initialContactPhone}
+            initialTelegram={initialContactTelegram}
+            orderId={order.id}
+          />
+        </section>
+      )}
     </main>
   );
 }

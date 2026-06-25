@@ -23,7 +23,24 @@ function run(command, args) {
   });
 }
 
-function start(command, args, label) {
+function trimEnv(name) {
+  return process.env[name]?.trim() || "";
+}
+
+function hasCuratorBotToken() {
+  return Boolean(
+    trimEnv("CURATOR_TELEGRAM_BOT_TOKEN") || trimEnv("TELEGRAM_BOT_TOKEN")
+  );
+}
+
+function isCuratorPollingDisabled() {
+  return trimEnv("CURATOR_TELEGRAM_POLLING_DISABLED") === "1";
+}
+
+function start(command, args, label, options = {}) {
+  const restart = options.restart ?? false;
+  const restartDelayMs = options.restartDelayMs ?? 5000;
+
   console.log(`[startup] starting ${label}: ${command} ${args.join(" ")}`);
   const child = spawn(command, args, { stdio: "inherit" });
   children.add(child);
@@ -32,6 +49,16 @@ function start(command, args, label) {
     console.log(`[startup] ${label} exited with code ${code ?? "null"} signal ${signal ?? "null"}`);
     if (label === "server") {
       shutdown(code ?? 1);
+      return;
+    }
+
+    if (restart && !shuttingDown) {
+      console.log(`[startup] restarting ${label} in ${restartDelayMs}ms`);
+      setTimeout(() => {
+        if (!shuttingDown) {
+          start(command, args, label, options);
+        }
+      }, restartDelayMs).unref();
     }
   });
   child.once("error", (error) => {
@@ -64,7 +91,13 @@ try {
   await run("node", ["scripts/repair-accounting-migration.mjs"]);
   await run("npx", ["prisma", "migrate", "deploy"]);
   await run("npx", ["prisma", "db", "seed"]);
-  start("node", ["scripts/curator-bot-poller.mjs"], "curator-poller");
+  if (hasCuratorBotToken() && !isCuratorPollingDisabled()) {
+    start("node", ["scripts/curator-bot-poller.mjs"], "curator-poller", {
+      restart: true
+    });
+  } else {
+    console.log("[startup] curator-poller skipped: token missing or polling disabled");
+  }
   start("node", ["server.js"], "server");
 } catch (error) {
   console.error("[startup] failed", error);

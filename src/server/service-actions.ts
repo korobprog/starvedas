@@ -185,6 +185,58 @@ function parseMoscowDateTime(value: string | undefined) {
   return date;
 }
 
+function normalizeTemplateTitle(value?: string | null) {
+  return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function parseBulkDateTime(line: string) {
+  const match = line.match(
+    /(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?(?:[,\s]+(\d{1,2}):(\d{2}))?/
+  );
+
+  if (!match) {
+    return {
+      eventStartsAt: null,
+      lineWithoutDate: line
+    };
+  }
+
+  const [, day, month, yearValue, hour = "7", minute = "00"] = match;
+  const currentYear = new Date().getFullYear();
+  const fullYear = yearValue
+    ? Number(yearValue.length === 2 ? `20${yearValue}` : yearValue)
+    : currentYear;
+  const eventStartsAt = parseMoscowDateTime(
+    `${fullYear}-${month.padStart(2, "0")}-${day.padStart(
+      2,
+      "0"
+    )}T${hour.padStart(2, "0")}:${minute}`
+  );
+
+  return {
+    eventStartsAt,
+    lineWithoutDate: `${line.slice(0, match.index)} ${line.slice(
+      (match.index ?? 0) + match[0].length
+    )}`.trim()
+  };
+}
+
+function parseBulkPrice(line: string) {
+  const match = line.match(/(?:^|[\s—–-])(\d[\d\s]*)\s*(?:руб\.?|₽|rub)?\s*$/i);
+
+  if (!match) {
+    return {
+      lineWithoutPrice: line,
+      priceRub: null
+    };
+  }
+
+  return {
+    lineWithoutPrice: line.slice(0, match.index).trim(),
+    priceRub: Number(match[1].replace(/\s+/g, ""))
+  };
+}
+
 function parseServiceOptionsFormData(formData: FormData) {
   const ids = getAllFormValues(formData, "optionId");
   const titles = getAllFormValues(formData, "optionTitle");
@@ -227,6 +279,60 @@ function parseServiceOptionsFormData(formData: FormData) {
 
     return parsed.data;
   });
+}
+
+function parseBulkServiceOptionsFormData(
+  formData: FormData,
+  sourceOptions: ParsedServiceOption[]
+) {
+  const bulkText = String(formData.get("optionBulkText") ?? "").trim();
+
+  if (!bulkText) {
+    return [];
+  }
+
+  return bulkText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index): ParsedServiceOption | null => {
+      const { eventStartsAt, lineWithoutDate } = parseBulkDateTime(line);
+      const { lineWithoutPrice, priceRub } = parseBulkPrice(lineWithoutDate);
+      const parts = lineWithoutPrice
+        .replace(/^[—–-]\s*/, "")
+        .split(/\s+[—–-]\s+/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+      const title = parts[0] ?? "";
+
+      if (!title) {
+        return null;
+      }
+
+      const template = sourceOptions.find(
+        (option) =>
+          normalizeTemplateTitle(option.title) === normalizeTemplateTitle(title)
+      );
+
+      return {
+        active: true,
+        delete: false,
+        description: parts.slice(1).join(" — ") || template?.description || null,
+        descriptionEn: template?.descriptionEn ?? null,
+        descriptionHi: template?.descriptionHi ?? null,
+        eventStartsAt,
+        id: undefined,
+        priceInr: template?.priceInr ?? null,
+        priceRub: priceRub ?? template?.priceRub ?? 0,
+        priceUnit: template?.priceUnit ?? "PER_PARTICIPANT",
+        priceUsd: template?.priceUsd ?? null,
+        sortOrder: sourceOptions.length + index + 1,
+        title,
+        titleEn: template?.titleEn ?? null,
+        titleHi: template?.titleHi ?? null
+      };
+    })
+    .filter((option): option is ParsedServiceOption => Boolean(option));
 }
 
 function compareParsedOptionsByDate(
@@ -373,8 +479,12 @@ export async function createService(formData: FormData) {
   await requireServiceManager();
 
   const data = parseServiceFormData(formData);
+  const formOptions = parseServiceOptionsFormData(formData);
   const options = normalizeOptionSortOrders(
-    parseServiceOptionsFormData(formData)
+    [
+      ...formOptions,
+      ...parseBulkServiceOptionsFormData(formData, formOptions)
+    ]
   );
   let serviceId = "";
 
@@ -400,8 +510,12 @@ export async function updateService(formData: FormData) {
   await requireServiceManager();
 
   const data = parseServiceUpdateFormData(formData);
+  const formOptions = parseServiceOptionsFormData(formData);
   const options = normalizeOptionSortOrders(
-    parseServiceOptionsFormData(formData)
+    [
+      ...formOptions,
+      ...parseBulkServiceOptionsFormData(formData, formOptions)
+    ]
   );
 
   try {

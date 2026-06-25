@@ -1,10 +1,3 @@
-[mcp_servers.dokploy-mcp]
-command = "npx"
-args = [
-    "-y",
-    "@dokploy/mcp",
-]
-
-[mcp_servers.dokploy-mcp.env]
-DOKPLOY_URL = "https://dokploy.vedamatch.ru"
-DOKPLOY_API_KEY = "qwen_appQwLOiePdGlMwjoitSiosgDakETvwMNDiPQItvdMIIQcQjPRwbowqtGBzmQhbGwmx"
+# Project-local Codex config intentionally left empty.
+# Dokploy MCP is configured globally in C:\Users\makst\.codex\config.toml.
+# Keeping a duplicate MCP server here caused an extra MCP startup only in StarVedas.

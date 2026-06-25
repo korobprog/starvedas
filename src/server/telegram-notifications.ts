@@ -195,7 +195,11 @@ async function sendTelegramMessage(text: string) {
     );
 
     if (!response.ok) {
-      throw new Error("Telegram sendMessage failed");
+      const body = await response.text().catch(() => "");
+
+      throw new Error(
+        `Telegram sendMessage failed (${response.status} ${response.statusText}): ${body}`.trim()
+      );
     }
 
     return true;
@@ -237,7 +241,11 @@ async function sendTelegramMessageToChat(chatId: string, text: string) {
     );
 
     if (!response.ok) {
-      throw new Error("Telegram sendMessage failed");
+      const body = await response.text().catch(() => "");
+
+      throw new Error(
+        `Telegram sendMessage failed (${response.status} ${response.statusText}): ${body}`.trim()
+      );
     }
 
     return true;
