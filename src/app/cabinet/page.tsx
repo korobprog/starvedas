@@ -9,6 +9,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { ClientsTable } from "@/components/clients-table";
 import { ParticipantsTable } from "@/components/participants-table";
+import { PartnerApplicationGate } from "@/components/partner-application-gate";
 import { ParticipantListsPanel } from "@/components/participant-lists-panel";
 import { ReferralLinkTools } from "@/components/referral-link-tools";
 import { ServiceEditorList } from "@/components/service-form";
@@ -47,6 +48,7 @@ import {
   getCuratorTelegramBotUsername
 } from "@/server/telegram-mini-app";
 import { getManagedServices } from "@/server/services";
+import { getPartnerProgramAgreementText } from "@/server/partner-applications";
 
 export const dynamic = "force-dynamic";
 
@@ -136,6 +138,22 @@ const cabinetCuratorSelect = Prisma.validator<Prisma.CuratorSelect>()({
   postPurchaseText: true,
   postPurchaseTitle: true,
   postPurchaseUrl: true,
+  partnerApplication: {
+    select: {
+      adminComment: true,
+      bankDetails: true,
+      comment: true,
+      createdAt: true,
+      email: true,
+      fullName: true,
+      inn: true,
+      ogrnip: true,
+      phone: true,
+      registrationAddress: true,
+      status: true,
+      type: true
+    }
+  },
   showMailingConsentCheckbox: true,
   referralLinks: {
     orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
@@ -824,7 +842,8 @@ export default async function CabinetPage({
     awaitingCustomOrders,
     participantLists,
     managedServices,
-    referralStats
+    referralStats,
+    partnerProgramAgreementText
   ] = await Promise.all([
     getCuratorPaymentProviderSettings(curator.id),
     canViewClients
@@ -844,7 +863,8 @@ export default async function CabinetPage({
       ? getCuratorParticipantLists(curator.id)
       : Promise.resolve([]),
     serviceManagementAccess ? getManagedServices() : Promise.resolve([]),
-    canViewClients ? getReferralStats(curator.id) : Promise.resolve(new Map())
+    canViewClients ? getReferralStats(curator.id) : Promise.resolve(new Map()),
+    getPartnerProgramAgreementText()
   ]);
   const enabledPaymentSettings = paymentSettings.filter(
     (provider) => provider.active && provider.allowed
@@ -884,6 +904,8 @@ export default async function CabinetPage({
   });
   const telegramDisplayName = telegramProfile.name || curator.name;
   const telegramInitials = getInitials(telegramDisplayName);
+  const canCreatePartnerReferralLinks =
+    curator.partnerApplication?.status === "APPROVED";
 
   return (
     <main
@@ -1004,7 +1026,14 @@ export default async function CabinetPage({
             </section>
           )}
 
-          {activeSection === "overview" && (
+          {activeSection === "overview" && !canCreatePartnerReferralLinks && (
+            <PartnerApplicationGate
+              agreementText={partnerProgramAgreementText}
+              application={curator.partnerApplication}
+            />
+          )}
+
+          {activeSection === "overview" && canCreatePartnerReferralLinks && (
             <section className="admin-card admin-card--wide">
               <div className="admin-card__header">
                 <div>
@@ -1483,8 +1512,15 @@ export default async function CabinetPage({
                               {order.createdAt.toLocaleDateString("ru-RU")}
                             </td>
                             <td>
-                              <form action={savePaymentReceiptAction} className="receipt-form">
-                                <input name="orderId" type="hidden" value={order.id} />
+                              <form
+                                action={savePaymentReceiptAction}
+                                className="receipt-form"
+                              >
+                                <input
+                                  name="orderId"
+                                  type="hidden"
+                                  value={order.id}
+                                />
                                 <input
                                   className="table-input"
                                   defaultValue={order.payment?.receiptUrl ?? ""}
@@ -1494,16 +1530,25 @@ export default async function CabinetPage({
                                 />
                                 <input
                                   className="table-input"
-                                  defaultValue={order.payment?.receiptLabel ?? ""}
+                                  defaultValue={
+                                    order.payment?.receiptLabel ?? ""
+                                  }
                                   name="receiptLabel"
                                   placeholder="Название"
                                   type="text"
                                 />
-                                <button className="button button--small" type="submit">
+                                <button
+                                  className="button button--small"
+                                  type="submit"
+                                >
                                   Сохранить чек
                                 </button>
                                 {order.payment?.receiptUrl && (
-                                  <a href={order.payment.receiptUrl} rel="noreferrer" target="_blank">
+                                  <a
+                                    href={order.payment.receiptUrl}
+                                    rel="noreferrer"
+                                    target="_blank"
+                                  >
                                     Открыть чек
                                   </a>
                                 )}
@@ -1796,8 +1841,15 @@ export default async function CabinetPage({
                           </td>
                           <td>{formatContacts(order) || "Не указаны"}</td>
                           <td>
-                            <form action={savePaymentReceiptAction} className="receipt-form">
-                              <input name="orderId" type="hidden" value={order.id} />
+                            <form
+                              action={savePaymentReceiptAction}
+                              className="receipt-form"
+                            >
+                              <input
+                                name="orderId"
+                                type="hidden"
+                                value={order.id}
+                              />
                               <input
                                 className="table-input"
                                 defaultValue={order.payment?.receiptUrl ?? ""}
@@ -1812,11 +1864,18 @@ export default async function CabinetPage({
                                 placeholder="Название"
                                 type="text"
                               />
-                              <button className="button button--small" type="submit">
+                              <button
+                                className="button button--small"
+                                type="submit"
+                              >
                                 Сохранить
                               </button>
                               {order.payment?.receiptUrl && (
-                                <a href={order.payment.receiptUrl} rel="noreferrer" target="_blank">
+                                <a
+                                  href={order.payment.receiptUrl}
+                                  rel="noreferrer"
+                                  target="_blank"
+                                >
                                   Открыть
                                 </a>
                               )}

@@ -11,6 +11,7 @@ import {
   saveOfferMarkdown,
   setCuratorServicePermission
 } from "@/server/organization-actions";
+import { savePartnerProgramAgreementText } from "@/server/partner-applications";
 import { getEditableOfferDocument } from "@/server/legal-documents";
 
 export const dynamic = "force-dynamic";
@@ -235,6 +236,28 @@ export default async function AdminOrganizationPage() {
           </label>
           <button className="button button--primary" type="submit">
             Сохранить оферту
+          </button>
+        </form>
+      </section>
+
+      <section className="admin-card">
+        <h2>Правила партнёрской программы</h2>
+        <form action={savePartnerProgramAgreementText} className="admin-form">
+          <label className="field">
+            <span>Текст принятия правил партнёрской программы</span>
+            <textarea
+              defaultValue={settings?.partnerProgramAgreementText ?? ""}
+              name="partnerProgramAgreementText"
+              placeholder="Вставьте текст правил, который куратор должен принять перед отправкой заявки на партнёрские ссылки."
+              rows={10}
+            />
+          </label>
+          <p className="admin-muted">
+            Этот текст показывается кураторам в кабинете перед отправкой данных
+            ИП или самозанятого на модерацию.
+          </p>
+          <button className="button button--primary" type="submit">
+            Сохранить правила
           </button>
         </form>
       </section>
