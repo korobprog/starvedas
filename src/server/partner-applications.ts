@@ -195,4 +195,5 @@ export async function savePartnerProgramAgreementText(formData: FormData) {
 
   revalidatePath("/admin/organization");
   revalidatePath("/cabinet");
+  revalidatePath("/legal/partner-agreement");
 }

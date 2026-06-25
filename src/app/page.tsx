@@ -238,6 +238,9 @@ export default async function Home({
                 supportEnabled: curatorSupportEnabled
               }}
               brandName={brand.name}
+              highlightMonthlyPassBonus={
+                brand.sourceDomain === "chintamanidhama.ru"
+              }
               initialServiceSlug={initialServiceSlug}
               locale={locale}
               paymentProviders={paymentProviders}
