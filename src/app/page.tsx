@@ -291,6 +291,9 @@ export default async function Home({
             <a href="/legal/offer" rel="noreferrer" target="_blank">
               {copy.footer.offer}
             </a>
+            <a href="/legal/partner-agreement" rel="noreferrer" target="_blank">
+              {copy.footer.partnerAgreement}
+            </a>
             <a href="/payment">{copy.footer.payment}</a>
             <a href="/payment/methods">{copy.footer.methods}</a>
             <a href="/payment/security">{copy.footer.security}</a>
