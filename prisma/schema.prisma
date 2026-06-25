@@ -108,6 +108,17 @@ enum ParticipantListMessageRole {
   SYSTEM
 }
 
+enum PartnerApplicationType {
+  IP
+  SELF_EMPLOYED
+}
+
+enum PartnerApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -123,6 +134,7 @@ model User {
   clientProfile           ClientProfile?
   changedStatuses         LeadStatusHistory[]
   changedParticipants     ParticipantChangeHistory[]
+  reviewedPartnerApplications CuratorPartnerApplication[]
   participantListChanges  ParticipantListChange[]
   participantListMessages ParticipantListMessage[]
 }
@@ -158,6 +170,35 @@ model Curator {
   orders         Order[]
   referralLinks  ReferralLink[]
   paymentOptions CuratorPaymentOption[]
+  partnerApplication CuratorPartnerApplication?
+}
+
+model CuratorPartnerApplication {
+  id                  String                   @id @default(cuid())
+  type                PartnerApplicationType
+  status              PartnerApplicationStatus @default(PENDING)
+  fullName            String
+  inn                 String
+  ogrnip              String?
+  registrationAddress String?
+  phone               String
+  email               String?
+  bankDetails         String?
+  comment             String?
+  rulesAccepted       Boolean                  @default(false)
+  adminComment        String?
+  reviewedAt          DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  curatorId    String @unique
+  reviewedById String?
+
+  curator    Curator @relation(fields: [curatorId], references: [id], onDelete: Cascade)
+  reviewedBy User?   @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([reviewedById])
 }
 
 model ReferralLink {
@@ -548,6 +589,7 @@ model OrganizationSettings {
   cashboxDetails                    String?
   allowCuratorManageServices        Boolean    @default(false)
   hideChintamaniAdminSupportButtons Boolean    @default(false)
+  partnerProgramAgreementText       String?
   createdAt                         DateTime   @default(now())
   updatedAt                         DateTime   @updatedAt
 }

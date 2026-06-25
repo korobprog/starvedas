@@ -362,7 +362,10 @@ export async function updateCuratorAction(
   formData: FormData
 ): Promise<UpdateCuratorState> {
   try {
-    await requireUser([UserRole.ADMIN, UserRole.SUPER_ADMIN], "/admin/curators");
+    await requireUser(
+      [UserRole.ADMIN, UserRole.SUPER_ADMIN],
+      "/admin/curators"
+    );
   } catch {
     return { error: "Нет прав для редактирования куратора" };
   }
@@ -454,7 +457,9 @@ export async function updateCuratorAction(
         where: { id: data.id },
         data: {
           active: curator.isSystem ? true : data.active,
-          canEditPostPurchase: curator.isSystem ? true : data.canEditPostPurchase,
+          canEditPostPurchase: curator.isSystem
+            ? true
+            : data.canEditPostPurchase,
           canEditSupport: curator.isSystem ? true : data.canEditSupport,
           canViewClients: curator.isSystem ? true : data.canViewClients,
           hidden: curator.isSystem ? false : data.hidden,
@@ -613,6 +618,19 @@ export async function saveCabinetCuratorSettings(formData: FormData) {
 
 export async function createCabinetReferralLinkAction(formData: FormData) {
   const curatorId = await requireCabinetCuratorId();
+  const approvedPartnerApplication =
+    await prisma.curatorPartnerApplication.findFirst({
+      where: {
+        curatorId,
+        status: "APPROVED"
+      },
+      select: { id: true }
+    });
+
+  if (!approvedPartnerApplication) {
+    throw new Error("Создание партнёрских ссылок доступно после модерации");
+  }
+
   const parsed = curatorReferralLinkSchema
     .omit({ id: true })
     .safeParse({ title: formData.get("title") });

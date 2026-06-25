@@ -43,6 +43,7 @@ export type HomeCopy = {
     detailsPrefix: string;
     methods: string;
     offer: string;
+    partnerAgreement: string;
     payment: string;
     personalData: string;
     privacy: string;
@@ -128,6 +129,7 @@ const copies: Record<Locale, HomeCopy> = {
       detailsPrefix: "Контакты:",
       methods: "Способы оплаты",
       offer: "Оферта",
+      partnerAgreement: "Партнёрское соглашение",
       payment: "Оплата",
       personalData: "Согласие на обработку данных",
       privacy: "Политика конфиденциальности",
@@ -211,6 +213,7 @@ const copies: Record<Locale, HomeCopy> = {
       detailsPrefix: "Contacts:",
       methods: "Payment methods",
       offer: "Offer",
+      partnerAgreement: "Partner agreement",
       payment: "Payment",
       personalData: "Personal data consent",
       privacy: "Privacy policy",
@@ -295,6 +298,7 @@ const copies: Record<Locale, HomeCopy> = {
       detailsPrefix: "संपर्क:",
       methods: "भुगतान तरीके",
       offer: "ऑफ़र",
+      partnerAgreement: "साझेदार समझौता",
       payment: "भुगतान",
       personalData: "व्यक्तिगत डेटा सहमति",
       privacy: "गोपनीयता नीति",

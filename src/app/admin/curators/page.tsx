@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { PartnerApplicationsAdminPanel } from "@/components/partner-applications-admin-panel";
 import { ReferralLinkTools } from "@/components/referral-link-tools";
+import { prisma } from "@/lib/prisma";
 import {
   getAdminCurators,
   getAdminOrigin,
@@ -27,6 +29,34 @@ export default async function AdminCuratorsPage() {
     getAdminCurators(),
     getAdminOrigin()
   ]);
+  const partnerApplications = await prisma.curatorPartnerApplication.findMany({
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    select: {
+      adminComment: true,
+      bankDetails: true,
+      comment: true,
+      createdAt: true,
+      curator: {
+        select: {
+          name: true,
+          user: {
+            select: {
+              email: true
+            }
+          }
+        }
+      },
+      email: true,
+      fullName: true,
+      id: true,
+      inn: true,
+      ogrnip: true,
+      phone: true,
+      registrationAddress: true,
+      status: true,
+      type: true
+    }
+  });
   const totalClients = curators.reduce(
     (total, curator) => total + getClientCount(curator.orders),
     0
@@ -77,6 +107,8 @@ export default async function AdminCuratorsPage() {
           </div>
         </div>
       </section>
+
+      <PartnerApplicationsAdminPanel applications={partnerApplications} />
 
       <section className="admin-card admin-card--wide">
         <div className="admin-card__header">
