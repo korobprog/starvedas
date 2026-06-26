@@ -345,12 +345,14 @@ function getFormScrollBehavior(): ScrollBehavior {
     : "smooth";
 }
 
-function scrollAndFocusForm(target: HTMLElement | null) {
-  target?.scrollIntoView({
-    behavior: getFormScrollBehavior(),
-    block: "start"
-  });
-  target?.focus({ preventScroll: true });
+function scrollAndFocusForm(target: HTMLElement | null | undefined) {
+  if (target && typeof target.scrollIntoView === "function") {
+    target.scrollIntoView({
+      behavior: getFormScrollBehavior(),
+      block: "start"
+    });
+    target.focus({ preventScroll: true });
+  }
 }
 
 function PaymentInstructionsBox({

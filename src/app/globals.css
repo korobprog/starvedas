@@ -625,6 +625,8 @@ select {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .hero h1 {
@@ -1115,6 +1117,77 @@ select {
   box-shadow: var(--shadow);
 }
 
+.schedule-box {
+  animation: scheduleBoxFadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+@keyframes scheduleBoxFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.schedule-box .section__header,
+.schedule-box .button,
+.schedule-box .support-cta {
+  animation: scheduleFadeInUp 0.6s ease-out both;
+}
+
+.schedule-box .section__header {
+  animation-delay: 0.1s;
+}
+
+.schedule-box .button {
+  animation-delay: 0.4s;
+}
+
+.schedule-box .support-cta {
+  animation-delay: 0.5s;
+}
+
+@keyframes scheduleFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.schedule-box .button,
+.schedule-box .button--primary {
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s ease,
+    background 0.25s ease,
+    border-color 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.schedule-box .button--primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  box-shadow: 0 8px 24px rgb(163 82 25 / 20%);
+}
+
+.schedule-box .button--primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgb(163 82 25 / 30%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+}
+
+.schedule-box .button--primary:active {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgb(163 82 25 / 25%);
+}
+
 .schedule-box p,
 .signup-box p {
   color: var(--muted);
@@ -1127,23 +1200,15 @@ select {
   gap: 10px;
 }
 
-.schedule-content span,
-.schedule-preview span {
+.schedule-content span {
   color: var(--primary);
   font-weight: 800;
+  animation: scheduleSlideIn 0.5s ease-out;
 }
 
-.schedule-content h3,
-.schedule-preview h3,
-.schedule-preview p {
+.schedule-content h3 {
   margin: 0;
-}
-
-.schedule-content__text,
-.schedule-content__details {
-  display: grid;
-  gap: 10px;
-  max-width: 680px;
+  animation: scheduleSlideIn 0.5s ease-out 0.1s both;
 }
 
 .schedule-content__text {
@@ -1152,7 +1217,24 @@ select {
 }
 
 .schedule-content__text p {
-  margin: 0;
+  animation: scheduleSlideIn 0.5s ease-out both;
+}
+
+.schedule-content__text p:nth-child(1) { animation-delay: 0.2s; }
+.schedule-content__text p:nth-child(2) { animation-delay: 0.3s; }
+.schedule-content__text p:nth-child(3) { animation-delay: 0.4s; }
+.schedule-content__text p:nth-child(4) { animation-delay: 0.5s; }
+.schedule-content__text p:nth-child(5) { animation-delay: 0.6s; }
+
+@keyframes scheduleSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .schedule-preview p {
@@ -1163,36 +1245,59 @@ select {
   gap: 0;
 }
 
+.schedule-content__details {
+  display: grid;
+  gap: 10px;
+  max-width: 680px;
+}
+
+.schedule-preview span {
+  color: var(--primary);
+  font-weight: 800;
+}
+
+.schedule-preview h3,
+.schedule-preview p {
+  margin: 0;
+}
+
 .schedule-content__toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   justify-self: start;
   width: fit-content;
-  margin-top: 6px;
-  border: 1px solid rgb(163 82 25 / 28%);
+  margin-top: 8px;
+  border: 1.5px solid rgb(163 82 25 / 30%);
   border-radius: 999px;
-  padding: 9px 18px;
-  background: var(--surface-warm);
+  padding: 10px 22px;
+  background: linear-gradient(135deg, var(--surface-warm), #fff);
   color: var(--primary-dark);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 800;
   cursor: pointer;
   list-style: none;
   user-select: none;
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.25s ease,
+    transform 0.2s ease;
+  box-shadow: 0 4px 12px rgb(163 82 25 / 8%);
+  animation: scheduleSlideIn 0.5s ease-out 0.7s both;
 }
 
 .schedule-content__toggle:hover {
   border-color: var(--primary);
-  background: #fff;
-  box-shadow: 0 10px 22px rgb(163 82 25 / 16%);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #fff, var(--surface-warm));
+  box-shadow: 0 8px 24px rgb(163 82 25 / 16%);
+  transform: translateY(-2px);
+}
+
+.schedule-content__toggle:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgb(163 82 25 / 10%);
 }
 
 .schedule-content__toggle:focus-visible {
@@ -1215,7 +1320,7 @@ select {
   content: "";
   transform: translateY(-1px) rotate(45deg);
   transform-origin: center;
-  transition: transform 0.25s ease;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .schedule-content__details[open] .schedule-content__toggle::after {
@@ -2746,7 +2851,8 @@ select {
 
 .accounting-card {
   max-width: 100%;
-  overflow-x: clip;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .accounting-card > *,
@@ -2829,28 +2935,31 @@ a.button[aria-disabled="true"] {
 .accounting-log-table {
   width: 100%;
   min-width: 0;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .accounting-log-table th,
 .accounting-log-table td {
   overflow-wrap: anywhere;
   word-break: break-word;
+  padding: 10px 8px;
 }
 
 .accounting-log-table th:nth-child(1),
 .accounting-log-table td:nth-child(1) {
-  width: 72px;
+  width: 22%;
+  white-space: nowrap;
 }
 
 .accounting-log-table th:nth-child(2),
 .accounting-log-table td:nth-child(2) {
-  width: 90px;
+  width: 14%;
 }
 
 .accounting-log-table th:nth-child(3),
 .accounting-log-table td:nth-child(3) {
-  width: 92px;
+  width: 12%;
+  text-align: center;
 }
 
 .referral-stats-table {
@@ -4013,7 +4122,7 @@ a.button[aria-disabled="true"] {
 
 .admin-summary-list div {
   display: grid;
-  grid-template-columns: minmax(130px, 0.45fr) minmax(0, 1fr);
+  grid-template-columns: minmax(90px, 0.4fr) minmax(0, 1fr);
   gap: 12px;
   min-width: 0;
   border-bottom: 1px solid var(--border);
@@ -4023,6 +4132,8 @@ a.button[aria-disabled="true"] {
 .admin-summary-list dt {
   color: var(--muted);
   font-weight: 700;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .admin-summary-list dd {
@@ -4030,6 +4141,7 @@ a.button[aria-disabled="true"] {
   color: var(--primary-dark);
   font-weight: 800;
   overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .form-error {
