@@ -3,20 +3,6 @@ import { hashPassword } from "../src/server/password";
 
 const prisma = new PrismaClient();
 
-const curators = [
-  "Джая Мангал",
-  "Артем Мещеряков",
-  "Альфия Полесская",
-  "Кхандита дд",
-  "Елена Иневатова",
-  "Анжелика Иневатова",
-  "Кристина Сахута",
-  "Радхика Кешави",
-  "Гауранга Дас",
-  "Фарида Лансарова",
-  "Оджасви Гопи дд"
-];
-
 const services = [
   {
     title: "Абонемент на месяц",
@@ -173,15 +159,6 @@ const paymentProviders = [
   }
 ];
 
-function slugifyName(name: string) {
-  return name
-    .toLocaleLowerCase("ru")
-    .replaceAll(" ", "-")
-    .replaceAll(".", "")
-    .replaceAll("ё", "е")
-    .replace(/[^a-zа-я0-9-]/g, "");
-}
-
 async function main() {
   const adminEmail = process.env.ADMIN_EMAIL?.trim();
   const adminPassword = process.env.ADMIN_PASSWORD?.trim();
@@ -251,42 +228,6 @@ async function main() {
       isPrimary: true
     }
   });
-
-  await Promise.all(
-    curators.map(async (name, index) => {
-      const curator = await prisma.curator.upsert({
-        where: { slug: slugifyName(name) },
-        create: {
-          canEditPostPurchase: true,
-          canEditSupport: true,
-          canViewClients: true,
-          name,
-          slug: slugifyName(name),
-          sortOrder: index + 1
-        },
-        update: {
-          name,
-          sortOrder: index + 1,
-          active: true
-        }
-      });
-
-      await prisma.referralLink.upsert({
-        where: { slug: curator.slug },
-        create: {
-          active: true,
-          curatorId: curator.id,
-          isPrimary: true,
-          slug: curator.slug
-        },
-        update: {
-          active: true,
-          curatorId: curator.id,
-          isPrimary: true
-        }
-      });
-    })
-  );
 
   await Promise.all(
     services.map((service, index) =>
