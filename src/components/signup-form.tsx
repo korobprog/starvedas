@@ -1440,13 +1440,14 @@ export function SignupForm({
                   {service.description && (
                     <p className="choice-card__note">{service.description}</p>
                   )}
-                  {service.detailsContent && (
+                  {service.detailsContent.trim() && (
                     <button
                       aria-label={`Показать подробное пояснение: ${service.title}`}
                       className="service-details-button"
-                      onClick={(event) =>
-                        openServiceDetails(service, event.currentTarget)
-                      }
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openServiceDetails(service, event.currentTarget);
+                      }}
                       title="Подробное пояснение"
                       type="button"
                     >
