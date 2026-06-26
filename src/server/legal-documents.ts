@@ -21,7 +21,11 @@ function applyExtendedPlaceholders(text: string, contact: LegalContact) {
   );
 }
 
-function appendSection(lines: string[], title: string, body: string | string[]) {
+function appendSection(
+  lines: string[],
+  title: string,
+  body: string | string[]
+) {
   lines.push("", `## ${title}`, "");
 
   if (Array.isArray(body)) {

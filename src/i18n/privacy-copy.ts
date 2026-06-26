@@ -78,7 +78,8 @@ const copies: Record<Locale, PrivacyCopy> = {
         ]
       },
       {
-        title: "8. Порядок сбора, хранения, передачи и других видов обработки персональных данных",
+        title:
+          "8. Порядок сбора, хранения, передачи и других видов обработки персональных данных",
         body: [
           "Безопасность персональных данных, обрабатываемых Оператором, обеспечивается путем реализации правовых, организационных и технических мер, необходимых для выполнения в полном объеме требований действующего законодательства в области защиты персональных данных. Оператор обеспечивает сохранность персональных данных и принимает все возможные меры, исключающие доступ к ним неуполномоченных лиц.",
           "Персональные данные пользователя не передаются третьим лицам, за исключением случаев, связанных с исполнением действующего законодательства, исполнением заявки (договора) с заказчиком, либо при наличии согласия субъекта персональных данных на передачу его данных третьему лицу, в том числе куратору, для организации участия в церемонии.",
@@ -88,7 +89,8 @@ const copies: Record<Locale, PrivacyCopy> = {
         ]
       },
       {
-        title: "9. Перечень действий, производимых Оператором с полученными персональными данными",
+        title:
+          "9. Перечень действий, производимых Оператором с полученными персональными данными",
         body: [
           "Оператор осуществляет сбор, запись, систематизацию, накопление, хранение, уточнение (обновление, изменение), извлечение, использование, передачу (распространение, предоставление, доступ), обезличивание, блокирование, удаление и уничтожение персональных данных.",
           "Оператор осуществляет автоматизированную обработку персональных данных с получением и (или) передачей полученной информации по информационно-телекоммуникационным сетям или без таковой."
@@ -129,14 +131,14 @@ const copies: Record<Locale, PrivacyCopy> = {
         body: [
           'This personal data processing policy (the "Policy") is prepared in accordance with Federal Law No. 152-FZ of 27.07.2006 "On Personal Data" (the "Personal Data Law") and sets out the procedure for processing personal data and the measures taken by {{seller}} (the "Operator") to ensure their security.',
           "The Operator's most important goal and condition for carrying out its activities is to respect the rights and freedoms of individuals when processing their personal data, including the protection of the right to privacy and personal and family secrets.",
-          "This Policy applies to all information the Operator may obtain about visitors of the website https://starvedas.ru or https://chintamanidhama.ru (the \"Site\"), including individuals submitting requests to participate in ceremonies, lectures and video consultations."
+          'This Policy applies to all information the Operator may obtain about visitors of the website https://starvedas.ru or https://chintamanidhama.ru (the "Site"), including individuals submitting requests to participate in ceremonies, lectures and video consultations.'
         ]
       },
       {
         title: "2. Key terms used in the Policy",
         body: [
-          'Automated processing of personal data means processing of personal data using computer technology. Blocking of personal data means temporary suspension of processing (except where processing is required to clarify the data). A personal data information system is a set of personal data contained in databases together with the information technologies and technical means that ensure its processing. De-identification means actions that make it impossible, without additional information, to determine that personal data belongs to a specific user or other data subject.',
-          'Processing of personal data means any action or set of actions performed with personal data, with or without automation, including collection, recording, systematization, accumulation, storage, clarification, extraction, use, transfer (distribution, provision, access), de-identification, blocking, deletion and destruction. The Operator is the person who, alone or jointly with others, organizes and/or carries out the processing of personal data and determines the purposes of processing, the categories of personal data to be processed and the actions performed with them.',
+          "Automated processing of personal data means processing of personal data using computer technology. Blocking of personal data means temporary suspension of processing (except where processing is required to clarify the data). A personal data information system is a set of personal data contained in databases together with the information technologies and technical means that ensure its processing. De-identification means actions that make it impossible, without additional information, to determine that personal data belongs to a specific user or other data subject.",
+          "Processing of personal data means any action or set of actions performed with personal data, with or without automation, including collection, recording, systematization, accumulation, storage, clarification, extraction, use, transfer (distribution, provision, access), de-identification, blocking, deletion and destruction. The Operator is the person who, alone or jointly with others, organizes and/or carries out the processing of personal data and determines the purposes of processing, the categories of personal data to be processed and the actions performed with them.",
           'Personal data means any information relating directly or indirectly to an identified or identifiable user of the Site. A "User" is any visitor of https://starvedas.ru or https://chintamanidhama.ru, including a person submitting a request to participate in a ceremony. "Provision" of personal data means actions aimed at disclosing personal data to a specific person or a specific group of persons. "Distribution" of personal data means any actions aimed at disclosing personal data to an indefinite group of persons.',
           'Cross-border transfer of personal data means the transfer of personal data to the territory of a foreign state to an authority of a foreign state, a foreign individual or a foreign legal entity. "Destruction" of personal data means any actions as a result of which personal data is irrevocably destroyed with no possibility of restoring its content in the personal data information system and/or the physical media containing personal data are destroyed.'
         ]
@@ -180,17 +182,19 @@ const copies: Record<Locale, PrivacyCopy> = {
         ]
       },
       {
-        title: "8. Procedure for collection, storage, transfer and other processing of personal data",
+        title:
+          "8. Procedure for collection, storage, transfer and other processing of personal data",
         body: [
           "The security of personal data processed by the Operator is ensured through legal, organizational and technical measures necessary to fully comply with applicable Russian legislation on personal data protection. The Operator ensures the safety of personal data and takes all possible measures to prevent unauthorized access to it.",
           "A user's personal data is not transferred to third parties, except where necessary for compliance with applicable law, the performance of the request (agreement) with the customer, or where the data subject has consented to the transfer of their data to a third party, including a curator, for the purpose of organizing participation in a ceremony.",
           "All information collected by third-party services, including payment systems, communication tools and other service providers, is stored and processed by those persons (operators) in accordance with their own user agreements and privacy policies. The Operator is not responsible for the actions of such third parties.",
-          "If inaccuracies in personal data are identified, the user may update it independently by sending the Operator a notice to {{email}} marked \"Personal data update\". The processing period for personal data is determined by the achievement of the purposes for which it was collected, unless a different period is provided by an agreement or applicable law.",
+          'If inaccuracies in personal data are identified, the user may update it independently by sending the Operator a notice to {{email}} marked "Personal data update". The processing period for personal data is determined by the achievement of the purposes for which it was collected, unless a different period is provided by an agreement or applicable law.',
           "Processing of personal data is terminated when: the purposes of processing have been achieved; the consent of the data subject has expired or been withdrawn; a request to stop processing has been received; or unlawful processing of personal data has been identified."
         ]
       },
       {
-        title: "9. List of actions performed by the Operator with the personal data received",
+        title:
+          "9. List of actions performed by the Operator with the personal data received",
         body: [
           "The Operator carries out the collection, recording, systematization, accumulation, storage, clarification (updating, modification), extraction, use, transfer (distribution, provision, access), de-identification, blocking, deletion and destruction of personal data.",
           "The Operator carries out automated processing of personal data, including the receipt and/or transfer of the resulting information via information and telecommunication networks or otherwise."
@@ -211,7 +215,7 @@ const copies: Record<Locale, PrivacyCopy> = {
       {
         title: "12. User rights and final provisions",
         body: [
-          "The user may withdraw their consent to the processing of personal data at any time by sending the Operator a notice by email to {{email}} marked \"Withdrawal of consent to personal data processing\", and may also obtain any clarification regarding the processing of their personal data by contacting the Operator at the same address.",
+          'The user may withdraw their consent to the processing of personal data at any time by sending the Operator a notice by email to {{email}} marked "Withdrawal of consent to personal data processing", and may also obtain any clarification regarding the processing of their personal data by contacting the Operator at the same address.',
           "Any changes to this Policy will be reflected in this document. The Policy is valid indefinitely until replaced by a new version. The current version of the Policy is freely available on the Internet at https://starvedas.ru/legal/privacy and https://chintamanidhama.ru/legal/privacy.",
           "Operator details: {{seller}}, Tax ID {{inn}}, registered address: {{address}}. Contact email: {{email}}."
         ]
@@ -231,7 +235,7 @@ const copies: Record<Locale, PrivacyCopy> = {
         body: [
           'यह व्यक्तिगत डेटा प्रोसेसिंग नीति ("नीति") 27.07.2006 के संघीय कानून संख्या 152-FZ "व्यक्तिगत डेटा के बारे में" ("व्यक्तिगत डेटा कानून") के अनुसार तैयार की गई है और {{seller}} ("ऑपरेटर") द्वारा व्यक्तिगत डेटा प्रोसेसिंग प्रक्रिया और उसकी सुरक्षा सुनिश्चित करने के उपायों को परिभाषित करती है.',
           "ऑपरेटर का सबसे महत्वपूर्ण लक्ष्य व्यक्तिगत डेटा प्रोसेस करते समय व्यक्ति और नागरिक के अधिकारों और स्वतंत्रताओं का सम्मान करना है, जिसमें निजता, व्यक्तिगत और पारिवारिक रहस्य की सुरक्षा का अधिकार शामिल है.",
-          "यह नीति वेबसाइट https://starvedas.ru या https://chintamanidhama.ru (\"साइट\") के आगंतुकों के बारे में ऑपरेटर को मिल सकने वाली सभी जानकारी पर लागू होती है, जिसमें समारोहों, व्याख्यानों और वीडियो परामर्शों में भाग लेने के लिए अनुरोध जमा करने वाले व्यक्ति भी शामिल हैं."
+          'यह नीति वेबसाइट https://starvedas.ru या https://chintamanidhama.ru ("साइट") के आगंतुकों के बारे में ऑपरेटर को मिल सकने वाली सभी जानकारी पर लागू होती है, जिसमें समारोहों, व्याख्यानों और वीडियो परामर्शों में भाग लेने के लिए अनुरोध जमा करने वाले व्यक्ति भी शामिल हैं.'
         ]
       },
       {
@@ -239,8 +243,8 @@ const copies: Record<Locale, PrivacyCopy> = {
         body: [
           "स्वचालित प्रोसेसिंग का अर्थ है कंप्यूटर तकनीक की सहायता से व्यक्तिगत डेटा को प्रोसेस करना. अवरोधन का अर्थ है प्रोसेसिंग का अस्थायी निलंबन (उन मामलों को छोड़कर जहाँ डेटा स्पष्ट करने के लिए प्रोसेसिंग आवश्यक हो). व्यक्तिगत डेटा सूचना प्रणाली डेटाबेस में निहित व्यक्तिगत डेटा और उसकी प्रोसेसिंग सुनिश्चित करने वाली सूचना प्रौद्योगिकियों और तकनीकी साधनों का समूह है. अनाम करण का अर्थ है ऐसी कार्रवाइयाँ जिनके परिणामस्वरूप अतिरिक्त जानकारी के बिना यह निर्धारित करना असंभव हो जाता है कि व्यक्तिगत डेटा किसी विशिष्ट उपयोगकर्ता या अन्य विषय से संबंधित है.",
           "व्यक्तिगत डेटा प्रोसेसिंग का अर्थ है व्यक्तिगत डेटा के साथ की गई कोई भी कार्रवाई या कार्रवाइयों का समूह, चाहे स्वचालन के साथ हो या उसके बिना, जिसमें संग्रह, रिकॉर्डिंग, व्यवस्थितकरण, संचय, भंडारण, स्पष्टीकरण, निष्कर्षण, उपयोग, स्थानांतरण (वितरण, प्रावधान, पहुँच), अनाम करण, अवरोधन, हटाना और नष्ट करना शामिल है. ऑपरेटर वह व्यक्ति है जो अकेले या अन्य व्यक्तियों के साथ मिलकर व्यक्तिगत डेटा की प्रोसेसिंग का आयोजन और/या संचालन करता है और प्रोसेसिंग के उद्देश्यों, प्रोसेस किए जाने वाले व्यक्तिगत डेटा की संरचना और उसके साथ की जाने वाली कार्रवाइयों को निर्धारित करता है.",
-          "व्यक्तिगत डेटा कोई भी जानकारी है जो साइट के किसी पहचाने गए या पहचाने जाने योग्य उपयोगकर्ता से प्रत्यक्ष या अप्रत्यक्ष रूप से संबंधित है. \"उपयोगकर्ता\" https://starvedas.ru या https://chintamanidhama.ru का कोई भी आगंतुक है, जिसमें समारोह में भागीदारी के लिए अनुरोध जमा करने वाला व्यक्ति भी शामिल है. व्यक्तिगत डेटा का \"प्रावधान\" किसी विशिष्ट व्यक्ति या व्यक्तियों के विशिष्ट समूह को व्यक्तिगत डेटा प्रकट करने की दिशा में की गई कार्रवाइयाँ हैं. व्यक्तिगत डेटा का \"वितरण\" व्यक्तियों के अनिश्चित समूह को व्यक्तिगत डेटा प्रकट करने की दिशा में की गई कोई भी कार्रवाई है.",
-          "व्यक्तिगत डेटा का सीमा-पार स्थानांतरण किसी विदेशी राज्य के क्षेत्र में किसी विदेशी राज्य के प्राधिकरण, किसी विदेशी व्यक्ति या विदेशी कानूनी इकाई को व्यक्तिगत डेटा का स्थानांतरण है. व्यक्तिगत डेटा का \"विनाश\" ऐसी कोई भी कार्रवाई है जिसके परिणामस्वरूप व्यक्तिगत डेटा को अपरिवर्तनीय रूप से नष्ट कर दिया जाता है, जिससे सूचना प्रणाली में इसकी सामग्री को पुनर्स्थापित करना असंभव हो जाता है, और/या जिसमें व्यक्तिगत डेटा वाले भौतिक मीडिया को नष्ट कर दिया जाता है."
+          'व्यक्तिगत डेटा कोई भी जानकारी है जो साइट के किसी पहचाने गए या पहचाने जाने योग्य उपयोगकर्ता से प्रत्यक्ष या अप्रत्यक्ष रूप से संबंधित है. "उपयोगकर्ता" https://starvedas.ru या https://chintamanidhama.ru का कोई भी आगंतुक है, जिसमें समारोह में भागीदारी के लिए अनुरोध जमा करने वाला व्यक्ति भी शामिल है. व्यक्तिगत डेटा का "प्रावधान" किसी विशिष्ट व्यक्ति या व्यक्तियों के विशिष्ट समूह को व्यक्तिगत डेटा प्रकट करने की दिशा में की गई कार्रवाइयाँ हैं. व्यक्तिगत डेटा का "वितरण" व्यक्तियों के अनिश्चित समूह को व्यक्तिगत डेटा प्रकट करने की दिशा में की गई कोई भी कार्रवाई है.',
+          'व्यक्तिगत डेटा का सीमा-पार स्थानांतरण किसी विदेशी राज्य के क्षेत्र में किसी विदेशी राज्य के प्राधिकरण, किसी विदेशी व्यक्ति या विदेशी कानूनी इकाई को व्यक्तिगत डेटा का स्थानांतरण है. व्यक्तिगत डेटा का "विनाश" ऐसी कोई भी कार्रवाई है जिसके परिणामस्वरूप व्यक्तिगत डेटा को अपरिवर्तनीय रूप से नष्ट कर दिया जाता है, जिससे सूचना प्रणाली में इसकी सामग्री को पुनर्स्थापित करना असंभव हो जाता है, और/या जिसमें व्यक्तिगत डेटा वाले भौतिक मीडिया को नष्ट कर दिया जाता है.'
         ]
       },
       {
@@ -282,17 +286,19 @@ const copies: Record<Locale, PrivacyCopy> = {
         ]
       },
       {
-        title: "8. व्यक्तिगत डेटा के संग्रह, भंडारण, स्थानांतरण और अन्य प्रोसेसिंग की प्रक्रिया",
+        title:
+          "8. व्यक्तिगत डेटा के संग्रह, भंडारण, स्थानांतरण और अन्य प्रोसेसिंग की प्रक्रिया",
         body: [
           "ऑपरेटर द्वारा प्रोसेस किए गए व्यक्तिगत डेटा की सुरक्षा कानूनी, संगठनात्मक और तकनीकी उपायों के माध्यम से सुनिश्चित की जाती है जो व्यक्तिगत डेटा सुरक्षा पर लागू रूसी कानून की आवश्यकताओं का पूर्ण रूप से अनुपालन करने के लिए आवश्यक हैं. ऑपरेटर व्यक्तिगत डेटा की सुरक्षा सुनिश्चित करता है और इसे अनधिकृत व्यक्तियों की पहुँच से बचाने के लिए सभी संभव उपाय करता है.",
           "उपयोगकर्ता का व्यक्तिगत डेटा तीसरे पक्षों को स्थानांतरित नहीं किया जाता, सिवाय उन मामलों के जहाँ यह लागू कानून के अनुपालन, ग्राहक के साथ अनुरोध (समझौते) के निष्पादन के लिए आवश्यक हो, या जहाँ डेटा विषय ने समारोह में भागीदारी के आयोजन के उद्देश्य से क्यूरेटर सहित किसी तीसरे पक्ष को अपना डेटा स्थानांतरित करने के लिए सहमति दी हो.",
           "भुगतान प्रणालियों, संचार उपकरणों और अन्य सेवा प्रदाताओं सहित तृतीय-पक्ष सेवाओं द्वारा एकत्रित सभी जानकारी इन व्यक्तियों (ऑपरेटरों) द्वारा उनके अपने उपयोगकर्ता समझौतों और गोपनीयता नीतियों के अनुसार संग्रहीत और प्रोसेस की जाती है. ऑपरेटर ऐसे तीसरे पक्षों की कार्रवाइयों के लिए जिम्मेदार नहीं है.",
-          "यदि व्यक्तिगत डेटा में अशुद्धियाँ पाई जाती हैं, तो उपयोगकर्ता {{email}} पर \"व्यक्तिगत डेटा अद्यतन\" अंकित एक सूचना भेजकर स्वतंत्र रूप से इसे अद्यतन कर सकता है. व्यक्तिगत डेटा की प्रोसेसिंग अवधि उन उद्देश्यों की प्राप्ति से निर्धारित होती है जिनके लिए इसे एकत्र किया गया था, जब तक कि किसी समझौते या लागू कानून द्वारा अलग अवधि प्रदान न की गई हो.",
+          'यदि व्यक्तिगत डेटा में अशुद्धियाँ पाई जाती हैं, तो उपयोगकर्ता {{email}} पर "व्यक्तिगत डेटा अद्यतन" अंकित एक सूचना भेजकर स्वतंत्र रूप से इसे अद्यतन कर सकता है. व्यक्तिगत डेटा की प्रोसेसिंग अवधि उन उद्देश्यों की प्राप्ति से निर्धारित होती है जिनके लिए इसे एकत्र किया गया था, जब तक कि किसी समझौते या लागू कानून द्वारा अलग अवधि प्रदान न की गई हो.',
           "व्यक्तिगत डेटा की प्रोसेसिंग निम्न स्थितियों में समाप्त की जाती है: प्रोसेसिंग के उद्देश्य प्राप्त हो जाने पर; डेटा विषय की सहमति की अवधि समाप्त होने या उसे वापस लेने पर; प्रोसेसिंग रोकने का अनुरोध प्राप्त होने पर; या व्यक्तिगत डेटा की गैरकानूनी प्रोसेसिंग का पता चलने पर."
         ]
       },
       {
-        title: "9. प्राप्त व्यक्तिगत डेटा के साथ ऑपरेटर द्वारा की जाने वाली कार्रवाइयों की सूची",
+        title:
+          "9. प्राप्त व्यक्तिगत डेटा के साथ ऑपरेटर द्वारा की जाने वाली कार्रवाइयों की सूची",
         body: [
           "ऑपरेटर व्यक्तिगत डेटा का संग्रह, रिकॉर्डिंग, व्यवस्थितकरण, संचय, भंडारण, स्पष्टीकरण (अद्यतन, संशोधन), निष्कर्षण, उपयोग, स्थानांतरण (वितरण, प्रावधान, पहुँच), अनाम करण, अवरोधन, हटाना और विनाश करता है.",
           "ऑपरेटर सूचना और दूरसंचार नेटवर्क के माध्यम से प्राप्त जानकारी के स्थानांतरण के साथ या उसके बिना व्यक्तिगत डेटा की स्वचालित प्रोसेसिंग करता है."
@@ -313,7 +319,7 @@ const copies: Record<Locale, PrivacyCopy> = {
       {
         title: "12. उपयोगकर्ता अधिकार और अंतिम प्रावधान",
         body: [
-          "उपयोगकर्ता किसी भी समय {{email}} पर \"व्यक्तिगत डेटा प्रोसेसिंग के लिए सहमति की वापसी\" अंकित ईमेल भेजकर व्यक्तिगत डेटा प्रोसेसिंग के लिए अपनी सहमति वापस ले सकता है, और उसी पते पर ऑपरेटर से संपर्क करके अपने व्यक्तिगत डेटा की प्रोसेसिंग से संबंधित किसी भी प्रश्न पर स्पष्टीकरण प्राप्त कर सकता है.",
+          'उपयोगकर्ता किसी भी समय {{email}} पर "व्यक्तिगत डेटा प्रोसेसिंग के लिए सहमति की वापसी" अंकित ईमेल भेजकर व्यक्तिगत डेटा प्रोसेसिंग के लिए अपनी सहमति वापस ले सकता है, और उसी पते पर ऑपरेटर से संपर्क करके अपने व्यक्तिगत डेटा की प्रोसेसिंग से संबंधित किसी भी प्रश्न पर स्पष्टीकरण प्राप्त कर सकता है.',
           "इस नीति में कोई भी परिवर्तन इस दस्तावेज़ में दर्शाया जाएगा. यह नीति तब तक अनिश्चित काल के लिए मान्य है जब तक इसे नए संस्करण द्वारा प्रतिस्थापित नहीं किया जाता. नीति का वर्तमान संस्करण इंटरनेट पर https://starvedas.ru/legal/privacy और https://chintamanidhama.ru/legal/privacy पर स्वतंत्र रूप से उपलब्ध है.",
           "ऑपरेटर का विवरण: {{seller}}, कर पहचान संख्या {{inn}}, पंजीकृत पता: {{address}}. संपर्क ईमेल: {{email}}."
         ]

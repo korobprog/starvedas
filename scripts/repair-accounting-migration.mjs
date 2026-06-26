@@ -12,7 +12,11 @@ function run(command, args) {
         resolve();
         return;
       }
-      reject(new Error(`${command} ${args.join(" ")} exited with code ${code ?? "null"} signal ${signal ?? "null"}`));
+      reject(
+        new Error(
+          `${command} ${args.join(" ")} exited with code ${code ?? "null"} signal ${signal ?? "null"}`
+        )
+      );
     });
     child.once("error", reject);
   });
@@ -31,11 +35,15 @@ try {
   );
 
   if (failedMigrations.length === 0) {
-    console.log(`[migration-repair] no failed ${MIGRATION_NAME} migration found`);
+    console.log(
+      `[migration-repair] no failed ${MIGRATION_NAME} migration found`
+    );
     process.exit(0);
   }
 
-  console.log(`[migration-repair] repairing failed ${MIGRATION_NAME} migration`);
+  console.log(
+    `[migration-repair] repairing failed ${MIGRATION_NAME} migration`
+  );
 
   await prisma.$executeRawUnsafe(`
     CREATE TABLE IF NOT EXISTS "AccountingReport" (
@@ -72,10 +80,18 @@ try {
     )
   `);
 
-  await prisma.$executeRawUnsafe(`CREATE UNIQUE INDEX IF NOT EXISTS "AccountingReport_sourceDomain_key" ON "AccountingReport"("sourceDomain")`);
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "AccountingReport_sourceDomain_idx" ON "AccountingReport"("sourceDomain")`);
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "AccountingSyncLog_sourceDomain_startedAt_idx" ON "AccountingSyncLog"("sourceDomain", "startedAt")`);
-  await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "AccountingSyncLog_reportId_idx" ON "AccountingSyncLog"("reportId")`);
+  await prisma.$executeRawUnsafe(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "AccountingReport_sourceDomain_key" ON "AccountingReport"("sourceDomain")`
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "AccountingReport_sourceDomain_idx" ON "AccountingReport"("sourceDomain")`
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "AccountingSyncLog_sourceDomain_startedAt_idx" ON "AccountingSyncLog"("sourceDomain", "startedAt")`
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "AccountingSyncLog_reportId_idx" ON "AccountingSyncLog"("reportId")`
+  );
 
   await prisma.$executeRawUnsafe(`
     DO $$
@@ -93,7 +109,9 @@ try {
     END $$;
   `);
 
-  console.log(`[migration-repair] schema objects are present for ${MIGRATION_NAME}`);
+  console.log(
+    `[migration-repair] schema objects are present for ${MIGRATION_NAME}`
+  );
 } finally {
   await prisma.$disconnect();
 }

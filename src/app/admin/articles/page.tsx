@@ -141,7 +141,9 @@ export default async function AdminArticlesPage({
                       </div>
                     </td>
                     <td>
-                      <code className="table-code">/articles/{article.slug}</code>
+                      <code className="table-code">
+                        /articles/{article.slug}
+                      </code>
                     </td>
                     <td>
                       <span className="table-preview">

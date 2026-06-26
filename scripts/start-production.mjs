@@ -14,7 +14,11 @@ function run(command, args) {
         resolve();
         return;
       }
-      reject(new Error(`${command} ${args.join(" ")} exited with code ${code ?? "null"} signal ${signal ?? "null"}`));
+      reject(
+        new Error(
+          `${command} ${args.join(" ")} exited with code ${code ?? "null"} signal ${signal ?? "null"}`
+        )
+      );
     });
     child.once("error", (error) => {
       children.delete(child);
@@ -46,7 +50,9 @@ function start(command, args, label, options = {}) {
   children.add(child);
   child.once("exit", (code, signal) => {
     children.delete(child);
-    console.log(`[startup] ${label} exited with code ${code ?? "null"} signal ${signal ?? "null"}`);
+    console.log(
+      `[startup] ${label} exited with code ${code ?? "null"} signal ${signal ?? "null"}`
+    );
     if (label === "server") {
       shutdown(code ?? 1);
       return;
@@ -96,11 +102,12 @@ try {
       restart: true
     });
   } else {
-    console.log("[startup] curator-poller skipped: token missing or polling disabled");
+    console.log(
+      "[startup] curator-poller skipped: token missing or polling disabled"
+    );
   }
   start("node", ["server.js"], "server");
 } catch (error) {
   console.error("[startup] failed", error);
   shutdown(1);
 }
-

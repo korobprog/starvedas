@@ -1,8 +1,7 @@
 import type { PriceUnit } from "@prisma/client";
 import Link from "next/link";
 import { AdminSubmitButton } from "@/components/admin-submit-button";
-import { RiteOptionsFields } from "@/components/rite-options-fields";
-import { SubscriptionFields } from "@/components/subscription-fields";
+import { ProductSubscriptionAndRitesFields } from "@/components/product-subscription-and-rites-fields";
 import {
   createService,
   toggleServiceActive,
@@ -270,12 +269,14 @@ export function ServiceFields({
         <span>Требовать точный список участников</span>
       </label>
 
-      <SubscriptionFields
+      <ProductSubscriptionAndRitesFields
         defaultEndsAt={formatMoscowDateTimeInput(service?.subscriptionEndsAt)}
         defaultIsSubscription={service?.isSubscription ?? false}
         defaultStartsAt={formatMoscowDateTimeInput(
           service?.subscriptionStartsAt
         )}
+        options={service?.options ?? []}
+        serviceSlug={service?.slug}
       />
 
       <label className="checkbox-field">
@@ -286,11 +287,6 @@ export function ServiceFields({
         />
         <span>Активен и показывается клиентам</span>
       </label>
-
-      <RiteOptionsFields
-        options={service?.options ?? []}
-        serviceSlug={service?.slug}
-      />
     </>
   );
 }
@@ -400,7 +396,9 @@ export function ServiceEditorList({
               <div>
                 <dt>Обряды</dt>
                 <dd>
-                  {activeOptionsCount} / {service.options.length}
+                  {service.isSubscription
+                    ? "скрыты"
+                    : `${activeOptionsCount} / ${service.options.length}`}
                 </dd>
               </div>
               <div>
@@ -419,7 +417,7 @@ export function ServiceEditorList({
               </div>
             </dl>
 
-            {service.options.length > 0 && (
+            {!service.isSubscription && service.options.length > 0 && (
               <div className="product-card__options">
                 {service.options.slice(0, 3).map((option) => (
                   <span key={option.id}>

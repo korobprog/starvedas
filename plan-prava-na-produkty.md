@@ -53,12 +53,14 @@ allowCuratorManageServices Boolean @default(false)
 Файл [src/server/auth.ts](src/server/auth.ts) — добавить:
 
 ```ts
-export async function canManageServices(): Promise<
-  { user: SessionUser; reason: "admin" | "curator-allowed" } | null
->
+export async function canManageServices(): Promise<{
+  user: SessionUser;
+  reason: "admin" | "curator-allowed";
+} | null>;
 ```
 
 Логика:
+
 1. `getCurrentUser()`; если нет — `null`.
 2. Если `isAdminRole(user.role)` → доступ (`reason: "admin"`).
 3. Если `user.role === CURATOR`:
@@ -69,7 +71,7 @@ export async function canManageServices(): Promise<
 И server-вариант с редиректом/ошибкой:
 
 ```ts
-export async function requireServiceManager(nextPath = "/cabinet")
+export async function requireServiceManager(nextPath = "/cabinet");
 ```
 
 — для страниц редиректит неавторизованного на `/login`, агента без прав — обратно на `/cabinet`;
@@ -93,6 +95,7 @@ export async function requireServiceManager(nextPath = "/cabinet")
   деактивацию.
 
 Каждая action:
+
 1. `await requireServiceManager()` в начале.
 2. Парсинг + валидация; при ошибке `throw new Error(...)`.
 3. `prisma.service.create/update`.
@@ -112,6 +115,7 @@ export async function requireServiceManager(nextPath = "/cabinet")
 #### 5a. Действие сохранения флага
 
 В [src/server/organization-actions.ts](src/server/organization-actions.ts):
+
 - Вариант A (просто): добавить поле `allowCuratorManageServices` в `organizationSettingsSchema`
   и в форму орг-настроек.
 - Вариант B (рекомендуется, изолированно): отдельная action `setCuratorServicePermission(formData)`
@@ -133,12 +137,17 @@ export async function requireServiceManager(nextPath = "/cabinet")
         name="allowCuratorManageServices"
         type="checkbox"
       />
-      <span>Разрешить агентам создавать и редактировать продукты/абонементы в их кабинетах</span>
+      <span>
+        Разрешить агентам создавать и редактировать продукты/абонементы в их
+        кабинетах
+      </span>
     </label>
     <p className="admin-muted">
       По умолчанию продуктами управляет только администратор.
     </p>
-    <button className="button button--primary" type="submit">Сохранить</button>
+    <button className="button button--primary" type="submit">
+      Сохранить
+    </button>
   </form>
 </section>
 ```
@@ -150,6 +159,7 @@ export async function requireServiceManager(nextPath = "/cabinet")
 ### 6. Страница управления продуктами в админке
 
 Новая страница `src/app/admin/products/page.tsx`:
+
 - В начале `await requireAdminUser("/admin/products")`.
 - `getManagedServices()` → таблица + форма создания + формы редактирования (паттерн как в
   [src/app/admin/curators/page.tsx](src/app/admin/curators/page.tsx)).
@@ -161,6 +171,7 @@ export async function requireServiceManager(nextPath = "/cabinet")
 ### 7. Блок управления продуктами в кабинете агента
 
 В [src/app/cabinet/page.tsx](src/app/cabinet/page.tsx):
+
 1. Прочитать флаг `allowCuratorManageServices` (через `canManageServices()` или прямой запрос
    настроек).
 2. Вычислить `const canManageServices = isAdminRole(user.role) || flagEnabled;`
@@ -198,19 +209,19 @@ export async function requireServiceManager(nextPath = "/cabinet")
 
 ## Затрагиваемые файлы
 
-| Файл | Изменение |
-|------|-----------|
-| [prisma/schema.prisma](prisma/schema.prisma) | + `allowCuratorManageServices` в `OrganizationSettings` |
-| prisma/migrations/* | новая миграция |
-| [src/server/auth.ts](src/server/auth.ts) | `canManageServices` + `requireServiceManager` |
-| src/server/service-actions.ts | **новый** — CRUD-actions продуктов |
-| [src/server/services.ts](src/server/services.ts) | `getManagedServices` |
-| [src/server/organization-actions.ts](src/server/organization-actions.ts) | `setCuratorServicePermission` (или поле в схеме) |
-| [src/app/admin/organization/page.tsx](src/app/admin/organization/page.tsx) | карточка с тумблером |
-| src/app/admin/products/page.tsx | **новая** — управление продуктами |
-| [src/app/admin/layout.tsx](src/app/admin/layout.tsx) | пункт навигации «Продукты» |
-| [src/app/cabinet/page.tsx](src/app/cabinet/page.tsx) | секция продуктов под флагом |
-| src/components/service-form.tsx | **новый** (опц.) общая форма |
+| Файл                                                                       | Изменение                                               |
+| -------------------------------------------------------------------------- | ------------------------------------------------------- |
+| [prisma/schema.prisma](prisma/schema.prisma)                               | + `allowCuratorManageServices` в `OrganizationSettings` |
+| prisma/migrations/\*                                                       | новая миграция                                          |
+| [src/server/auth.ts](src/server/auth.ts)                                   | `canManageServices` + `requireServiceManager`           |
+| src/server/service-actions.ts                                              | **новый** — CRUD-actions продуктов                      |
+| [src/server/services.ts](src/server/services.ts)                           | `getManagedServices`                                    |
+| [src/server/organization-actions.ts](src/server/organization-actions.ts)   | `setCuratorServicePermission` (или поле в схеме)        |
+| [src/app/admin/organization/page.tsx](src/app/admin/organization/page.tsx) | карточка с тумблером                                    |
+| src/app/admin/products/page.tsx                                            | **новая** — управление продуктами                       |
+| [src/app/admin/layout.tsx](src/app/admin/layout.tsx)                       | пункт навигации «Продукты»                              |
+| [src/app/cabinet/page.tsx](src/app/cabinet/page.tsx)                       | секция продуктов под флагом                             |
+| src/components/service-form.tsx                                            | **новый** (опц.) общая форма                            |
 
 ## Порядок работ
 

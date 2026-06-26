@@ -410,6 +410,33 @@ function PaymentInstructionsBox({
   );
 }
 
+function SubscriptionInfoCard({ service }: { service: SiteService }) {
+  const periodText =
+    service.subscriptionStartsAtLabel && service.subscriptionEndsAtLabel
+      ? `с ${service.subscriptionStartsAtLabel} до ${service.subscriptionEndsAtLabel} МСК`
+      : "Период действия уточняется.";
+
+  return (
+    <div
+      className="subscription-info-card"
+      aria-label="Информация об абонементе"
+    >
+      <strong>{service.title}</strong>
+      {service.description && <p>{service.description}</p>}
+      <dl>
+        <div>
+          <dt>Стоимость</dt>
+          <dd>{service.priceLabel}</dd>
+        </div>
+        <div>
+          <dt>Период действия</dt>
+          <dd>{periodText}</dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
+
 export function SignupForm({
   assignedCurator,
   brandName,
@@ -486,16 +513,20 @@ export function SignupForm({
     [serviceSlug, services]
   );
 
-  const selectedServiceOptions = useMemo(
-    () =>
-      selectedService?.options.filter((option) =>
-        selectedServiceOptionIds.includes(option.id)
-      ) ?? [],
-    [selectedService, selectedServiceOptionIds]
-  );
+  const selectedServiceOptions = useMemo(() => {
+    if (!selectedService || selectedService.isSubscription) {
+      return [];
+    }
+
+    return selectedService.options.filter((option) =>
+      selectedServiceOptionIds.includes(option.id)
+    );
+  }, [selectedService, selectedServiceOptionIds]);
   const mustSelectServiceOptions =
-    selectedService?.slug === "single-rite" ||
-    Boolean(selectedService?.options.length);
+    Boolean(selectedService) &&
+    !selectedService.isSubscription &&
+    (selectedService.slug === "single-rite" ||
+      Boolean(selectedService.options.length));
   const activeServiceSlug = selectedService?.slug ?? "";
 
   const participantFullNames = useMemo(
@@ -936,7 +967,9 @@ export function SignupForm({
         },
         body: JSON.stringify({
           serviceSlug: selectedService.slug,
-          selectedServiceOptionIds,
+          selectedServiceOptionIds: selectedService.isSubscription
+            ? []
+            : selectedServiceOptionIds,
           participantCount,
           participantsText,
           customerName,
@@ -1257,6 +1290,10 @@ export function SignupForm({
               );
             })}
           </div>
+
+          {selectedService?.isSubscription && (
+            <SubscriptionInfoCard service={selectedService} />
+          )}
 
           {mustSelectServiceOptions && (
             <div
@@ -1583,6 +1620,14 @@ export function SignupForm({
               <dt>{copy.review.ceremony}</dt>
               <dd>
                 {selectedService.title}
+                {selectedService.isSubscription && (
+                  <span className="subscription-summary-line">
+                    {selectedService.subscriptionStartsAtLabel &&
+                    selectedService.subscriptionEndsAtLabel
+                      ? `Действует с ${selectedService.subscriptionStartsAtLabel} до ${selectedService.subscriptionEndsAtLabel} МСК`
+                      : "Период действия уточняется."}
+                  </span>
+                )}
                 {selectedServiceOptions.length > 0 && (
                   <ul className="rite-summary-list">
                     {selectedServiceOptions.map((option) => (

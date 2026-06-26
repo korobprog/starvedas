@@ -1422,6 +1422,60 @@ select {
   line-height: 1.6;
 }
 
+.subscription-info-card {
+  display: grid;
+  gap: 12px;
+  margin-top: 1rem;
+  border: 1px solid rgb(163 82 25 / 26%);
+  border-radius: 18px;
+  padding: 16px;
+  background: linear-gradient(135deg, #fff8e8, #fff);
+  color: var(--text);
+}
+
+.subscription-info-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.subscription-info-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.subscription-info-card div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px;
+  background: #fff;
+}
+
+.subscription-info-card dt {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.subscription-info-card dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 900;
+}
+
+.subscription-summary-line {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .signup-auth-links {
   display: flex;
   flex-wrap: wrap;
@@ -2668,6 +2722,7 @@ a.button[aria-disabled="true"] {
   .curator-list,
   .option-grid,
   .field-grid,
+  .subscription-info-card dl,
   .method-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2960,6 +3015,7 @@ a.button[aria-disabled="true"] {
   .phone-input-row,
   .participant-row,
   .payment-option-row,
+  .subscription-info-card dl,
   .method-grid,
   .stats-grid,
   .details-list div {

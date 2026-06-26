@@ -23,7 +23,10 @@ function getTelegramApiIps() {
   const raw = trimEnv("TELEGRAM_API_IPS");
 
   return raw
-    ? raw.split(",").map((ip) => ip.trim()).filter(Boolean)
+    ? raw
+        .split(",")
+        .map((ip) => ip.trim())
+        .filter(Boolean)
     : defaultTelegramApiIps;
 }
 
@@ -192,7 +195,10 @@ async function postTelegramJson(url, payload) {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), telegramRequestTimeoutMs);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    telegramRequestTimeoutMs
+  );
 
   try {
     const response = await fetch(url, {
@@ -231,12 +237,16 @@ async function main() {
   const webhookUrl = getWebhookUrl();
 
   if (!botToken) {
-    console.log("Curator Telegram webhook registration skipped: token is not configured");
+    console.log(
+      "Curator Telegram webhook registration skipped: token is not configured"
+    );
     return;
   }
 
   if (!webhookUrl) {
-    console.log("Curator Telegram webhook registration skipped: public URL is not configured");
+    console.log(
+      "Curator Telegram webhook registration skipped: public URL is not configured"
+    );
     return;
   }
 

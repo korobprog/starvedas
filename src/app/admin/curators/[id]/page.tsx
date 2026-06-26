@@ -31,8 +31,9 @@ export default async function AdminCuratorDetailPage({
             <p className="eyebrow">Карточка куратора</p>
             <h2>{curator.name}</h2>
             <p className="admin-muted">
-              {getCuratorStatusLabel(curator)} · {getClientCount(curator.orders)}
-              {" "}клиентов · {curator.orders.length} заказов
+              {getCuratorStatusLabel(curator)} ·{" "}
+              {getClientCount(curator.orders)} клиентов ·{" "}
+              {curator.orders.length} заказов
             </p>
           </div>
           <div className="admin-card__actions">

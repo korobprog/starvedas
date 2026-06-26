@@ -28,6 +28,67 @@ function formatDate(value: Date) {
   }).format(value);
 }
 
+function formatDateTime(value: Date) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "long",
+    timeZone: "Europe/Moscow",
+    year: "numeric"
+  }).format(value);
+}
+
+function formatDayCount(days: number) {
+  const normalizedDays = Math.max(0, days);
+  const lastTwoDigits = normalizedDays % 100;
+  const lastDigit = normalizedDays % 10;
+  const label =
+    lastTwoDigits >= 11 && lastTwoDigits <= 14
+      ? "дней"
+      : lastDigit === 1
+        ? "день"
+        : lastDigit >= 2 && lastDigit <= 4
+          ? "дня"
+          : "дней";
+
+  return `${normalizedDays} ${label}`;
+}
+
+function getSubscriptionValidity(order: {
+  isSubscriptionSnapshot: boolean;
+  subscriptionEndsAtSnapshot: Date | null;
+  subscriptionStartsAtSnapshot: Date | null;
+}) {
+  if (
+    !order.isSubscriptionSnapshot ||
+    !order.subscriptionStartsAtSnapshot ||
+    !order.subscriptionEndsAtSnapshot
+  ) {
+    return null;
+  }
+
+  const now = new Date();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const startsAt = order.subscriptionStartsAtSnapshot;
+  const endsAt = order.subscriptionEndsAtSnapshot;
+  const status =
+    endsAt.getTime() < now.getTime()
+      ? "Срок действия истёк"
+      : startsAt.getTime() > now.getTime()
+        ? `Начнётся через ${formatDayCount(
+            Math.ceil((startsAt.getTime() - now.getTime()) / dayMs)
+          )}`
+        : `Осталось ${formatDayCount(
+            Math.ceil((endsAt.getTime() - now.getTime()) / dayMs)
+          )}`;
+
+  return {
+    period: `с ${formatDateTime(startsAt)} до ${formatDateTime(endsAt)}`,
+    status
+  };
+}
+
 export default async function ClientCabinetPage() {
   const client = await getCurrentClientProfile();
 
@@ -202,6 +263,7 @@ export default async function ClientCabinetPage() {
         customerPhone: true,
         customerTelegram: true,
         leadStatus: true,
+        isSubscriptionSnapshot: true,
         orderNumber: true,
         participantCount: true,
         publicToken: true,
@@ -218,6 +280,8 @@ export default async function ClientCabinetPage() {
           }
         },
         status: true,
+        subscriptionEndsAtSnapshot: true,
+        subscriptionStartsAtSnapshot: true,
         payment: {
           select: {
             paymentUrl: true,
@@ -384,6 +448,7 @@ export default async function ClientCabinetPage() {
                 (option) => option.titleSnapshot
               );
               const paymentUrl = order.payment?.paymentUrl;
+              const subscriptionValidity = getSubscriptionValidity(order);
 
               return (
                 <article className="client-order-card" key={order.orderNumber}>
@@ -400,6 +465,18 @@ export default async function ClientCabinetPage() {
                       <dt>Дата</dt>
                       <dd>{formatDate(order.createdAt)}</dd>
                     </div>
+                    {subscriptionValidity && (
+                      <div>
+                        <dt>Абонемент</dt>
+                        <dd>
+                          {subscriptionValidity.period}
+                          <br />
+                          <span className="form-note">
+                            {subscriptionValidity.status}
+                          </span>
+                        </dd>
+                      </div>
+                    )}
                     <div>
                       <dt>Статус</dt>
                       <dd>{formatStatus(order.status)}</dd>

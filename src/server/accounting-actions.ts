@@ -56,7 +56,9 @@ export async function saveAccountantEmailAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error("Введите корректный email бухгалтера или оставьте поле пустым");
+    throw new Error(
+      "Введите корректный email бухгалтера или оставьте поле пустым"
+    );
   }
 
   await updateAccountantEmail({
@@ -65,7 +67,6 @@ export async function saveAccountantEmailAction(formData: FormData) {
   });
   revalidatePath("/admin/accounting");
 }
-
 
 export async function saveAccountingSpreadsheetAction(formData: FormData) {
   await requireSuperAdminUser("/admin/accounting");

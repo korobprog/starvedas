@@ -13,6 +13,7 @@ const publicServiceSelect = {
   description: true,
   descriptionEn: true,
   descriptionHi: true,
+  isSubscription: true,
   priceInr: true,
   priceRub: true,
   priceUnit: true,
@@ -20,6 +21,8 @@ const publicServiceSelect = {
   receiptName: true,
   vatTaxType: true,
   slug: true,
+  subscriptionEndsAt: true,
+  subscriptionStartsAt: true,
   title: true,
   titleEn: true,
   titleHi: true,
@@ -259,13 +262,16 @@ function toSiteService(
   const locale = normalizeLocale(localeValue);
   const currency = getCurrencyForLocale(locale);
   const priceAmount = getLocalizedPrice(service, currency);
-  const sortedOptions = [...service.options]
-    .filter(isUpcomingOption)
-    .sort(compareServiceOptionsByDate);
+  const sortedOptions = service.isSubscription
+    ? []
+    : [...service.options]
+        .filter(isUpcomingOption)
+        .sort(compareServiceOptionsByDate);
 
   return {
     currency,
     description: getLocalizedDescription(service, locale),
+    isSubscription: service.isSubscription,
     options: sortedOptions.map((option) => {
       const optionPriceAmount = getLocalizedOptionPrice(option, currency);
 
@@ -291,6 +297,12 @@ function toSiteService(
     priceRub: service.priceRub,
     priceUnit: service.priceUnit,
     slug: service.slug,
+    subscriptionEndsAt: service.subscriptionEndsAt?.toISOString() ?? null,
+    subscriptionEndsAtLabel: formatMoscowEventLabel(service.subscriptionEndsAt),
+    subscriptionStartsAt: service.subscriptionStartsAt?.toISOString() ?? null,
+    subscriptionStartsAtLabel: formatMoscowEventLabel(
+      service.subscriptionStartsAt
+    ),
     title: getLocalizedTitle(service, locale)
   };
 }

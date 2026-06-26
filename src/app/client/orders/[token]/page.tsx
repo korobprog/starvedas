@@ -33,6 +33,69 @@ function formatDateTime(value: Date) {
   }).format(value);
 }
 
+function formatMoscowDateTime(value: Date) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "long",
+    timeZone: "Europe/Moscow",
+    year: "numeric"
+  }).format(value);
+}
+
+function formatDayCount(days: number) {
+  const normalizedDays = Math.max(0, days);
+  const lastTwoDigits = normalizedDays % 100;
+  const lastDigit = normalizedDays % 10;
+  const label =
+    lastTwoDigits >= 11 && lastTwoDigits <= 14
+      ? "дней"
+      : lastDigit === 1
+        ? "день"
+        : lastDigit >= 2 && lastDigit <= 4
+          ? "дня"
+          : "дней";
+
+  return `${normalizedDays} ${label}`;
+}
+
+function getSubscriptionValidity(order: {
+  isSubscriptionSnapshot: boolean;
+  subscriptionEndsAtSnapshot: Date | null;
+  subscriptionStartsAtSnapshot: Date | null;
+}) {
+  if (
+    !order.isSubscriptionSnapshot ||
+    !order.subscriptionStartsAtSnapshot ||
+    !order.subscriptionEndsAtSnapshot
+  ) {
+    return null;
+  }
+
+  const now = new Date();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const startsAt = order.subscriptionStartsAtSnapshot;
+  const endsAt = order.subscriptionEndsAtSnapshot;
+  const status =
+    endsAt.getTime() < now.getTime()
+      ? "Срок действия истёк"
+      : startsAt.getTime() > now.getTime()
+        ? `Начнётся через ${formatDayCount(
+            Math.ceil((startsAt.getTime() - now.getTime()) / dayMs)
+          )}`
+        : `Осталось ${formatDayCount(
+            Math.ceil((endsAt.getTime() - now.getTime()) / dayMs)
+          )}`;
+
+  return {
+    period: `с ${formatMoscowDateTime(startsAt)} до ${formatMoscowDateTime(
+      endsAt
+    )}`,
+    status
+  };
+}
+
 function formatContacts(order: {
   customerEmail: string | null;
   customerPhone: string | null;
@@ -91,6 +154,7 @@ export default async function ClientOrderDetailPage({
           supportUrl: true
         }
       },
+      isSubscriptionSnapshot: true,
       leadStatus: true,
       orderNumber: true,
       participantCount: true,
@@ -131,6 +195,8 @@ export default async function ClientOrderDetailPage({
         }
       },
       status: true,
+      subscriptionEndsAtSnapshot: true,
+      subscriptionStartsAtSnapshot: true,
       statusHistory: {
         orderBy: { createdAt: "desc" },
         select: {
@@ -151,6 +217,7 @@ export default async function ClientOrderDetailPage({
   const optionTitles = order.serviceOptions.map(
     (option) => option.titleSnapshot
   );
+  const subscriptionValidity = getSubscriptionValidity(order);
 
   return (
     <main className="page-shell">
@@ -195,6 +262,18 @@ export default async function ClientOrderDetailPage({
               <dt>Дата оформления</dt>
               <dd>{formatDateTime(order.createdAt)}</dd>
             </div>
+            {subscriptionValidity && (
+              <div>
+                <dt>Абонемент</dt>
+                <dd>
+                  {subscriptionValidity.period}
+                  <br />
+                  <span className="form-note">
+                    {subscriptionValidity.status}
+                  </span>
+                </dd>
+              </div>
+            )}
             <div>
               <dt>Статус заказа</dt>
               <dd>{formatStatus(order.status)}</dd>
@@ -244,7 +323,11 @@ export default async function ClientOrderDetailPage({
               <dt>Чек / квитанция</dt>
               <dd>
                 {order.payment?.receiptUrl ? (
-                  <a href={order.payment.receiptUrl} rel="noreferrer" target="_blank">
+                  <a
+                    href={order.payment.receiptUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
                     {order.payment.receiptLabel || "Открыть чек"}
                   </a>
                 ) : (

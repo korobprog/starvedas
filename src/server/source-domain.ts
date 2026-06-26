@@ -1,4 +1,7 @@
-export const allowedSourceDomains = ["starvedas.ru", "chintamanidhama.ru"] as const;
+export const allowedSourceDomains = [
+  "starvedas.ru",
+  "chintamanidhama.ru"
+] as const;
 
 export type SourceDomain = (typeof allowedSourceDomains)[number];
 

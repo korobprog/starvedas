@@ -130,8 +130,7 @@ export async function upsertClientProfileForFunnel(
   const phone = normalizeText(input.phone);
   const telegram = normalizeText(input.telegram);
   const telegramId = normalizeText(input.telegramId);
-  const name =
-    normalizeText(input.name) ?? input.fallbackName ?? "Клиент";
+  const name = normalizeText(input.name) ?? input.fallbackName ?? "Клиент";
   const sourceDomain = input.sourceDomain ?? "starvedas.ru";
   const identityWhere = getIdentityWhere({
     email,

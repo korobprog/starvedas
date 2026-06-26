@@ -213,9 +213,9 @@ async function getGoogleAccessToken() {
   });
 
   if (!response.ok) {
-    const error = (await response.json().catch(() => null)) as
-      | GoogleApiError
-      | null;
+    const error = (await response
+      .json()
+      .catch(() => null)) as GoogleApiError | null;
 
     throw new Error(
       error?.error?.message ??
@@ -250,11 +250,12 @@ async function googleApi<T>(
   });
 
   if (!response.ok) {
-    const error = (await response.json().catch(() => null)) as
-      | GoogleApiError
-      | null;
+    const error = (await response
+      .json()
+      .catch(() => null)) as GoogleApiError | null;
 
-    const operation = init.operation ?? `${init.method ?? "GET"} ${new URL(url).pathname}`;
+    const operation =
+      init.operation ?? `${init.method ?? "GET"} ${new URL(url).pathname}`;
     const message = error?.error?.message ?? response.statusText;
     const hint =
       response.status === 403 || response.status === 404
@@ -384,10 +385,19 @@ function collectOperations(
   });
 }
 
-function groupSummary(operations: AccountingOperation[], mode: "day" | "month") {
+function groupSummary(
+  operations: AccountingOperation[],
+  mode: "day" | "month"
+) {
   const map = new Map<
     string,
-    { count: number; paid: number; refunded: number; pending: number; net: number }
+    {
+      count: number;
+      paid: number;
+      refunded: number;
+      pending: number;
+      net: number;
+    }
   >();
 
   for (const operation of operations) {
@@ -500,7 +510,9 @@ function buildSheetTables(params: {
           "Статус"
         ],
         ...operations
-          .filter((operation) => operation.paymentStatus === PaymentStatus.REFUNDED)
+          .filter(
+            (operation) => operation.paymentStatus === PaymentStatus.REFUNDED
+          )
           .map((operation) => [
             toIsoDateTime(operation.operationDate),
             operation.orderNumber,
@@ -743,7 +755,9 @@ export async function getRecentAccountingLogs(sourceDomain: SourceDomain) {
 export async function getAccountingDashboard() {
   const reports = await ensureAccountingReports();
   const logsByDomain = await Promise.all(
-    reports.map((report) => getRecentAccountingLogs(report.sourceDomain as SourceDomain))
+    reports.map((report) =>
+      getRecentAccountingLogs(report.sourceDomain as SourceDomain)
+    )
   );
 
   return reports.map((report, index) => ({
@@ -852,7 +866,8 @@ export async function syncAccountingReport(sourceDomainInput: string) {
 
     return { log, report };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Неизвестная ошибка";
+    const message =
+      error instanceof Error ? error.message : "Неизвестная ошибка";
     const finishedAt = new Date();
 
     report = await prisma.accountingReport.update({
@@ -904,7 +919,10 @@ export async function updateAccountantEmail(params: {
         where: { id: updated.id }
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Неизвестная ошибка Google API";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Неизвестная ошибка Google API";
 
       return prisma.accountingReport.update({
         data: {

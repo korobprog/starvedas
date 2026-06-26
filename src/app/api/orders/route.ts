@@ -264,11 +264,12 @@ export async function POST(request: Request) {
           }
         : undefined;
 
-    const selectedServiceOptionIds = Array.from(
-      new Set(data.selectedServiceOptionIds)
-    );
+    const selectedServiceOptionIds = service.isSubscription
+      ? []
+      : Array.from(new Set(data.selectedServiceOptionIds));
     const mustSelectServiceOptions =
-      service.slug === "single-rite" || service.options.length > 0;
+      !service.isSubscription &&
+      (service.slug === "single-rite" || service.options.length > 0);
 
     if (mustSelectServiceOptions && selectedServiceOptionIds.length === 0) {
       return NextResponse.json(
@@ -356,6 +357,7 @@ export async function POST(request: Request) {
           customerName: data.customerName,
           customerPhone,
           customerTelegram,
+          isSubscriptionSnapshot: service.isSubscription,
           leadStatus: initialLeadStatus,
           participantCount: data.participantCount,
           participantsText: data.participantsText,
@@ -363,6 +365,12 @@ export async function POST(request: Request) {
           referralSlug,
           sourceDomain,
           status: initialOrderStatus,
+          subscriptionEndsAtSnapshot: service.isSubscription
+            ? service.subscriptionEndsAt
+            : null,
+          subscriptionStartsAtSnapshot: service.isSubscription
+            ? service.subscriptionStartsAt
+            : null,
           curator: {
             connect: {
               id: curator.id

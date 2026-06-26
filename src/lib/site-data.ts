@@ -30,22 +30,37 @@ export type SiteServiceOption = {
 export type SiteService = {
   currency: "RUB" | "USD" | "INR";
   description: string;
+  isSubscription: boolean;
   options: SiteServiceOption[];
   priceAmount: number;
   priceLabel: string;
   priceRub: number;
   priceUnit: PriceUnit;
   slug: string;
+  subscriptionEndsAt: string | null;
+  subscriptionEndsAtLabel: string;
+  subscriptionStartsAt: string | null;
+  subscriptionStartsAtLabel: string;
   title: string;
 };
 
 export type SiteServiceList = [SiteService, ...SiteService[]];
+
+const noSubscriptionPeriod = {
+  isSubscription: false,
+  subscriptionEndsAt: null,
+  subscriptionEndsAtLabel: "",
+  subscriptionStartsAt: null,
+  subscriptionStartsAtLabel: ""
+} as const;
 
 export const services = [
   {
     title: "Абонемент на месяц",
     slug: "monthly-pass",
     description: "Регулярное участие в онлайн-церемониях в течение месяца.",
+    ...noSubscriptionPeriod,
+    isSubscription: true,
     options: [],
     priceRub: 6000,
     currency: "RUB",
@@ -57,6 +72,7 @@ export const services = [
     title: "Марафон, тариф 2500",
     slug: "marathon-2500",
     description: "Участие в марафоне практик по базовому тарифу.",
+    ...noSubscriptionPeriod,
     options: [],
     priceRub: 2500,
     currency: "RUB",
@@ -68,6 +84,7 @@ export const services = [
     title: "Марафон, тариф 3500",
     slug: "marathon-3500",
     description: "Участие в марафоне практик по стандартному тарифу.",
+    ...noSubscriptionPeriod,
     options: [],
     priceRub: 3500,
     currency: "RUB",
@@ -79,6 +96,7 @@ export const services = [
     title: "Марафон, тариф 4500",
     slug: "marathon-4500",
     description: "Участие в марафоне практик по расширенному тарифу.",
+    ...noSubscriptionPeriod,
     options: [],
     priceRub: 4500,
     currency: "RUB",
@@ -90,6 +108,7 @@ export const services = [
     title: "Один обряд",
     slug: "single-rite",
     description: "Разовое участие в выбранной онлайн-церемонии.",
+    ...noSubscriptionPeriod,
     options: [],
     priceRub: 1200,
     currency: "RUB",
@@ -101,6 +120,7 @@ export const services = [
     title: "Абхишека",
     slug: "abhisheka",
     description: "Участие в абхишеке с указанием списка участников.",
+    ...noSubscriptionPeriod,
     options: [],
     priceRub: 1000,
     currency: "RUB",
@@ -113,6 +133,7 @@ export const services = [
     slug: "shraddha-name",
     description:
       "Участие в шраддха ягьи, стоимость рассчитывается за каждого участника.",
+    ...noSubscriptionPeriod,
     options: [],
     priceRub: 250,
     currency: "RUB",

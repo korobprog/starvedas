@@ -5,13 +5,19 @@ import { useState } from "react";
 export function SubscriptionFields({
   defaultEndsAt,
   defaultIsSubscription,
-  defaultStartsAt
+  defaultStartsAt,
+  onSubscriptionChange
 }: Readonly<{
   defaultEndsAt: string;
   defaultIsSubscription: boolean;
   defaultStartsAt: string;
+  onSubscriptionChange?: (isSubscription: boolean) => void;
 }>) {
   const [isSubscription, setIsSubscription] = useState(defaultIsSubscription);
+  function handleSubscriptionChange(value: boolean) {
+    setIsSubscription(value);
+    onSubscriptionChange?.(value);
+  }
 
   return (
     <section className="admin-list-item">
@@ -19,7 +25,9 @@ export function SubscriptionFields({
         <input
           defaultChecked={defaultIsSubscription}
           name="isSubscription"
-          onChange={(event) => setIsSubscription(event.currentTarget.checked)}
+          onChange={(event) =>
+            handleSubscriptionChange(event.currentTarget.checked)
+          }
           type="checkbox"
         />
         <span>Тип продукта: абонемент</span>

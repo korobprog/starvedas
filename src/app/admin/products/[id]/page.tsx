@@ -10,7 +10,9 @@ import { getManagedService } from "@/server/services";
 
 export const dynamic = "force-dynamic";
 
-function formatServicePrices(service: NonNullable<Awaited<ReturnType<typeof getManagedService>>>) {
+function formatServicePrices(
+  service: NonNullable<Awaited<ReturnType<typeof getManagedService>>>
+) {
   return [
     `${service.priceRub.toLocaleString("ru-RU")} ₽`,
     service.priceUsd ? `${service.priceUsd.toLocaleString("en-US")} $` : "",
@@ -79,7 +81,9 @@ export default async function AdminProductDetailPage({
           <div>
             <span>Статус</span>
             <strong
-              className={service.active ? "badge badge--success" : "badge badge--muted"}
+              className={
+                service.active ? "badge badge--success" : "badge badge--muted"
+              }
             >
               {service.active ? "Активен" : "Скрыт"}
             </strong>
@@ -87,7 +91,9 @@ export default async function AdminProductDetailPage({
           <div>
             <span>Карточки обрядов</span>
             <strong>
-              {activeOptionsCount} / {service.options.length}
+              {service.isSubscription
+                ? "скрыты для абонемента"
+                : `${activeOptionsCount} / ${service.options.length}`}
             </strong>
           </div>
           <div>

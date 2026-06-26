@@ -295,7 +295,10 @@ export default async function AdminParticipantsPage({
                     </td>
                     <td>{order.createdAt.toLocaleDateString("ru-RU")}</td>
                     <td>
-                      <form action={savePaymentReceiptAction} className="receipt-form">
+                      <form
+                        action={savePaymentReceiptAction}
+                        className="receipt-form"
+                      >
                         <input name="orderId" type="hidden" value={order.id} />
                         <input
                           className="table-input"
@@ -315,7 +318,11 @@ export default async function AdminParticipantsPage({
                           Сохранить чек
                         </button>
                         {order.payment?.receiptUrl && (
-                          <a href={order.payment.receiptUrl} rel="noreferrer" target="_blank">
+                          <a
+                            href={order.payment.receiptUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
                             Открыть чек
                           </a>
                         )}

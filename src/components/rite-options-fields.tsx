@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type RiteOptionInput = {
+export type RiteOptionInput = {
   _count?: {
     orderItems: number;
   };

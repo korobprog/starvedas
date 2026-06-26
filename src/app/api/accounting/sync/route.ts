@@ -13,7 +13,9 @@ function isAuthorized(request: NextRequest) {
     return true;
   }
 
-  const bearer = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const bearer = request.headers
+    .get("authorization")
+    ?.replace(/^Bearer\s+/i, "");
   const headerSecret = request.headers.get("x-accounting-sync-secret");
 
   return Boolean(secret && (bearer === secret || headerSecret === secret));

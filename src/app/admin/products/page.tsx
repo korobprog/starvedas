@@ -38,7 +38,8 @@ export default async function AdminProductsPage({
     0
   );
   const optionsCount = services.reduce(
-    (total, service) => total + service.options.length,
+    (total, service) =>
+      service.isSubscription ? total : total + service.options.length,
     0
   );
 
@@ -143,7 +144,9 @@ export default async function AdminProductsPage({
                     <div>
                       <dt>Карточки</dt>
                       <dd>
-                        {activeOptionsCount} / {service.options.length}
+                        {service.isSubscription
+                          ? "скрыты"
+                          : `${activeOptionsCount} / ${service.options.length}`}
                       </dd>
                     </div>
                     <div>
@@ -156,7 +159,7 @@ export default async function AdminProductsPage({
                     </div>
                   </dl>
 
-                  {service.options.length > 0 && (
+                  {!service.isSubscription && service.options.length > 0 && (
                     <div className="product-card__options">
                       {service.options.slice(0, 3).map((option) => (
                         <span key={option.id}>

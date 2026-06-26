@@ -32,7 +32,8 @@ const localDatabaseUrl = [
   "/starvedas?schema=public"
 ].join("");
 
-process.env.DATABASE_URL ??= loadLocalEnvValue("DATABASE_URL") ?? localDatabaseUrl;
+process.env.DATABASE_URL ??=
+  loadLocalEnvValue("DATABASE_URL") ?? localDatabaseUrl;
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

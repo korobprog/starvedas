@@ -115,7 +115,11 @@ export function CuratorUpdateForm({
       </label>
       <label className="field">
         <span>Текст для клиента после покупки</span>
-        <textarea defaultValue={postPurchaseText} name="postPurchaseText" rows={4} />
+        <textarea
+          defaultValue={postPurchaseText}
+          name="postPurchaseText"
+          rows={4}
+        />
       </label>
       <label className="field">
         <span>Ссылка для клиента после покупки</span>
@@ -222,12 +226,8 @@ export function CuratorUpdateForm({
       )}
 
       <div className="form-actions form-actions--static">
-        {state.error && (
-          <span className="form-warning">{state.error}</span>
-        )}
-        {state.success && (
-          <span className="admin-muted">Данные сохранены</span>
-        )}
+        {state.error && <span className="form-warning">{state.error}</span>}
+        {state.success && <span className="admin-muted">Данные сохранены</span>}
         <button
           className="button button--primary"
           disabled={isPending}

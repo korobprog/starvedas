@@ -60,7 +60,8 @@ export default async function AdminArticleDetailPage({
             <p className="eyebrow">Карточка статьи</p>
             <h2>{article.title}</h2>
             <p className="admin-muted">
-              /articles/{article.slug} · {formatPublishedDate(article.publishedAt)}
+              /articles/{article.slug} ·{" "}
+              {formatPublishedDate(article.publishedAt)}
             </p>
           </div>
           <div className="admin-card__actions">
@@ -86,7 +87,9 @@ export default async function AdminArticleDetailPage({
           <div>
             <span>Статус</span>
             <strong
-              className={article.active ? "badge badge--success" : "badge badge--muted"}
+              className={
+                article.active ? "badge badge--success" : "badge badge--muted"
+              }
             >
               {article.active ? "Опубликована" : "Черновик"}
             </strong>

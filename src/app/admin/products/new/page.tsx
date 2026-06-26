@@ -15,8 +15,8 @@ export default async function AdminNewProductPage() {
             <p className="eyebrow">Новый продукт</p>
             <h2>Создать продукт</h2>
             <p className="admin-muted">
-              Заполните базовые данные, цены и карточки обрядов. После создания
-              админка сразу откроет карточку продукта.
+              Заполните базовые данные, цены и карточки обрядов при
+              необходимости. Для абонемента укажите период действия.
             </p>
           </div>
           <div className="admin-card__actions">

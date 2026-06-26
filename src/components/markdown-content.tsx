@@ -117,7 +117,9 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
       flushList();
       const level = heading[1].length;
       const Tag = `h${Math.min(level + 1, 4)}` as "h2" | "h3" | "h4";
-      blocks.push(<Tag key={`h-${blocks.length}`}>{parseInline(heading[2])}</Tag>);
+      blocks.push(
+        <Tag key={`h-${blocks.length}`}>{parseInline(heading[2])}</Tag>
+      );
       return;
     }
 
