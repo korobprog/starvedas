@@ -88,8 +88,25 @@ export function ScheduleContent({ body, month, title }: ScheduleContentProps) {
       <ScheduleText text={rest ? preview : body} />
       {rest && (
         <details className="schedule-content__details">
-          <summary className="button button--small schedule-content__toggle">
-            Развернуть / свернуть расписание
+          <summary className="schedule-content__toggle">
+            <span className="schedule-content__toggle-label schedule-content__toggle-label--more">
+              Показать всё расписание
+            </span>
+            <span className="schedule-content__toggle-label schedule-content__toggle-label--less">
+              Свернуть расписание
+            </span>
+            <svg
+              aria-hidden="true"
+              className="schedule-content__toggle-icon"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2.5"
+              viewBox="0 0 24 24"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
           </summary>
           <ScheduleText className="schedule-content__text--rest" text={rest} />
         </details>

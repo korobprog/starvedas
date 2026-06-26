@@ -1423,14 +1423,19 @@ export function SignupForm({
                       type="radio"
                       value={service.slug}
                     />
-                    <span>{service.title}</span>
-                    <small>{service.priceLabel}</small>
-                    {showMonthlyPassBonus && (
-                      <small className="service-gift-note service-gift-note--compact">
-                        🎁 Бонус: ведическая астрология — разбор
-                      </small>
-                    )}
+                    <span className="choice-card__title">{service.title}</span>
+                    <small className="choice-card__price">
+                      {service.priceLabel}
+                    </small>
                   </label>
+                  {showMonthlyPassBonus && (
+                    <p className="service-gift-note service-gift-note--compact">
+                      🎁 Бонус: ведическая астрология — разбор
+                    </p>
+                  )}
+                  {service.description && (
+                    <p className="choice-card__note">{service.description}</p>
+                  )}
                   {service.detailsContent && (
                     <button
                       aria-label={`Показать подробное пояснение: ${service.title}`}
@@ -1441,7 +1446,7 @@ export function SignupForm({
                       title="Подробное пояснение"
                       type="button"
                     >
-                      ?
+                      <span aria-hidden="true">?</span>
                     </button>
                   )}
                 </div>
