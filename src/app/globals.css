@@ -681,6 +681,13 @@ select {
   box-shadow: 0 14px 32px rgb(163 82 25 / 28%);
 }
 
+.button--danger {
+  border-color: #c02f24;
+  background: linear-gradient(180deg, #d44739, #a92319);
+  color: #fff;
+  box-shadow: 0 14px 32px rgb(169 35 25 / 22%);
+}
+
 .button--active,
 .button[aria-current="page"] {
   border-color: var(--primary);
@@ -705,6 +712,11 @@ select {
   background: linear-gradient(180deg, #a85619, var(--primary-dark));
 }
 
+.button--danger:hover {
+  border-color: #841b13;
+  background: linear-gradient(180deg, #bf362b, #841b13);
+}
+
 .button:active {
   transform: translateY(1px);
   box-shadow: 0 6px 16px rgb(86 48 13 / 12%);
@@ -717,7 +729,8 @@ select {
 
 .button--active:active,
 .button[aria-current="page"]:active,
-.button--primary:active {
+.button--primary:active,
+.button--danger:active {
   transform: translateY(1px);
   box-shadow: 0 8px 18px rgb(86 48 13 / 16%);
 }
@@ -2360,31 +2373,48 @@ a.button[aria-disabled="true"] {
   gap: 8px;
 }
 
+.curator-bulk-delete-form {
+  display: grid;
+  gap: 16px;
+}
+
 .curators-table,
 .products-table,
 .articles-table {
   table-layout: fixed;
+}
+
+.curators-table {
+  min-width: 1040px;
+}
+
+.products-table,
+.articles-table {
   min-width: 980px;
 }
 
 .curators-table th:nth-child(1) {
-  width: 20%;
+  width: 44px;
 }
 
 .curators-table th:nth-child(2) {
-  width: 18%;
+  width: 19%;
 }
 
 .curators-table th:nth-child(3) {
-  width: 34%;
+  width: 17%;
 }
 
-.curators-table th:nth-child(4),
-.curators-table th:nth-child(5) {
+.curators-table th:nth-child(4) {
+  width: 31%;
+}
+
+.curators-table th:nth-child(5),
+.curators-table th:nth-child(6) {
   width: 11%;
 }
 
-.curators-table th:nth-child(6) {
+.curators-table th:nth-child(7) {
   width: 56px;
 }
 
@@ -2453,6 +2483,21 @@ a.button[aria-disabled="true"] {
 
 .curators-table__name .badge {
   justify-self: start;
+}
+
+.curators-table__select {
+  text-align: center;
+}
+
+.curators-table__select input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.curators-table__select input:disabled {
+  cursor: not-allowed;
 }
 
 .curators-table__metric {

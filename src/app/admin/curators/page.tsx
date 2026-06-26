@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { AdminSubmitButton } from "@/components/admin-submit-button";
+import { CuratorBulkDeleteForm } from "@/components/curator-bulk-delete-form";
 import { PartnerApplicationsAdminPanel } from "@/components/partner-applications-admin-panel";
 import { ReferralLinkTools } from "@/components/referral-link-tools";
 import { prisma } from "@/lib/prisma";
@@ -111,82 +113,111 @@ export default async function AdminCuratorsPage() {
       <PartnerApplicationsAdminPanel applications={partnerApplications} />
 
       <section className="admin-card admin-card--wide">
-        <div className="admin-card__header">
-          <div>
-            <h2>Список кураторов</h2>
-            <p className="admin-muted">
-              В таблице оставлены только данные для быстрого выбора. Все
-              редактирование находится внутри карточки куратора.
-            </p>
+        <CuratorBulkDeleteForm>
+          <div className="admin-card__header">
+            <div>
+              <h2>Список кураторов</h2>
+              <p className="admin-muted">
+                В таблице оставлены только данные для быстрого выбора. Все
+                редактирование находится внутри карточки куратора.
+              </p>
+              <p className="admin-muted">
+                Отметьте кураторов галочками и удалите полностью, вместе с их
+                заявками, оплатами, ссылками и учетными записями.
+              </p>
+            </div>
+            <div className="admin-card__actions">
+              <AdminSubmitButton
+                className="button button--danger"
+                pendingLabel="Удаляем…"
+              >
+                Удалить выбранных полностью
+              </AdminSubmitButton>
+            </div>
           </div>
-        </div>
-        <div className="table-wrap">
-          <table className="admin-table curators-table">
-            <thead>
-              <tr>
-                <th>Куратор</th>
-                <th>Контакты</th>
-                <th>Реферальная ссылка</th>
-                <th>Клиенты / заказы</th>
-                <th>Оплачено</th>
-                <th aria-label="Действия" />
-              </tr>
-            </thead>
-            <tbody>
-              {curators.map((curator) => {
-                const clientCount = getClientCount(curator.orders);
-                const paidAmount = getPaidAmount(curator);
-                const referral = getReferralForCurator(curator, origin);
-                const referralDisplayValue = getReferralDisplayValue(referral);
 
-                return (
-                  <tr key={curator.id}>
-                    <td>
-                      <div className="curators-table__name">
-                        <Link href={`/admin/curators/${curator.id}`}>
-                          {curator.name}
+          <div className="table-wrap">
+            <table className="admin-table curators-table">
+              <thead>
+                <tr>
+                  <th aria-label="Выбор" />
+                  <th>Куратор</th>
+                  <th>Контакты</th>
+                  <th>Реферальная ссылка</th>
+                  <th>Клиенты / заказы</th>
+                  <th>Оплачено</th>
+                  <th aria-label="Действия" />
+                </tr>
+              </thead>
+              <tbody>
+                {curators.map((curator) => {
+                  const clientCount = getClientCount(curator.orders);
+                  const paidAmount = getPaidAmount(curator);
+                  const referral = getReferralForCurator(curator, origin);
+                  const referralDisplayValue =
+                    getReferralDisplayValue(referral);
+
+                  return (
+                    <tr key={curator.id}>
+                      <td className="curators-table__select">
+                        <input
+                          aria-label={`Выбрать куратора ${curator.name}`}
+                          data-curator-name={curator.name}
+                          disabled={curator.isSystem}
+                          name="ids"
+                          type="checkbox"
+                          value={curator.id}
+                        />
+                      </td>
+                      <td>
+                        <div className="curators-table__name">
+                          <Link href={`/admin/curators/${curator.id}`}>
+                            {curator.name}
+                          </Link>
+                          <span className={getCuratorStatusClassName(curator)}>
+                            {getCuratorStatusLabel(curator)}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="curators-table__stack">
+                          <span>
+                            {curator.user?.email ?? "Email не указан"}
+                          </span>
+                          {curator.telegramId && (
+                            <span>Telegram ID: {curator.telegramId}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <ReferralLinkTools
+                          displayValue={referralDisplayValue}
+                          href={referral}
+                        />
+                      </td>
+                      <td className="curators-table__metric">
+                        {clientCount} / {curator.orders.length}
+                      </td>
+                      <td className="curators-table__metric">
+                        {paidAmount.toLocaleString("ru-RU")} руб.
+                      </td>
+                      <td className="curators-table__actions">
+                        <Link
+                          aria-label={`Открыть карточку куратора ${curator.name}`}
+                          className="icon-button icon-button--menu"
+                          href={`/admin/curators/${curator.id}`}
+                          title="Открыть карточку"
+                        >
+                          …
                         </Link>
-                        <span className={getCuratorStatusClassName(curator)}>
-                          {getCuratorStatusLabel(curator)}
-                        </span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="curators-table__stack">
-                        <span>{curator.user?.email ?? "Email не указан"}</span>
-                        {curator.telegramId && (
-                          <span>Telegram ID: {curator.telegramId}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <ReferralLinkTools
-                        displayValue={referralDisplayValue}
-                        href={referral}
-                      />
-                    </td>
-                    <td className="curators-table__metric">
-                      {clientCount} / {curator.orders.length}
-                    </td>
-                    <td className="curators-table__metric">
-                      {paidAmount.toLocaleString("ru-RU")} руб.
-                    </td>
-                    <td className="curators-table__actions">
-                      <Link
-                        aria-label={`Открыть карточку куратора ${curator.name}`}
-                        className="icon-button icon-button--menu"
-                        href={`/admin/curators/${curator.id}`}
-                        title="Открыть карточку"
-                      >
-                        …
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CuratorBulkDeleteForm>
       </section>
     </div>
   );

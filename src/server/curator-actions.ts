@@ -357,6 +357,12 @@ export type UpdateCuratorState = {
   success?: boolean;
 };
 
+export type BulkDeleteCuratorsState = {
+  deletedCount?: number;
+  error?: string;
+  message?: string;
+};
+
 export async function updateCuratorAction(
   _state: UpdateCuratorState,
   formData: FormData
@@ -545,6 +551,108 @@ export async function deactivateCuratorAction(formData: FormData) {
   });
 
   revalidateCuratorPages();
+}
+
+export async function bulkDeleteCuratorsAction(
+  _state: BulkDeleteCuratorsState,
+  formData: FormData
+): Promise<BulkDeleteCuratorsState> {
+  await requireUser([UserRole.ADMIN, UserRole.SUPER_ADMIN], "/admin/curators");
+
+  const ids = Array.from(
+    new Set(
+      formData
+        .getAll("ids")
+        .map((id) => String(id).trim())
+        .filter(Boolean)
+    )
+  );
+
+  if (ids.length === 0) {
+    return { error: "Выберите хотя бы одного куратора" };
+  }
+
+  const curators = await prisma.curator.findMany({
+    where: {
+      id: { in: ids }
+    },
+    select: {
+      id: true,
+      isSystem: true,
+      userId: true
+    }
+  });
+
+  if (curators.length !== ids.length) {
+    return { error: "Один или несколько кураторов не найдены" };
+  }
+
+  if (curators.some((curator) => curator.isSystem)) {
+    return { error: "Системного куратора нельзя удалить" };
+  }
+
+  const curatorIds = curators.map((curator) => curator.id);
+  const userIds = curators
+    .map((curator) => curator.userId)
+    .filter((userId): userId is string => Boolean(userId));
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const orders = await tx.order.findMany({
+        where: {
+          curatorId: { in: curatorIds }
+        },
+        select: {
+          id: true
+        }
+      });
+      const orderIds = orders.map((order) => order.id);
+
+      if (orderIds.length > 0) {
+        await tx.vedicGiftData.deleteMany({
+          where: {
+            orderId: { in: orderIds }
+          }
+        });
+
+        await tx.order.deleteMany({
+          where: {
+            id: { in: orderIds }
+          }
+        });
+      }
+
+      await tx.curator.deleteMany({
+        where: {
+          id: { in: curatorIds },
+          isSystem: false
+        }
+      });
+
+      if (userIds.length > 0) {
+        await tx.user.deleteMany({
+          where: {
+            id: { in: userIds },
+            role: UserRole.CURATOR
+          }
+        });
+      }
+    });
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : "Не удалось удалить кураторов";
+    return { error: message };
+  }
+
+  revalidateCuratorPages();
+
+  return {
+    deletedCount: curatorIds.length,
+    message:
+      curatorIds.length === 1
+        ? "Куратор удален полностью"
+        : `Кураторы удалены полностью: ${curatorIds.length}`
+  };
 }
 
 export async function saveCabinetCuratorSettings(formData: FormData) {
