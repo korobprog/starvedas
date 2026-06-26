@@ -15,11 +15,53 @@ const optionalText = z
 
 const prodamusVatTaxTypes = [0, 1, 2, 4, 6, 7, 10, 11, 12, 13, 14, 15];
 
-const serviceBaseSchema = z.object({
+function validateSubscriptionPeriod(
+  data: {
+    isSubscription: boolean;
+    subscriptionEndsAt: Date | null;
+    subscriptionStartsAt: Date | null;
+  },
+  ctx: z.RefinementCtx
+) {
+  if (!data.isSubscription) {
+    return;
+  }
+
+  if (!data.subscriptionStartsAt) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Укажите начало действия абонемента",
+      path: ["subscriptionStartsAt"]
+    });
+  }
+
+  if (!data.subscriptionEndsAt) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Укажите окончание действия абонемента",
+      path: ["subscriptionEndsAt"]
+    });
+  }
+
+  if (
+    data.subscriptionStartsAt &&
+    data.subscriptionEndsAt &&
+    data.subscriptionEndsAt <= data.subscriptionStartsAt
+  ) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Окончание действия абонемента должно быть позже начала",
+      path: ["subscriptionEndsAt"]
+    });
+  }
+}
+
+const serviceCoreSchema = z.object({
   active: z.boolean(),
   description: optionalText,
   descriptionEn: optionalText,
   descriptionHi: optionalText,
+  isSubscription: z.boolean(),
   priceInr: z.coerce.number().int().min(0).max(100_000_000).nullable(),
   priceRub: z.coerce.number().int().min(0).max(100_000_000),
   receiptName: z.string().trim().min(2).max(200).nullable(),
@@ -28,6 +70,8 @@ const serviceBaseSchema = z.object({
   requiresExactParticipantList: z.boolean(),
   slug: z.string().trim().min(1).max(120),
   sortOrder: z.coerce.number().int().min(-100_000).max(100_000),
+  subscriptionEndsAt: z.date().nullable(),
+  subscriptionStartsAt: z.date().nullable(),
   title: z.string().trim().min(2).max(200),
   titleEn: optionalText,
   titleHi: optionalText,
@@ -37,9 +81,15 @@ const serviceBaseSchema = z.object({
     .refine((value) => prodamusVatTaxTypes.includes(value))
 });
 
-const serviceUpdateSchema = serviceBaseSchema.extend({
-  id: z.string().trim().min(1)
-});
+const serviceBaseSchema = serviceCoreSchema.superRefine(
+  validateSubscriptionPeriod
+);
+
+const serviceUpdateSchema = serviceCoreSchema
+  .extend({
+    id: z.string().trim().min(1)
+  })
+  .superRefine(validateSubscriptionPeriod);
 
 const toggleServiceSchema = z.object({
   active: z.boolean(),
@@ -76,11 +126,13 @@ function normalizeSlug(value: string) {
 }
 
 function parseServiceFormData(formData: FormData) {
+  const isSubscription = formData.get("isSubscription") === "on";
   const parsed = serviceBaseSchema.safeParse({
     active: formData.get("active") === "on",
     description: formData.get("description") ?? "",
     descriptionEn: formData.get("descriptionEn") ?? "",
     descriptionHi: formData.get("descriptionHi") ?? "",
+    isSubscription,
     priceInr: formData.get("priceInr") || null,
     priceRub: formData.get("priceRub") ?? 0,
     priceUsd: formData.get("priceUsd") || null,
@@ -90,6 +142,18 @@ function parseServiceFormData(formData: FormData) {
       formData.get("requiresExactParticipantList") === "on",
     slug: formData.get("slug"),
     sortOrder: formData.get("sortOrder") ?? 0,
+    subscriptionEndsAt: isSubscription
+      ? parseMoscowDateTime(
+          formData.get("subscriptionEndsAt")?.toString(),
+          "дата окончания действия абонемента"
+        )
+      : null,
+    subscriptionStartsAt: isSubscription
+      ? parseMoscowDateTime(
+          formData.get("subscriptionStartsAt")?.toString(),
+          "дата начала действия абонемента"
+        )
+      : null,
     title: formData.get("title"),
     titleEn: formData.get("titleEn") ?? "",
     titleHi: formData.get("titleHi") ?? "",
@@ -113,12 +177,14 @@ function parseServiceFormData(formData: FormData) {
 }
 
 function parseServiceUpdateFormData(formData: FormData) {
+  const isSubscription = formData.get("isSubscription") === "on";
   const parsed = serviceUpdateSchema.safeParse({
     active: formData.get("active") === "on",
     description: formData.get("description") ?? "",
     descriptionEn: formData.get("descriptionEn") ?? "",
     descriptionHi: formData.get("descriptionHi") ?? "",
     id: formData.get("id"),
+    isSubscription,
     priceInr: formData.get("priceInr") || null,
     priceRub: formData.get("priceRub") ?? 0,
     priceUsd: formData.get("priceUsd") || null,
@@ -128,6 +194,18 @@ function parseServiceUpdateFormData(formData: FormData) {
       formData.get("requiresExactParticipantList") === "on",
     slug: formData.get("slug"),
     sortOrder: formData.get("sortOrder") ?? 0,
+    subscriptionEndsAt: isSubscription
+      ? parseMoscowDateTime(
+          formData.get("subscriptionEndsAt")?.toString(),
+          "дата окончания действия абонемента"
+        )
+      : null,
+    subscriptionStartsAt: isSubscription
+      ? parseMoscowDateTime(
+          formData.get("subscriptionStartsAt")?.toString(),
+          "дата начала действия абонемента"
+        )
+      : null,
     title: formData.get("title"),
     titleEn: formData.get("titleEn") ?? "",
     titleHi: formData.get("titleHi") ?? "",
@@ -154,7 +232,10 @@ function getAllFormValues(formData: FormData, name: string) {
   return formData.getAll(name).map((value) => String(value));
 }
 
-function parseMoscowDateTime(value: string | undefined) {
+function parseMoscowDateTime(
+  value: string | undefined,
+  fieldLabel = "дата мероприятия"
+) {
   const normalized = value?.trim();
 
   if (!normalized) {
@@ -164,7 +245,7 @@ function parseMoscowDateTime(value: string | undefined) {
   const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
 
   if (!match) {
-    throw new Error("Некорректная дата мероприятия");
+    throw new Error(`Некорректная ${fieldLabel}`);
   }
 
   const [, year, month, day, hour, minute] = match;
@@ -179,7 +260,7 @@ function parseMoscowDateTime(value: string | undefined) {
   );
 
   if (Number.isNaN(date.getTime())) {
-    throw new Error("Некорректная дата мероприятия");
+    throw new Error(`Некорректная ${fieldLabel}`);
   }
 
   return date;
@@ -317,7 +398,8 @@ function parseBulkServiceOptionsFormData(
       return {
         active: true,
         delete: false,
-        description: parts.slice(1).join(" — ") || template?.description || null,
+        description:
+          parts.slice(1).join(" — ") || template?.description || null,
         descriptionEn: template?.descriptionEn ?? null,
         descriptionHi: template?.descriptionHi ?? null,
         eventStartsAt,
@@ -480,12 +562,10 @@ export async function createService(formData: FormData) {
 
   const data = parseServiceFormData(formData);
   const formOptions = parseServiceOptionsFormData(formData);
-  const options = normalizeOptionSortOrders(
-    [
-      ...formOptions,
-      ...parseBulkServiceOptionsFormData(formData, formOptions)
-    ]
-  );
+  const options = normalizeOptionSortOrders([
+    ...formOptions,
+    ...parseBulkServiceOptionsFormData(formData, formOptions)
+  ]);
   let serviceId = "";
 
   try {
@@ -511,12 +591,10 @@ export async function updateService(formData: FormData) {
 
   const data = parseServiceUpdateFormData(formData);
   const formOptions = parseServiceOptionsFormData(formData);
-  const options = normalizeOptionSortOrders(
-    [
-      ...formOptions,
-      ...parseBulkServiceOptionsFormData(formData, formOptions)
-    ]
-  );
+  const options = normalizeOptionSortOrders([
+    ...formOptions,
+    ...parseBulkServiceOptionsFormData(formData, formOptions)
+  ]);
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -533,8 +611,11 @@ export async function updateService(formData: FormData) {
           priceUnit: data.priceUnit,
           receiptName: data.receiptName,
           requiresExactParticipantList: data.requiresExactParticipantList,
+          isSubscription: data.isSubscription,
           slug: data.slug,
           sortOrder: data.sortOrder,
+          subscriptionEndsAt: data.subscriptionEndsAt,
+          subscriptionStartsAt: data.subscriptionStartsAt,
           title: data.title,
           titleEn: data.titleEn,
           titleHi: data.titleHi,

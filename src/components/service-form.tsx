@@ -2,6 +2,7 @@ import type { PriceUnit } from "@prisma/client";
 import Link from "next/link";
 import { AdminSubmitButton } from "@/components/admin-submit-button";
 import { RiteOptionsFields } from "@/components/rite-options-fields";
+import { SubscriptionFields } from "@/components/subscription-fields";
 import {
   createService,
   toggleServiceActive,
@@ -44,6 +45,64 @@ function formatServicePrices(service: ManagedService) {
   ]
     .filter(Boolean)
     .join(" / ");
+}
+
+function formatMoscowDateTimeInput(value: Date | string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  if (
+    typeof value === "string" &&
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)
+  ) {
+    return value;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const moscowTime = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+
+  return moscowTime.toISOString().slice(0, 16);
+}
+
+function formatMoscowDateTimeLabel(value: Date | string | null | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    timeZone: "Europe/Moscow",
+    year: "numeric"
+  }).format(date);
+}
+
+function formatSubscriptionPeriod(service: ManagedService) {
+  if (
+    !service.isSubscription ||
+    !service.subscriptionStartsAt ||
+    !service.subscriptionEndsAt
+  ) {
+    return null;
+  }
+
+  return `Действует с ${formatMoscowDateTimeLabel(
+    service.subscriptionStartsAt
+  )} до ${formatMoscowDateTimeLabel(service.subscriptionEndsAt)}`;
 }
 
 export function ServiceFields({
@@ -211,6 +270,14 @@ export function ServiceFields({
         <span>Требовать точный список участников</span>
       </label>
 
+      <SubscriptionFields
+        defaultEndsAt={formatMoscowDateTimeInput(service?.subscriptionEndsAt)}
+        defaultIsSubscription={service?.isSubscription ?? false}
+        defaultStartsAt={formatMoscowDateTimeInput(
+          service?.subscriptionStartsAt
+        )}
+      />
+
       <label className="checkbox-field">
         <input
           defaultChecked={service?.active ?? true}
@@ -293,6 +360,7 @@ export function ServiceEditorList({
           (option) => option.active
         ).length;
         const detailHref = `/admin/products/${service.id}`;
+        const subscriptionPeriod = formatSubscriptionPeriod(service);
 
         return (
           <article className="product-card" key={service.id}>
@@ -320,6 +388,9 @@ export function ServiceEditorList({
                 service.description ||
                 "Описание продукта не заполнено"}
             </p>
+            {subscriptionPeriod && (
+              <p className="form-note">{subscriptionPeriod}</p>
+            )}
 
             <dl className="product-card__stats">
               <div>
@@ -341,6 +412,10 @@ export function ServiceEditorList({
                 <dd>
                   {service.requiresExactParticipantList ? "нужен" : "не нужен"}
                 </dd>
+              </div>
+              <div>
+                <dt>Тип</dt>
+                <dd>{service.isSubscription ? "абонемент" : "продукт"}</dd>
               </div>
             </dl>
 

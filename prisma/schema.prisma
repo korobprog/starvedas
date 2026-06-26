@@ -235,6 +235,9 @@ model Service {
   priceInr                     Int?
   priceUnit                    PriceUnit @default(PER_PARTICIPANT)
   requiresExactParticipantList Boolean   @default(true)
+  isSubscription               Boolean   @default(false)
+  subscriptionStartsAt         DateTime?
+  subscriptionEndsAt           DateTime?
   active                       Boolean   @default(true)
   sortOrder                    Int       @default(0)
   createdAt                    DateTime  @default(now())
@@ -384,25 +387,28 @@ model ClientEvent {
 }
 
 model Order {
-  id                  String      @id @default(cuid())
-  orderNumber         Int         @unique @default(autoincrement())
-  status              OrderStatus @default(DRAFT)
-  leadStatus          LeadStatus  @default(NEW)
-  participantCount    Int
-  participantsText    String
-  amountRub           Int
-  currency            String      @default("RUB")
-  customerName        String
-  customerTelegram    String?
-  customerPhone       String?
-  customerEmail       String?
-  consentPersonalData Boolean     @default(false)
-  publicToken         String      @unique
-  source              String      @default("site")
-  sourceDomain        String      @default("starvedas.ru")
-  referralSlug        String?
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  id                           String      @id @default(cuid())
+  orderNumber                  Int         @unique @default(autoincrement())
+  status                       OrderStatus @default(DRAFT)
+  leadStatus                   LeadStatus  @default(NEW)
+  participantCount             Int
+  participantsText             String
+  amountRub                    Int
+  currency                     String      @default("RUB")
+  customerName                 String
+  customerTelegram             String?
+  customerPhone                String?
+  customerEmail                String?
+  consentPersonalData          Boolean     @default(false)
+  publicToken                  String      @unique
+  source                       String      @default("site")
+  sourceDomain                 String      @default("starvedas.ru")
+  referralSlug                 String?
+  isSubscriptionSnapshot       Boolean     @default(false)
+  subscriptionStartsAtSnapshot DateTime?
+  subscriptionEndsAtSnapshot   DateTime?
+  createdAt                    DateTime    @default(now())
+  updatedAt                    DateTime    @updatedAt
 
   curatorId String
   serviceId String

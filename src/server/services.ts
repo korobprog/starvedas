@@ -48,7 +48,10 @@ const publicServiceSelect = {
 
 const orderServiceSelect = {
   ...publicServiceSelect,
-  id: true
+  id: true,
+  isSubscription: true,
+  subscriptionEndsAt: true,
+  subscriptionStartsAt: true
 } satisfies Prisma.ServiceSelect;
 
 const managedServiceSelect = {
@@ -62,6 +65,7 @@ const managedServiceSelect = {
   descriptionEn: true,
   descriptionHi: true,
   id: true,
+  isSubscription: true,
   priceInr: true,
   priceRub: true,
   priceUnit: true,
@@ -71,6 +75,8 @@ const managedServiceSelect = {
   requiresExactParticipantList: true,
   slug: true,
   sortOrder: true,
+  subscriptionEndsAt: true,
+  subscriptionStartsAt: true,
   title: true,
   titleEn: true,
   titleHi: true,
