@@ -28,6 +28,14 @@ export type HomeCopy = {
     services: { title: string; lead: string };
     participation: { title: string; lead: string };
     brahman: { eyebrow: string; title: string; text: string };
+    articles: {
+      eyebrow: string;
+      title: string;
+      lead: string;
+      cta: string;
+      empty: string;
+      read: string;
+    };
     schedule: { title: string; empty: string; cta: string };
     signup: { title: string; lead: string };
     faq: {
@@ -103,6 +111,14 @@ const copies: Record<Locale, HomeCopy> = {
         eyebrow: "Наш Брахман",
         title: "Проводник традиции и знания Бхагавад-Гиты",
         text: "Последние 10 лет он полностью посвятил себя распространению знаний Бхагавад-Гиты и проведению Ягий. Ему помогают брахманы из его семьи и Джай Мангал дас, русскоязычный брахман, проповедник, преданный, вайшнав."
+      },
+      articles: {
+        eyebrow: "Материалы StarVedas",
+        title: "Полезные статьи",
+        lead: "Разбираем, что такое ягья, пуджа, как подготовиться к церемонии и как осознанно участвовать в обрядах.",
+        cta: "Все статьи",
+        empty: "Скоро здесь появятся материалы о церемониях и подготовке.",
+        read: "Читать"
       },
       schedule: {
         title: "Расписание",
@@ -188,6 +204,15 @@ const copies: Record<Locale, HomeCopy> = {
         title: "Guide of tradition and Bhagavad Gita knowledge",
         text: "For the last 10 years he has fully dedicated himself to sharing the knowledge of the Bhagavad Gita and conducting yagyas. He is assisted by brahmans from his family and Jaya Mangal das, a Russian-speaking brahman, preacher, devotee and Vaishnava."
       },
+      articles: {
+        eyebrow: "StarVedas materials",
+        title: "Helpful articles",
+        lead: "Learn what a yajna or puja is, how to prepare for a ceremony, and how to participate consciously.",
+        cta: "All articles",
+        empty:
+          "Materials about ceremonies and preparation will appear here soon.",
+        read: "Read"
+      },
       schedule: {
         title: "Schedule",
         empty:
@@ -271,6 +296,14 @@ const copies: Record<Locale, HomeCopy> = {
         eyebrow: "हमारे ब्राह्मण",
         title: "परंपरा और भगवद गीता ज्ञान के मार्गदर्शक",
         text: "पिछले 10 वर्षों से उन्होंने भगवद गीता के ज्ञान को साझा करने और यज्ञ करने के लिए स्वयं को समर्पित किया है. उनके परिवार के ब्राह्मण और जय मंगल दास, एक रूसी भाषी ब्राह्मण, उपदेशक, भक्त और वैष्णव, उनकी सहायता करते हैं."
+      },
+      articles: {
+        eyebrow: "StarVedas सामग्री",
+        title: "उपयोगी लेख",
+        lead: "जानें कि यज्ञ और पूजा क्या हैं, समारोह की तैयारी कैसे करें और सचेत रूप से भाग कैसे लें.",
+        cta: "सभी लेख",
+        empty: "समारोहों और तैयारी की सामग्री जल्द यहाँ दिखाई देगी.",
+        read: "पढ़ें"
       },
       schedule: {
         title: "कार्यक्रम",

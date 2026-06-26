@@ -13,6 +13,12 @@ const optionalText = z
   .max(5000)
   .transform((value) => value || null);
 
+const optionalDetailsText = z
+  .string()
+  .trim()
+  .max(30000)
+  .transform((value) => value || null);
+
 const prodamusVatTaxTypes = [0, 1, 2, 4, 6, 7, 10, 11, 12, 13, 14, 15];
 
 function validateSubscriptionPeriod(
@@ -61,6 +67,9 @@ const serviceCoreSchema = z.object({
   description: optionalText,
   descriptionEn: optionalText,
   descriptionHi: optionalText,
+  detailsContent: optionalDetailsText,
+  detailsContentEn: optionalDetailsText,
+  detailsContentHi: optionalDetailsText,
   isSubscription: z.boolean(),
   priceInr: z.coerce.number().int().min(0).max(100_000_000).nullable(),
   priceRub: z.coerce.number().int().min(0).max(100_000_000),
@@ -132,6 +141,9 @@ function parseServiceFormData(formData: FormData) {
     description: formData.get("description") ?? "",
     descriptionEn: formData.get("descriptionEn") ?? "",
     descriptionHi: formData.get("descriptionHi") ?? "",
+    detailsContent: formData.get("detailsContent") ?? "",
+    detailsContentEn: formData.get("detailsContentEn") ?? "",
+    detailsContentHi: formData.get("detailsContentHi") ?? "",
     isSubscription,
     priceInr: formData.get("priceInr") || null,
     priceRub: formData.get("priceRub") ?? 0,
@@ -183,6 +195,9 @@ function parseServiceUpdateFormData(formData: FormData) {
     description: formData.get("description") ?? "",
     descriptionEn: formData.get("descriptionEn") ?? "",
     descriptionHi: formData.get("descriptionHi") ?? "",
+    detailsContent: formData.get("detailsContent") ?? "",
+    detailsContentEn: formData.get("detailsContentEn") ?? "",
+    detailsContentHi: formData.get("detailsContentHi") ?? "",
     id: formData.get("id"),
     isSubscription,
     priceInr: formData.get("priceInr") || null,
@@ -605,6 +620,9 @@ export async function updateService(formData: FormData) {
           description: data.description,
           descriptionEn: data.descriptionEn,
           descriptionHi: data.descriptionHi,
+          detailsContent: data.detailsContent,
+          detailsContentEn: data.detailsContentEn,
+          detailsContentHi: data.detailsContentHi,
           priceInr: data.priceInr,
           priceRub: data.priceRub,
           priceUsd: data.priceUsd,

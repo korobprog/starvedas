@@ -32,6 +32,7 @@ import { getServiceForOrder } from "@/server/services";
 import { getSourceDomainFromHeaders } from "@/server/source-domain";
 import { saveClientParticipants } from "@/server/saved-participants";
 import { sendOrderCreatedEmail } from "@/server/email/order-emails";
+import { getSiteUrlForSourceDomain } from "@/server/email/site-url";
 import { sendOrderCreatedTelegramNotification } from "@/server/telegram-notifications";
 
 function createProviderPaymentUrl({
@@ -87,12 +88,8 @@ function createOrderPublicToken() {
   return crypto.randomBytes(24).toString("base64url");
 }
 
-function createResultUrl(
-  requestUrl: string,
-  path: string,
-  publicToken: string
-) {
-  const url = new URL(path, requestUrl);
+function createResultUrl(baseUrl: string, path: string, publicToken: string) {
+  const url = new URL(path, baseUrl);
 
   url.searchParams.set("order", publicToken);
 
@@ -441,6 +438,7 @@ export async function POST(request: Request) {
       });
     });
 
+    const resultBaseUrl = getSiteUrlForSourceDomain(sourceDomain);
     const paymentUrl = isCustomPayment
       ? undefined
       : createProviderPaymentUrl({
@@ -452,7 +450,7 @@ export async function POST(request: Request) {
           },
           description: paymentDescription,
           failUrl: createResultUrl(
-            request.url,
+            resultBaseUrl,
             "/payment/fail",
             order.publicToken
           ),
@@ -472,7 +470,7 @@ export async function POST(request: Request) {
           provider: paymentProvider.code,
           receiptName: service.receiptName?.trim() || service.localizedTitle,
           successUrl: createResultUrl(
-            request.url,
+            resultBaseUrl,
             "/payment/success",
             order.publicToken
           ),

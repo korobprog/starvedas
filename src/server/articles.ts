@@ -125,6 +125,25 @@ export async function getPublicArticles(locale?: string | null) {
   return articles.map((article) => toPublicArticle(article, locale));
 }
 
+export async function getFeaturedPublicArticles(
+  locale?: string | null,
+  limit = 3
+) {
+  const articles = await prisma.article.findMany({
+    where: { active: true },
+    orderBy: [
+      { featured: "desc" },
+      { sortOrder: "asc" },
+      { publishedAt: "desc" },
+      { createdAt: "desc" }
+    ],
+    take: limit,
+    select: publicArticleSelect
+  });
+
+  return articles.map((article) => toPublicArticle(article, locale));
+}
+
 export async function getPublicArticleBySlug(
   slug: string,
   locale?: string | null

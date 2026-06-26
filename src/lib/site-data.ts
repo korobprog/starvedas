@@ -30,6 +30,7 @@ export type SiteServiceOption = {
 export type SiteService = {
   currency: "RUB" | "USD" | "INR";
   description: string;
+  detailsContent: string;
   isSubscription: boolean;
   options: SiteServiceOption[];
   priceAmount: number;
@@ -59,6 +60,7 @@ export const services = [
     title: "Абонемент на месяц",
     slug: "monthly-pass",
     description: "Регулярное участие в онлайн-церемониях в течение месяца.",
+    detailsContent: "",
     ...noSubscriptionPeriod,
     isSubscription: true,
     options: [],
@@ -72,6 +74,7 @@ export const services = [
     title: "Марафон, тариф 2500",
     slug: "marathon-2500",
     description: "Участие в марафоне практик по базовому тарифу.",
+    detailsContent: "",
     ...noSubscriptionPeriod,
     options: [],
     priceRub: 2500,
@@ -84,6 +87,7 @@ export const services = [
     title: "Марафон, тариф 3500",
     slug: "marathon-3500",
     description: "Участие в марафоне практик по стандартному тарифу.",
+    detailsContent: "",
     ...noSubscriptionPeriod,
     options: [],
     priceRub: 3500,
@@ -96,6 +100,7 @@ export const services = [
     title: "Марафон, тариф 4500",
     slug: "marathon-4500",
     description: "Участие в марафоне практик по расширенному тарифу.",
+    detailsContent: "",
     ...noSubscriptionPeriod,
     options: [],
     priceRub: 4500,
@@ -108,6 +113,7 @@ export const services = [
     title: "Один обряд",
     slug: "single-rite",
     description: "Разовое участие в выбранной онлайн-церемонии.",
+    detailsContent: "",
     ...noSubscriptionPeriod,
     options: [],
     priceRub: 1200,
@@ -120,6 +126,7 @@ export const services = [
     title: "Абхишека",
     slug: "abhisheka",
     description: "Участие в абхишеке с указанием списка участников.",
+    detailsContent: "",
     ...noSubscriptionPeriod,
     options: [],
     priceRub: 1000,
@@ -133,6 +140,7 @@ export const services = [
     slug: "shraddha-name",
     description:
       "Участие в шраддха ягьи, стоимость рассчитывается за каждого участника.",
+    detailsContent: "",
     ...noSubscriptionPeriod,
     options: [],
     priceRub: 250,

@@ -24,20 +24,20 @@ function formatDateTime(date: Date) {
 
 function formatBirthTime(request: VedicGiftRequest) {
   if (request.birthTimeUnknown) {
-    return "?????? ????? ??????????";
+    return "точное время неизвестно";
   }
 
-  return request.birthTime || "?? ???????";
+  return request.birthTime || "не указано";
 }
 
 function formatContacts(request: VedicGiftRequest) {
   const contacts = [
     request.email,
-    request.phone ? `???.: ${request.phone}` : null,
+    request.phone ? `тел.: ${request.phone}` : null,
     request.telegram ? `Telegram: ${request.telegram}` : null
   ].filter(Boolean);
 
-  return contacts.join(" ? ");
+  return contacts.join(" · ");
 }
 
 export function VedicGiftRequestsPanel({
@@ -51,26 +51,26 @@ export function VedicGiftRequestsPanel({
     <section className="admin-card admin-card--wide">
       <div className="admin-card__header">
         <div>
-          <h2>?????????? ?????????? ???????</h2>
+          <h2>Заявки на ведические разборы</h2>
           <p className="admin-muted">
-            ??????, ??????? ???????????? ????????? ????? ?????? ?????????
-            ??????????. ????? ??????: {newCount}.
+            Данные, которые участники отправили после покупки месячного
+            абонемента. Новых заявок: {newCount}.
           </p>
         </div>
       </div>
 
       {requests.length === 0 ? (
-        <p className="admin-muted">?????? ?? ?????????? ?????? ???? ???.</p>
+        <p className="admin-muted">Заявок на ведические разборы пока нет.</p>
       ) : (
         <table className="admin-table vedic-gift-table">
           <thead>
             <tr>
-              <th>????</th>
-              <th>????????????</th>
-              <th>????????</th>
-              <th>????????</th>
-              <th>?????</th>
-              <th>??????</th>
+              <th>Дата</th>
+              <th>Участник</th>
+              <th>Рождение</th>
+              <th>Контакты</th>
+              <th>Заказ</th>
+              <th>Статус</th>
             </tr>
           </thead>
           <tbody>
@@ -86,22 +86,22 @@ export function VedicGiftRequestsPanel({
                   {formatDate(request.birthDate)}
                   <br />
                   <span className="admin-muted">
-                    ?????: {formatBirthTime(request)}
+                    Время: {formatBirthTime(request)}
                   </span>
                 </td>
                 <td>{formatContacts(request)}</td>
                 <td>
                   {request.order ? (
                     <>
-                      #{request.order.orderNumber} ?{" "}
+                      #{request.order.orderNumber} ·{" "}
                       {request.order.service.title}
                       <br />
                       <span className="admin-muted">
-                        ???????: {request.order.curator.name}
+                        Куратор: {request.order.curator.name}
                       </span>
                     </>
                   ) : (
-                    <span className="admin-muted">????? ?? ????????</span>
+                    <span className="admin-muted">Заказ не найден</span>
                   )}
                 </td>
                 <td>
@@ -110,7 +110,7 @@ export function VedicGiftRequestsPanel({
                       request.processed ? "badge badge--success" : "badge"
                     }
                   >
-                    {request.processed ? "??????????" : "?????"}
+                    {request.processed ? "Обработано" : "Новая"}
                   </span>
                 </td>
               </tr>

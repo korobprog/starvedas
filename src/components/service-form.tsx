@@ -199,6 +199,35 @@ export function ServiceFields({
         </label>
       </div>
 
+      <label className="field">
+        <span>Расширенное пояснение RU</span>
+        <textarea
+          defaultValue={service?.detailsContent ?? ""}
+          name="detailsContent"
+          placeholder="Подробно объясните, кому подходит формат, что входит и как подготовиться. Можно использовать Markdown."
+          rows={8}
+        />
+      </label>
+
+      <div className="field-grid">
+        <label className="field">
+          <span>Расширенное пояснение EN</span>
+          <textarea
+            defaultValue={service?.detailsContentEn ?? ""}
+            name="detailsContentEn"
+            rows={8}
+          />
+        </label>
+        <label className="field">
+          <span>Расширенное пояснение HI</span>
+          <textarea
+            defaultValue={service?.detailsContentHi ?? ""}
+            name="detailsContentHi"
+            rows={8}
+          />
+        </label>
+      </div>
+
       <div className="field-grid">
         <label className="field">
           <span>Цена RUB</span>

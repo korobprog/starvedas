@@ -228,6 +228,9 @@ model Service {
   description                  String?
   descriptionEn                String?
   descriptionHi                String?
+  detailsContent               String?
+  detailsContentEn             String?
+  detailsContentHi             String?
   receiptName                  String?
   vatTaxType                   Int       @default(0)
   priceRub                     Int

@@ -13,6 +13,9 @@ const publicServiceSelect = {
   description: true,
   descriptionEn: true,
   descriptionHi: true,
+  detailsContent: true,
+  detailsContentEn: true,
+  detailsContentHi: true,
   isSubscription: true,
   priceInr: true,
   priceRub: true,
@@ -67,6 +70,9 @@ const managedServiceSelect = {
   description: true,
   descriptionEn: true,
   descriptionHi: true,
+  detailsContent: true,
+  detailsContentEn: true,
+  detailsContentHi: true,
   id: true,
   isSubscription: true,
   priceInr: true,
@@ -153,6 +159,23 @@ function getLocalizedDescription(service: PublicServiceRow, locale: Locale) {
   }
 
   return service.description || "";
+}
+
+function getLocalizedDetailsContent(service: PublicServiceRow, locale: Locale) {
+  if (locale === "en") {
+    return service.detailsContentEn?.trim() || service.detailsContent || "";
+  }
+
+  if (locale === "hi") {
+    return (
+      service.detailsContentHi?.trim() ||
+      service.detailsContentEn?.trim() ||
+      service.detailsContent ||
+      ""
+    );
+  }
+
+  return service.detailsContent || "";
 }
 
 function getLocalizedOptionTitle(
@@ -271,6 +294,7 @@ function toSiteService(
   return {
     currency,
     description: getLocalizedDescription(service, locale),
+    detailsContent: getLocalizedDetailsContent(service, locale),
     isSubscription: service.isSubscription,
     options: sortedOptions.map((option) => {
       const optionPriceAmount = getLocalizedOptionPrice(option, currency);

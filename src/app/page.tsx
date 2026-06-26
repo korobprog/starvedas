@@ -1,6 +1,7 @@
 import { BrahmanVideo } from "@/components/brahman-video";
 import { cookies } from "next/headers";
 import { SignupForm } from "@/components/signup-form";
+import { ScheduleContent } from "@/components/schedule-content";
 import { SiteNav } from "@/components/site-nav";
 import { SupportCta } from "@/components/support-cta";
 import { getHomeCopy } from "@/i18n/home-copy";
@@ -10,6 +11,7 @@ import { steps } from "@/lib/site-data";
 import { getPublicOrganizationSettings } from "@/server/organization-settings";
 import { getCheckoutPaymentProvidersForCurator } from "@/server/payment-providers";
 import { getCuratorForReferral, referralCookieName } from "@/server/referrals";
+import { getFeaturedPublicArticles } from "@/server/articles";
 import { getPublicServices } from "@/server/services";
 import { applySiteBrandToCopy } from "@/lib/site-branding";
 import { getRequestSiteBrand } from "@/server/site-branding";
@@ -40,6 +42,24 @@ async function getActiveSchedule() {
   } catch {
     return null;
   }
+}
+
+function formatPublishedDate(
+  value: Date | string | null,
+  locale?: string | null
+) {
+  if (!value) {
+    return "";
+  }
+
+  const dateLocale =
+    locale === "en" ? "en-US" : locale === "hi" ? "hi-IN" : "ru-RU";
+
+  return new Intl.DateTimeFormat(dateLocale, {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  }).format(new Date(value));
 }
 
 async function getAssignedCurator(referralSlug?: string) {
@@ -75,13 +95,19 @@ export default async function Home({
   const locale = cookieStore.get(localeCookieName)?.value;
   const brand = await getRequestSiteBrand();
   const copy = applySiteBrandToCopy(getHomeCopy(locale), brand.name);
-  const [activeSchedule, assignedCurator, { contact }, availableServices] =
-    await Promise.all([
-      getActiveSchedule(),
-      getAssignedCurator(referralSlug),
-      getPublicOrganizationSettings(),
-      getPublicServices(locale)
-    ]);
+  const [
+    activeSchedule,
+    assignedCurator,
+    { contact },
+    availableServices,
+    featuredArticles
+  ] = await Promise.all([
+    getActiveSchedule(),
+    getAssignedCurator(referralSlug),
+    getPublicOrganizationSettings(),
+    getPublicServices(locale),
+    getFeaturedPublicArticles(locale)
+  ]);
   const paymentProviders = await getCheckoutPaymentProvidersForCurator(
     assignedCurator.id,
     locale
@@ -218,17 +244,79 @@ export default async function Home({
         </div>
       </section>
 
+      <section className="section" id="articles">
+        <div className="container">
+          <div className="section__header">
+            <p className="eyebrow">{copy.sections.articles.eyebrow}</p>
+            <h2>{copy.sections.articles.title}</h2>
+            <p>{copy.sections.articles.lead}</p>
+          </div>
+
+          {featuredArticles.length > 0 ? (
+            <>
+              <div className="card-grid article-grid">
+                {featuredArticles.map((article) => (
+                  <Link
+                    className="card card--link article-card"
+                    href={`/articles/${article.slug}`}
+                    key={article.id}
+                  >
+                    {article.coverImageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        alt=""
+                        className="article-card__image"
+                        src={article.coverImageUrl}
+                      />
+                    )}
+                    <div className="article-card__body">
+                      {article.publishedAt && (
+                        <time
+                          className="article-meta"
+                          dateTime={new Date(article.publishedAt).toISOString()}
+                        >
+                          {formatPublishedDate(article.publishedAt, locale)}
+                        </time>
+                      )}
+                      <h3>{article.localizedTitle}</h3>
+                      {article.localizedExcerpt && (
+                        <p>{article.localizedExcerpt}</p>
+                      )}
+                      <span className="article-card__link">
+                        {copy.sections.articles.read}
+                      </span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+              <div className="form-actions">
+                <Link className="button button--primary" href="/articles">
+                  {copy.sections.articles.cta}
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className="simple-card">
+              <p>{copy.sections.articles.empty}</p>
+              <Link className="button button--primary" href="/articles">
+                {copy.sections.articles.cta}
+              </Link>
+            </div>
+          )}
+        </div>
+      </section>
+
       <section className="section" id="schedule">
         <div className="container">
           <div className="schedule-box">
             <div className="section__header">
               <h2>{copy.sections.schedule.title}</h2>
               {activeSchedule ? (
-                <div className="schedule-content">
-                  <span>{activeSchedule.month}</span>
-                  <h3>{activeSchedule.title}</h3>
-                  <p>{activeSchedule.body}</p>
-                </div>
+                <ScheduleContent
+                  body={activeSchedule.body}
+                  month={activeSchedule.month}
+                  title={activeSchedule.title}
+                />
               ) : (
                 <p>{copy.sections.schedule.empty}</p>
               )}

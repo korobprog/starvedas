@@ -10,6 +10,7 @@ import {
   useRef,
   useState
 } from "react";
+import { MarkdownContent } from "@/components/markdown-content";
 import { SupportCta } from "@/components/support-cta";
 import { formatMoney } from "@/i18n/pricing";
 import { getSignupCopy } from "@/i18n/signup-copy";
@@ -410,25 +411,106 @@ function PaymentInstructionsBox({
   );
 }
 
+function getSubscriptionPeriodText(service: SiteService) {
+  return service.subscriptionStartsAtLabel && service.subscriptionEndsAtLabel
+    ? `с ${service.subscriptionStartsAtLabel} до ${service.subscriptionEndsAtLabel} МСК`
+    : "Период действия уточняется.";
+}
+
+function ServiceDetailsDialog({
+  onClose,
+  onSelect,
+  service
+}: {
+  onClose: () => void;
+  onSelect: () => void;
+  service: SiteService;
+}) {
+  const titleId = `service-details-${service.slug}`;
+
+  return (
+    <div
+      className="service-details-modal"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <section
+        aria-labelledby={titleId}
+        aria-modal="true"
+        className="service-details-modal__panel"
+        role="dialog"
+      >
+        <button
+          aria-label="Закрыть пояснение"
+          className="service-details-modal__close"
+          data-service-details-close
+          onClick={onClose}
+          type="button"
+        >
+          ×
+        </button>
+
+        <div className="service-details-modal__header">
+          <span className="service-details-modal__eyebrow">
+            Подробно о церемонии
+          </span>
+          <h3 id={titleId}>{service.title}</h3>
+          <p>{service.priceLabel}</p>
+          {service.isSubscription && (
+            <p className="service-details-modal__period">
+              {getSubscriptionPeriodText(service)}
+            </p>
+          )}
+        </div>
+
+        <MarkdownContent content={service.detailsContent} />
+
+        <div className="service-details-modal__actions">
+          <button
+            className="button button--primary"
+            onClick={onSelect}
+            type="button"
+          >
+            Выбрать этот вариант
+          </button>
+          <button className="button" onClick={onClose} type="button">
+            Вернуться к списку
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function SubscriptionInfoCard({ service }: { service: SiteService }) {
-  const periodText =
-    service.subscriptionStartsAtLabel && service.subscriptionEndsAtLabel
-      ? `с ${service.subscriptionStartsAtLabel} до ${service.subscriptionEndsAtLabel} МСК`
-      : "Период действия уточняется.";
+  const periodText = getSubscriptionPeriodText(service);
 
   return (
     <div
       className="subscription-info-card"
       aria-label="Информация об абонементе"
     >
-      <strong>{service.title}</strong>
-      {service.description && <p>{service.description}</p>}
-      <dl>
-        <div>
+      <div className="subscription-info-card__header">
+        <span className="subscription-info-card__badge">Месячный формат</span>
+        <strong className="subscription-info-card__title">
+          {service.title}
+        </strong>
+      </div>
+      {service.description && (
+        <p className="subscription-info-card__description">
+          <span aria-hidden="true">✓</span>
+          {service.description}
+        </p>
+      )}
+      <dl className="subscription-info-card__details">
+        <div className="subscription-info-card__detail subscription-info-card__detail--price">
           <dt>Стоимость</dt>
           <dd>{service.priceLabel}</dd>
         </div>
-        <div>
+        <div className="subscription-info-card__detail">
           <dt>Период действия</dt>
           <dd>{periodText}</dd>
         </div>
@@ -493,9 +575,13 @@ export function SignupForm({
     { status: "idle" }
   );
   const [repeatMessage, setRepeatMessage] = useState<string | null>(null);
+  const [detailsServiceSlug, setDetailsServiceSlug] = useState<string | null>(
+    null
+  );
   const [isFormInView, setIsFormInView] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+  const lastDetailsButtonRef = useRef<HTMLButtonElement | null>(null);
   const stepHasRendered = useRef(false);
   const checkoutStartedRecorded = useRef(false);
   const repeatLoadedKey = useRef<string | null>(null);
@@ -511,6 +597,11 @@ export function SignupForm({
       services[0] ??
       null,
     [serviceSlug, services]
+  );
+  const detailsService = useMemo(
+    () =>
+      services.find((service) => service.slug === detailsServiceSlug) ?? null,
+    [detailsServiceSlug, services]
   );
 
   const selectedServiceOptions = useMemo(() => {
@@ -876,6 +967,34 @@ export function SignupForm({
   }, [submitState.status]);
 
   useEffect(() => {
+    if (!detailsService) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const closeButton = document.querySelector<HTMLButtonElement>(
+      "[data-service-details-close]"
+    );
+
+    document.body.style.overflow = "hidden";
+    closeButton?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setDetailsServiceSlug(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+      lastDetailsButtonRef.current?.focus({ preventScroll: true });
+    };
+  }, [detailsService]);
+
+  useEffect(() => {
     const formElement = formRef.current;
 
     if (!formElement) {
@@ -936,6 +1055,16 @@ export function SignupForm({
   function selectService(slug: string) {
     setServiceSlug(slug);
     setSelectedServiceOptionIds([]);
+  }
+
+  function openServiceDetails(service: SiteService, button: HTMLButtonElement) {
+    lastDetailsButtonRef.current = button;
+    setDetailsServiceSlug(service.slug);
+  }
+
+  function selectServiceFromDetails(service: SiteService) {
+    selectService(service.slug);
+    setDetailsServiceSlug(null);
   }
 
   function toggleServiceOption(optionId: string) {
@@ -1262,34 +1391,71 @@ export function SignupForm({
             {services.map((service) => {
               const showMonthlyPassBonus =
                 highlightMonthlyPassBonus && service.slug === "monthly-pass";
+              const inputId = `service-${service.slug}`;
 
               return (
-                <label
+                <div
                   className={
                     showMonthlyPassBonus
                       ? "choice-card choice-card--stacked choice-card--bonus"
                       : "choice-card choice-card--stacked"
                   }
                   key={service.slug}
+                  onClick={(event) => {
+                    if (
+                      event.target instanceof HTMLElement &&
+                      event.target.closest("button")
+                    ) {
+                      return;
+                    }
+
+                    if (activeServiceSlug !== service.slug) {
+                      selectService(service.slug);
+                    }
+                  }}
                 >
-                  <input
-                    checked={activeServiceSlug === service.slug}
-                    name="service"
-                    onChange={() => selectService(service.slug)}
-                    type="radio"
-                    value={service.slug}
-                  />
-                  <span>{service.title}</span>
-                  <small>{service.priceLabel}</small>
-                  {showMonthlyPassBonus && (
-                    <small className="service-gift-note service-gift-note--compact">
-                      🎁 Бонус: ведическая астрология — разбор
-                    </small>
+                  <label className="choice-card__select" htmlFor={inputId}>
+                    <input
+                      checked={activeServiceSlug === service.slug}
+                      id={inputId}
+                      name="service"
+                      onChange={() => selectService(service.slug)}
+                      type="radio"
+                      value={service.slug}
+                    />
+                    <span>{service.title}</span>
+                    <small>{service.priceLabel}</small>
+                    {showMonthlyPassBonus && (
+                      <small className="service-gift-note service-gift-note--compact">
+                        🎁 Бонус: ведическая астрология — разбор
+                      </small>
+                    )}
+                  </label>
+                  {service.detailsContent && (
+                    <button
+                      aria-label={`Показать подробное пояснение: ${service.title}`}
+                      className="service-details-button"
+                      onClick={(event) =>
+                        openServiceDetails(service, event.currentTarget)
+                      }
+                      title="Подробное пояснение"
+                      type="button"
+                    >
+                      ?
+                    </button>
                   )}
-                </label>
+                </div>
               );
             })}
           </div>
+
+          {detailsService && (
+            <ServiceDetailsDialog
+              onClose={() => setDetailsServiceSlug(null)}
+              onSelect={() => selectServiceFromDetails(detailsService)}
+              service={detailsService}
+            />
+          )}
 
           {selectedService?.isSubscription && (
             <SubscriptionInfoCard service={selectedService} />
