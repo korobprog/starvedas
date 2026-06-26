@@ -14,9 +14,7 @@ function trimEnv(name) {
 }
 
 function getBotToken() {
-  return (
-    trimEnv("CURATOR_TELEGRAM_BOT_TOKEN") || trimEnv("TELEGRAM_BOT_TOKEN")
-  );
+  return trimEnv("CURATOR_TELEGRAM_BOT_TOKEN") || trimEnv("TELEGRAM_BOT_TOKEN");
 }
 
 function getTelegramProxyUrl() {
@@ -33,7 +31,10 @@ function getTelegramApiIps() {
   const raw = trimEnv("TELEGRAM_API_IPS");
 
   return raw
-    ? raw.split(",").map((ip) => ip.trim()).filter(Boolean)
+    ? raw
+        .split(",")
+        .map((ip) => ip.trim())
+        .filter(Boolean)
     : defaultTelegramApiIps;
 }
 
@@ -177,31 +178,64 @@ async function postJsonViaHttpProxy(targetUrl, payload, proxyUrl) {
 }
 
 async function postJsonViaTelegramIp(targetUrl, payload, ipAddress) {
+  return postJsonViaHttpsTarget(targetUrl, payload, {
+    headers: {
+      Host: new URL(targetUrl).hostname
+    },
+    hostname: ipAddress,
+    servername: new URL(targetUrl).hostname
+  });
+}
+
+async function postJsonViaTelegramHost(targetUrl, payload) {
+  const target = new URL(targetUrl);
+
+  return postJsonViaHttpsTarget(targetUrl, payload, {
+    hostname: target.hostname,
+    servername: target.hostname
+  });
+}
+
+async function postJsonViaHttpsTarget(targetUrl, payload, requestOptions) {
   const target = new URL(targetUrl);
   const body = JSON.stringify(payload);
 
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const settle = (callback, value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      callback(value);
+    };
     const request = https.request(
       {
         headers: {
           "Content-Type": "application/json",
-          Host: target.hostname
+          ...(requestOptions.headers ?? {})
         },
-        hostname: ipAddress,
+        hostname: requestOptions.hostname,
         method: "POST",
         path: `${target.pathname}${target.search}`,
         port: 443,
-        servername: target.hostname,
+        servername: requestOptions.servername,
         timeout: telegramRequestTimeoutMs
       },
       (response) => {
         const chunks = [];
 
         response.on("data", (chunk) => chunks.push(chunk));
+        response.once("aborted", () => {
+          settle(reject, new Error("Telegram response aborted"));
+        });
+        response.once("error", (error) => {
+          settle(reject, error);
+        });
         response.once("end", () => {
           const status = response.statusCode ?? 0;
 
-          resolve({
+          settle(resolve, {
             body: Buffer.concat(chunks).toString("utf8"),
             ok: status >= 200 && status < 300,
             status,
@@ -212,9 +246,11 @@ async function postJsonViaTelegramIp(targetUrl, payload, ipAddress) {
     );
 
     request.once("timeout", () => {
-      request.destroy(new Error("Telegram pinned-IP request timed out"));
+      request.destroy(new Error("Telegram request timed out"));
     });
-    request.once("error", reject);
+    request.once("error", (error) => {
+      settle(reject, error);
+    });
     request.write(body);
     request.end();
   });
@@ -234,29 +270,8 @@ async function postTelegramJson(method, payload = {}) {
     return postJsonViaHttpProxy(url, payload, proxyUrl);
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    telegramRequestTimeoutMs
-  );
-
   try {
-    const response = await fetch(url, {
-      body: JSON.stringify(payload),
-      headers: {
-        "Content-Type": "application/json"
-      },
-      method: "POST",
-      signal: controller.signal
-    });
-    const body = await response.text().catch(() => "");
-
-    return {
-      body,
-      ok: response.ok,
-      status: response.status,
-      statusText: response.statusText
-    };
+    return await postJsonViaTelegramHost(url, payload);
   } catch (error) {
     let lastError = error;
 
@@ -269,8 +284,6 @@ async function postTelegramJson(method, payload = {}) {
     }
 
     throw lastError;
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
@@ -555,10 +568,22 @@ async function getUpdates() {
   });
 }
 
+async function deleteWebhookWithRetry() {
+  while (true) {
+    try {
+      await callTelegramMethod("deleteWebhook", {
+        drop_pending_updates: true
+      });
+      return;
+    } catch (error) {
+      console.error("Curator polling bot deleteWebhook failed", error);
+      await sleep(5000);
+    }
+  }
+}
+
 async function pollingLoop() {
-  await callTelegramMethod("deleteWebhook", {
-    drop_pending_updates: true
-  });
+  await deleteWebhookWithRetry();
   console.log("Curator polling bot started");
 
   while (true) {
