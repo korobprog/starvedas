@@ -1206,24 +1206,20 @@ select {
   content: "";
 }
 
-.schedule-content__toggle-icon {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
+.schedule-content__toggle::after {
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  content: "";
+  transform: translateY(-1px) rotate(45deg);
+  transform-origin: center;
   transition: transform 0.25s ease;
 }
 
-.schedule-content__details[open] .schedule-content__toggle-icon {
-  transform: rotate(180deg);
-}
-
-.schedule-content__toggle-label--less,
-.schedule-content__details[open] .schedule-content__toggle-label--more {
-  display: none;
-}
-
-.schedule-content__details[open] .schedule-content__toggle-label--less {
-  display: inline;
+.schedule-content__details[open] .schedule-content__toggle::after {
+  transform: translateY(2px) rotate(225deg);
 }
 
 .schedule-content__text--rest {
@@ -1332,6 +1328,7 @@ select {
 .option-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
   gap: 14px;
 }
 
@@ -1379,8 +1376,10 @@ select {
 .choice-card--stacked {
   align-items: stretch;
   flex-direction: column;
-  gap: 0.75rem;
-  min-height: 4.5rem;
+  justify-content: flex-start;
+  gap: 0.85rem;
+  min-height: 8.25rem;
+  padding: 16px;
 }
 
 .choice-card__select {
@@ -1397,7 +1396,7 @@ select {
   margin-top: 0.2rem;
 }
 
-.choice-card__select > span,
+.choice-card__select > .choice-card__label-content,
 .choice-card__select > small {
   grid-column: 2;
   min-width: 0;
@@ -1405,22 +1404,30 @@ select {
   line-height: 1.35;
 }
 
+.choice-card__label-content {
+  display: grid;
+  gap: 0.25rem;
+}
+
 .choice-card__title {
+  display: block;
   color: var(--text);
   font-weight: 900;
   font-size: clamp(0.95rem, 0.9rem + 0.3vw, 1.05rem);
   hyphens: none;
+  line-height: 1.25;
 }
 
-.choice-card:has(.service-details-button) .choice-card__title {
-  padding-right: 1.75rem;
+.choice-card:has(.service-details-button) .choice-card__label-content {
+  padding-right: 2rem;
 }
 
 .choice-card small.choice-card__price {
   display: block;
   color: var(--primary-dark);
-  font-size: 0.875rem;
+  font-size: 0.86rem;
   font-weight: 800;
+  line-height: 1.3;
 }
 
 .choice-card__note {
@@ -1432,6 +1439,10 @@ select {
   font-weight: 600;
   line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.choice-card--stacked .choice-card__note {
+  margin-top: auto;
 }
 
 .choice-card:has(input:checked) .choice-card__note {

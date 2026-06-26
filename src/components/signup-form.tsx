@@ -1423,10 +1423,14 @@ export function SignupForm({
                       type="radio"
                       value={service.slug}
                     />
-                    <span className="choice-card__title">{service.title}</span>
-                    <small className="choice-card__price">
-                      {service.priceLabel}
-                    </small>
+                    <span className="choice-card__label-content">
+                      <span className="choice-card__title">
+                        {service.title}
+                      </span>
+                      <small className="choice-card__price">
+                        {service.priceLabel}
+                      </small>
+                    </span>
                   </label>
                   {showMonthlyPassBonus && (
                     <p className="service-gift-note service-gift-note--compact">
