@@ -493,7 +493,9 @@ export function SignupForm({
       ) ?? [],
     [selectedService, selectedServiceOptionIds]
   );
-  const isSingleRiteSelected = selectedService?.slug === "single-rite";
+  const mustSelectServiceOptions =
+    selectedService?.slug === "single-rite" ||
+    Boolean(selectedService?.options.length);
   const activeServiceSlug = selectedService?.slug ?? "";
 
   const participantFullNames = useMemo(
@@ -530,7 +532,7 @@ export function SignupForm({
       return 0;
     }
 
-    if (isSingleRiteSelected && selectedServiceOptions.length > 0) {
+    if (selectedServiceOptions.length > 0) {
       return selectedServiceOptions.reduce(
         (sum, option) =>
           sum +
@@ -549,12 +551,7 @@ export function SignupForm({
     }
 
     return selectedService.priceAmount * participantCount;
-  }, [
-    isSingleRiteSelected,
-    participantCount,
-    selectedService,
-    selectedServiceOptions
-  ]);
+  }, [participantCount, selectedService, selectedServiceOptions]);
 
   const hasContact = Boolean(
     customerTelegram.trim() || customerPhone.trim() || customerEmail.trim()
@@ -563,8 +560,8 @@ export function SignupForm({
     submitState.status === "loading" ||
     !selectedService ||
     (step === 0 &&
-      isSingleRiteSelected &&
-      selectedServiceOptionIds.length < 1) ||
+      mustSelectServiceOptions &&
+      selectedServiceOptions.length < 1) ||
     (step === 1 && (hasInvalidParticipants || participantCount < 1)) ||
     (step === 2 && (!hasContact || !isCustomerPhoneValid)) ||
     (step === 4 && paymentProviders.length === 0);
@@ -1016,8 +1013,8 @@ export function SignupForm({
     if (step < formSteps.length - 1) {
       if (
         step === 0 &&
-        isSingleRiteSelected &&
-        selectedServiceOptionIds.length < 1
+        mustSelectServiceOptions &&
+        selectedServiceOptions.length < 1
       ) {
         return;
       }
@@ -1261,7 +1258,7 @@ export function SignupForm({
             })}
           </div>
 
-          {isSingleRiteSelected && (
+          {mustSelectServiceOptions && (
             <div
               className="rite-choice-list"
               aria-label="Обряды внутри раздела"
@@ -1297,7 +1294,7 @@ export function SignupForm({
                   Обряды пока не добавлены администратором.
                 </p>
               )}
-              {selectedServiceOptionIds.length < 1 && (
+              {selectedServiceOptions.length < 1 && (
                 <p className="form-warning">Выберите хотя бы один обряд.</p>
               )}
             </div>

@@ -267,11 +267,10 @@ export async function POST(request: Request) {
     const selectedServiceOptionIds = Array.from(
       new Set(data.selectedServiceOptionIds)
     );
+    const mustSelectServiceOptions =
+      service.slug === "single-rite" || service.options.length > 0;
 
-    if (
-      service.slug === "single-rite" &&
-      selectedServiceOptionIds.length === 0
-    ) {
+    if (mustSelectServiceOptions && selectedServiceOptionIds.length === 0) {
       return NextResponse.json(
         { message: "Выберите хотя бы один обряд" },
         { status: 400 }
@@ -304,13 +303,6 @@ export async function POST(request: Request) {
     if (selectedOptions.length !== selectedServiceOptionIds.length) {
       return NextResponse.json(
         { message: "Некоторые выбранные обряды недоступны" },
-        { status: 400 }
-      );
-    }
-
-    if (service.slug !== "single-rite" && selectedOptions.length > 0) {
-      return NextResponse.json(
-        { message: "Карточки обрядов доступны только для раздела Один обряд" },
         { status: 400 }
       );
     }
