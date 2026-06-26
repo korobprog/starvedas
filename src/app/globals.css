@@ -1173,15 +1173,6 @@ select {
   display: none;
 }
 
-.schedule-content__toggle-text--collapse,
-.schedule-content__details[open] .schedule-content__toggle-text--expand {
-  display: none;
-}
-
-.schedule-content__details[open] .schedule-content__toggle-text--collapse {
-  display: inline;
-}
-
 .signup-form {
   display: grid;
   gap: 22px;
@@ -1261,7 +1252,7 @@ select {
 .option-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 14px;
 }
 
 .choice-card {
@@ -1306,14 +1297,41 @@ select {
 }
 
 .choice-card--stacked {
-  align-items: flex-start;
+  align-items: stretch;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
+  min-height: 72px;
 }
 
 .choice-card__select {
-  display: contents;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  width: 100%;
+  gap: 4px 8px;
   cursor: pointer;
+}
+
+.choice-card__select input {
+  grid-row: 1 / span 2;
+  margin-top: 2px;
+}
+
+.choice-card__select > span,
+.choice-card__select > small {
+  grid-column: 2;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.choice-card__select > span {
+  color: var(--text);
+  font-weight: 900;
+}
+
+.choice-card__select > small {
+  display: block;
+  font-size: 0.86rem;
 }
 
 .choice-card:has(.service-details-button) {

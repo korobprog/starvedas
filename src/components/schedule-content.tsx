@@ -89,12 +89,7 @@ export function ScheduleContent({ body, month, title }: ScheduleContentProps) {
       {rest && (
         <details className="schedule-content__details">
           <summary className="button button--small schedule-content__toggle">
-            <span className="schedule-content__toggle-text schedule-content__toggle-text--expand">
-              Развернуть расписание
-            </span>
-            <span className="schedule-content__toggle-text schedule-content__toggle-text--collapse">
-              Свернуть расписание
-            </span>
+            Развернуть / свернуть расписание
           </summary>
           <ScheduleText className="schedule-content__text--rest" text={rest} />
         </details>
