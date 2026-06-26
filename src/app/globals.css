@@ -1134,24 +1134,31 @@ select {
 }
 
 .schedule-content h3,
-.schedule-content p,
 .schedule-preview h3,
 .schedule-preview p {
   margin: 0;
 }
 
-.schedule-content p,
+.schedule-content__body,
 .schedule-preview p {
   white-space: pre-line;
 }
 
-.schedule-content--collapsed p {
+.schedule-content__body {
+  min-height: 0;
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.schedule-content--collapsed .schedule-content__body {
   position: relative;
-  max-height: 18rem;
+  max-height: 20rem;
   overflow: hidden;
 }
 
-.schedule-content--collapsed p::after {
+.schedule-content--collapsed .schedule-content__body::after {
   content: "";
   position: absolute;
   right: 0;

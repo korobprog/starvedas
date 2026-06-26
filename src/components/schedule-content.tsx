@@ -21,7 +21,9 @@ export function ScheduleContent({ body, month, title }: ScheduleContentProps) {
     >
       <span>{month}</span>
       <h3>{title}</h3>
-      <p id={contentId}>{body}</p>
+      <div className="schedule-content__body" id={contentId}>
+        {body}
+      </div>
       {shouldCollapse && (
         <button
           aria-controls={contentId}
