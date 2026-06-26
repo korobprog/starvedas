@@ -1139,39 +1139,47 @@ select {
   margin: 0;
 }
 
-.schedule-content__body,
-.schedule-preview p {
-  white-space: pre-line;
+.schedule-content__text,
+.schedule-content__details {
+  display: grid;
+  gap: 10px;
+  max-width: 680px;
 }
 
-.schedule-content__body {
-  min-height: 0;
-  max-width: 680px;
-  margin: 0;
+.schedule-content__text {
   color: var(--muted);
   line-height: 1.7;
 }
 
-.schedule-content--collapsed .schedule-content__body {
-  position: relative;
-  max-height: 20rem;
-  overflow: hidden;
+.schedule-content__text p {
+  margin: 0;
 }
 
-.schedule-content--collapsed .schedule-content__body::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 5rem;
-  background: linear-gradient(rgb(255 255 255 / 0%), var(--surface));
-  pointer-events: none;
+.schedule-preview p {
+  white-space: pre-line;
+}
+
+.schedule-content__details {
+  gap: 12px;
 }
 
 .schedule-content__toggle {
-  justify-self: start;
+  justify-self: stretch;
   margin-top: 4px;
+  list-style: none;
+}
+
+.schedule-content__toggle::-webkit-details-marker {
+  display: none;
+}
+
+.schedule-content__toggle-text--collapse,
+.schedule-content__details[open] .schedule-content__toggle-text--expand {
+  display: none;
+}
+
+.schedule-content__details[open] .schedule-content__toggle-text--collapse {
+  display: inline;
 }
 
 .signup-form {

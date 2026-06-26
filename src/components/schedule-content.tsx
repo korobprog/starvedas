@@ -1,6 +1,4 @@
-"use client";
-
-import { useId, useState } from "react";
+import { Fragment } from "react";
 
 type ScheduleContentProps = {
   body: string;
@@ -8,32 +6,98 @@ type ScheduleContentProps = {
   title: string;
 };
 
-export function ScheduleContent({ body, month, title }: ScheduleContentProps) {
-  const [expanded, setExpanded] = useState(false);
-  const contentId = useId();
-  const shouldCollapse = body.length > 650 || body.split(/\r?\n/).length > 9;
+const previewCharLimit = 700;
+const previewLineLimit = 8;
+
+function normalizeScheduleBody(value: string) {
+  return value.replaceAll("\r\n", "\n").replaceAll("\r", "\n").trim();
+}
+
+function getScheduleParts(value: string) {
+  const body = normalizeScheduleBody(value);
+  const lines = body.split("\n");
+
+  if (lines.length > previewLineLimit) {
+    return {
+      preview: lines.slice(0, previewLineLimit).join("\n").trimEnd(),
+      rest: lines.slice(previewLineLimit).join("\n").trimStart()
+    };
+  }
+
+  if (body.length <= previewCharLimit) {
+    return { preview: body, rest: "" };
+  }
+
+  const minCut = Math.floor(previewCharLimit * 0.55);
+  const cutCandidates = [
+    body.lastIndexOf("\n\n", previewCharLimit),
+    body.lastIndexOf("\n", previewCharLimit),
+    body.lastIndexOf(". ", previewCharLimit),
+    body.lastIndexOf(" ", previewCharLimit)
+  ];
+  const cut =
+    cutCandidates.find((candidate) => candidate > minCut) ?? previewCharLimit;
+
+  return {
+    preview: body.slice(0, cut).trimEnd(),
+    rest: body.slice(cut).trimStart()
+  };
+}
+
+function ScheduleText({
+  className = "",
+  text
+}: {
+  className?: string;
+  text: string;
+}) {
+  const paragraphs = text
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
 
   return (
     <div
-      className={`schedule-content${
-        shouldCollapse && !expanded ? " schedule-content--collapsed" : ""
-      }`}
+      className={`schedule-content__text${className ? ` ${className}` : ""}`}
     >
+      {paragraphs.map((paragraph, paragraphIndex) => {
+        const lines = paragraph.split("\n");
+
+        return (
+          <p key={`${paragraphIndex}-${paragraph.slice(0, 16)}`}>
+            {lines.map((line, lineIndex) => (
+              <Fragment key={`${lineIndex}-${line.slice(0, 16)}`}>
+                {line}
+                {lineIndex < lines.length - 1 && <br />}
+              </Fragment>
+            ))}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+export function ScheduleContent({ body, month, title }: ScheduleContentProps) {
+  const { preview, rest } = getScheduleParts(body);
+
+  return (
+    <div className="schedule-content">
       <span>{month}</span>
       <h3>{title}</h3>
-      <div className="schedule-content__body" id={contentId}>
-        {body}
-      </div>
-      {shouldCollapse && (
-        <button
-          aria-controls={contentId}
-          aria-expanded={expanded}
-          className="button button--small schedule-content__toggle"
-          onClick={() => setExpanded((value) => !value)}
-          type="button"
-        >
-          {expanded ? "Свернуть расписание" : "Развернуть расписание"}
-        </button>
+      <ScheduleText text={rest ? preview : body} />
+      {rest && (
+        <details className="schedule-content__details">
+          <summary className="button button--small schedule-content__toggle">
+            <span className="schedule-content__toggle-text schedule-content__toggle-text--expand">
+              Развернуть расписание
+            </span>
+            <span className="schedule-content__toggle-text schedule-content__toggle-text--collapse">
+              Свернуть расписание
+            </span>
+          </summary>
+          <ScheduleText className="schedule-content__text--rest" text={rest} />
+        </details>
       )}
     </div>
   );
