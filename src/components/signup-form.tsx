@@ -22,7 +22,7 @@ import {
   isValidPhoneNumberForCountry,
   type PhoneCountryCode
 } from "@/lib/phone-validation";
-import type { SiteServiceList } from "@/lib/site-data";
+import type { SiteService } from "@/lib/site-data";
 import { waitForTelegramWebApp } from "@/lib/telegram-web-app-client";
 import type {
   PaymentInstructions,
@@ -427,16 +427,18 @@ export function SignupForm({
   locale?: string | null;
   paymentProviders: PaymentProviderOption[];
   referralSlug?: string | null;
-  services: SiteServiceList;
+  services: SiteService[];
 }) {
   const copy = getSignupCopy(locale, brandName);
   const showMailingConsentCheckbox = Boolean(
     assignedCurator.showMailingConsentCheckbox
   );
+  const initialAvailableServiceSlug =
+    services.find((service) => service.slug === initialServiceSlug)?.slug ??
+    services[0]?.slug ??
+    "";
   const [step, setStep] = useState(0);
-  const [serviceSlug, setServiceSlug] = useState(
-    initialServiceSlug ?? services[0].slug
-  );
+  const [serviceSlug, setServiceSlug] = useState(initialAvailableServiceSlug);
   const [selectedServiceOptionIds, setSelectedServiceOptionIds] = useState<
     string[]
   >([]);
@@ -478,18 +480,21 @@ export function SignupForm({
 
   const selectedService = useMemo(
     () =>
-      services.find((service) => service.slug === serviceSlug) ?? services[0],
+      services.find((service) => service.slug === serviceSlug) ??
+      services[0] ??
+      null,
     [serviceSlug, services]
   );
 
   const selectedServiceOptions = useMemo(
     () =>
-      selectedService.options.filter((option) =>
+      selectedService?.options.filter((option) =>
         selectedServiceOptionIds.includes(option.id)
-      ),
-    [selectedService.options, selectedServiceOptionIds]
+      ) ?? [],
+    [selectedService, selectedServiceOptionIds]
   );
-  const isSingleRiteSelected = selectedService.slug === "single-rite";
+  const isSingleRiteSelected = selectedService?.slug === "single-rite";
+  const activeServiceSlug = selectedService?.slug ?? "";
 
   const participantFullNames = useMemo(
     () => getParticipantNamesFromText(participantsInput),
@@ -521,6 +526,10 @@ export function SignupForm({
   );
 
   const estimatedAmount = useMemo(() => {
+    if (!selectedService) {
+      return 0;
+    }
+
     if (isSingleRiteSelected && selectedServiceOptions.length > 0) {
       return selectedServiceOptions.reduce(
         (sum, option) =>
@@ -552,6 +561,7 @@ export function SignupForm({
   );
   const isSubmitDisabled =
     submitState.status === "loading" ||
+    !selectedService ||
     (step === 0 &&
       isSingleRiteSelected &&
       selectedServiceOptionIds.length < 1) ||
@@ -909,6 +919,14 @@ export function SignupForm({
   }
 
   async function submitOrder() {
+    if (!selectedService) {
+      setSubmitState({
+        status: "error",
+        message: "Запись временно недоступна: продукты пока не добавлены."
+      });
+      return;
+    }
+
     setSubmitState({ status: "loading" });
 
     let response: Response;
@@ -920,7 +938,7 @@ export function SignupForm({
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          serviceSlug,
+          serviceSlug: selectedService.slug,
           selectedServiceOptionIds,
           participantCount,
           participantsText,
@@ -1103,6 +1121,25 @@ export function SignupForm({
     );
   }
 
+  if (!selectedService) {
+    return (
+      <div className="form-result" role="status">
+        <h3>Запись временно недоступна</h3>
+        <p>
+          Продукты пока не добавлены администратором. Пожалуйста, уточните
+          доступные варианты у куратора.
+        </p>
+        <SupportCta
+          curatorName={assignedCurator.name}
+          note="Куратор подскажет, какие церемонии сейчас доступны."
+          supportButtonLabel={assignedCurator.supportButtonLabel}
+          supportEnabled={assignedCurator.supportEnabled}
+          supportUrl={assignedCurator.supportUrl}
+        />
+      </div>
+    );
+  }
+
   return (
     <form
       className={
@@ -1206,7 +1243,7 @@ export function SignupForm({
                   key={service.slug}
                 >
                   <input
-                    checked={serviceSlug === service.slug}
+                    checked={activeServiceSlug === service.slug}
                     name="service"
                     onChange={() => selectService(service.slug)}
                     type="radio"

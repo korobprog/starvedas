@@ -243,10 +243,6 @@ export function getReferralForCurator(curator: AdminCurator, origin: string) {
     : buildReferralPath(primaryReferralSlug);
 }
 
-export function getOldReferralLinks(curator: AdminCurator) {
-  return curator.referralLinks.filter((link) => !link.isPrimary);
-}
-
 export function getCuratorStatusLabel(curator: AdminCurator) {
   if (curator.isSystem) {
     return "Системный";

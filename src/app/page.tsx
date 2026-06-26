@@ -151,30 +151,36 @@ export default async function Home({
             <h2>{copy.sections.services.title}</h2>
             <p>{copy.sections.services.lead}</p>
           </div>
-          <div className="card-grid">
-            {availableServices.map((service) => (
-              <a
-                className="card card--link"
-                href={`?service=${encodeURIComponent(service.slug)}#signup`}
-                key={service.title}
-              >
-                <h3>{service.title}</h3>
-                <p>{service.description}</p>
-                <span className="price">{service.priceLabel}</span>
-                {service.slug === "monthly-pass" && (
-                  <div className="service-gift-note">
-                    <strong>🎁 Подарок при покупке месяца</strong>
-                    <span>
-                      Разбор по ведической астрологии входит в абонемент.
-                    </span>
-                  </div>
-                )}
-                {service.options.length > 0 && (
-                  <small>Выбрать обряды списком</small>
-                )}
-              </a>
-            ))}
-          </div>
+          {availableServices.length > 0 ? (
+            <div className="card-grid">
+              {availableServices.map((service) => (
+                <a
+                  className="card card--link"
+                  href={`?service=${encodeURIComponent(service.slug)}#signup`}
+                  key={service.title}
+                >
+                  <h3>{service.title}</h3>
+                  <p>{service.description}</p>
+                  <span className="price">{service.priceLabel}</span>
+                  {service.slug === "monthly-pass" && (
+                    <div className="service-gift-note">
+                      <strong>🎁 Подарок при покупке месяца</strong>
+                      <span>
+                        Разбор по ведической астрологии входит в абонемент.
+                      </span>
+                    </div>
+                  )}
+                  {service.options.length > 0 && (
+                    <small>Выбрать обряды списком</small>
+                  )}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="form-note">
+              Продукты пока не добавлены администратором.
+            </p>
+          )}
           <SupportCta
             className="support-cta--card"
             note="По тарифам можно обратиться к администратору."

@@ -5,12 +5,10 @@ import {
   getClientCount,
   getCuratorStatusClassName,
   getCuratorStatusLabel,
-  getOldReferralLinks,
   getPaidAmount,
   getPrimaryReferralSlug,
   getReferralForCurator
 } from "@/server/admin-curators";
-import { buildReferralPath, buildReferralUrl } from "@/server/referrals";
 
 type CuratorProfileFormProps = {
   curator: AdminCurator;
@@ -23,7 +21,6 @@ export function CuratorProfileForm({
 }: CuratorProfileFormProps) {
   const primaryReferralSlug = getPrimaryReferralSlug(curator);
   const referral = getReferralForCurator(curator, origin);
-  const oldReferralLinks = getOldReferralLinks(curator);
   const clientCount = getClientCount(curator.orders);
   const paidAmount = getPaidAmount(curator);
 
@@ -59,30 +56,6 @@ export function CuratorProfileForm({
             </a>
           </dd>
         </div>
-        {oldReferralLinks.length > 0 && (
-          <div>
-            <dt>Старые ссылки</dt>
-            <dd>
-              {oldReferralLinks.map((link) => {
-                const oldReferral = origin
-                  ? buildReferralUrl(origin, link.slug)
-                  : buildReferralPath(link.slug);
-
-                return (
-                  <a
-                    href={oldReferral}
-                    key={link.id}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {oldReferral}
-                    {!link.active ? " (отключена)" : ""}
-                  </a>
-                );
-              })}
-            </dd>
-          </div>
-        )}
       </dl>
 
       <CuratorUpdateForm

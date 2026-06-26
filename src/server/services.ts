@@ -1,4 +1,4 @@
-import { PriceUnit as PrismaPriceUnit, type Prisma } from "@prisma/client";
+import { type Prisma } from "@prisma/client";
 import { normalizeLocale, type Locale } from "@/i18n/config";
 import {
   convertRubToCurrency,
@@ -7,11 +7,7 @@ import {
   type Currency
 } from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
-import {
-  services as defaultServices,
-  type SiteService,
-  type SiteServiceList
-} from "@/lib/site-data";
+import { type SiteService } from "@/lib/site-data";
 
 const publicServiceSelect = {
   description: true,
@@ -120,20 +116,6 @@ export type OrderService = Prisma.ServiceGetPayload<{
 export type ManagedService = Prisma.ServiceGetPayload<{
   select: typeof managedServiceSelect;
 }>;
-
-const defaultServiceBySlug = new Map(
-  defaultServices.map((service, index) => [
-    service.slug,
-    {
-      ...service,
-      sortOrder: index + 1
-    }
-  ])
-);
-
-function toPrismaPriceUnit(priceUnit: SiteService["priceUnit"]) {
-  return PrismaPriceUnit[priceUnit];
-}
 
 function getLocalizedTitle(service: PublicServiceRow, locale: Locale) {
   if (locale === "en") {
@@ -370,7 +352,7 @@ function compareServiceOptionsByDate(
 
 export async function getPublicServices(
   locale?: string | null
-): Promise<SiteServiceList> {
+): Promise<SiteService[]> {
   try {
     const services = await prisma.service.findMany({
       where: {
@@ -388,15 +370,13 @@ export async function getPublicServices(
     });
 
     if (services.length > 0) {
-      return services.map((service) =>
-        toSiteService(service, locale)
-      ) as SiteServiceList;
+      return services.map((service) => toSiteService(service, locale));
     }
   } catch {
-    return defaultServices;
+    return [];
   }
 
-  return defaultServices;
+  return [];
 }
 
 export async function getManagedServices(): Promise<ManagedService[]> {
@@ -413,7 +393,9 @@ export async function getManagedServices(): Promise<ManagedService[]> {
   });
 }
 
-export async function getManagedService(id: string): Promise<ManagedService | null> {
+export async function getManagedService(
+  id: string
+): Promise<ManagedService | null> {
   return prisma.service.findUnique({
     where: { id },
     select: managedServiceSelect
@@ -442,41 +424,5 @@ export async function getServiceForOrder(
     return withOrderLocale(service, locale);
   }
 
-  const defaultService = defaultServiceBySlug.get(normalizedSlug);
-
-  if (!defaultService) {
-    return null;
-  }
-
-  const createdService = await prisma.service.upsert({
-    where: {
-      slug: defaultService.slug
-    },
-    create: {
-      active: true,
-      description: defaultService.description,
-      priceRub: defaultService.priceRub,
-      priceUnit: toPrismaPriceUnit(defaultService.priceUnit),
-      receiptName: defaultService.title,
-      requiresExactParticipantList: true,
-      slug: defaultService.slug,
-      sortOrder: defaultService.sortOrder,
-      title: defaultService.title,
-      vatTaxType: 0
-    },
-    update: {
-      active: true,
-      description: defaultService.description,
-      priceRub: defaultService.priceRub,
-      priceUnit: toPrismaPriceUnit(defaultService.priceUnit),
-      receiptName: defaultService.title,
-      requiresExactParticipantList: true,
-      sortOrder: defaultService.sortOrder,
-      title: defaultService.title,
-      vatTaxType: 0
-    },
-    select: orderServiceSelect
-  });
-
-  return withOrderLocale(createdService, locale);
+  return null;
 }
