@@ -545,9 +545,7 @@ export function SignupForm({
     assignedCurator.showMailingConsentCheckbox
   );
   const initialAvailableServiceSlug =
-    services.find((service) => service.slug === initialServiceSlug)?.slug ??
-    services[0]?.slug ??
-    "";
+    services.find((service) => service.slug === initialServiceSlug)?.slug ?? "";
   const [step, setStep] = useState(0);
   const [serviceSlug, setServiceSlug] = useState(initialAvailableServiceSlug);
   const [selectedServiceOptionIds, setSelectedServiceOptionIds] = useState<
@@ -594,10 +592,7 @@ export function SignupForm({
   );
 
   const selectedService = useMemo(
-    () =>
-      services.find((service) => service.slug === serviceSlug) ??
-      services[0] ??
-      null,
+    () => services.find((service) => service.slug === serviceSlug) ?? null,
     [serviceSlug, services]
   );
   const detailsService = useMemo(
@@ -615,11 +610,11 @@ export function SignupForm({
       selectedServiceOptionIds.includes(option.id)
     );
   }, [selectedService, selectedServiceOptionIds]);
-  const mustSelectServiceOptions =
-    Boolean(selectedService) &&
-    !selectedService.isSubscription &&
-    (selectedService.slug === "single-rite" ||
-      Boolean(selectedService.options.length));
+  const mustSelectServiceOptions = selectedService
+    ? !selectedService.isSubscription &&
+      (selectedService.slug === "single-rite" ||
+        Boolean(selectedService.options.length))
+    : false;
   const activeServiceSlug = selectedService?.slug ?? "";
 
   const participantFullNames = useMemo(
@@ -1282,7 +1277,7 @@ export function SignupForm({
     );
   }
 
-  if (!selectedService) {
+  if (services.length === 0) {
     return (
       <div className="form-result" role="status">
         <h3>Запись временно недоступна</h3>
@@ -1473,7 +1468,7 @@ export function SignupForm({
             <SubscriptionInfoCard service={selectedService} />
           )}
 
-          {mustSelectServiceOptions && (
+          {mustSelectServiceOptions && selectedService && (
             <div
               className="rite-choice-list"
               aria-label="Обряды внутри раздела"
@@ -1797,12 +1792,12 @@ export function SignupForm({
             <div>
               <dt>{copy.review.ceremony}</dt>
               <dd>
-                {selectedService.title}
-                {selectedService.isSubscription && (
+                {selectedService!.title}
+                {selectedService!.isSubscription && (
                   <span className="subscription-summary-line">
-                    {selectedService.subscriptionStartsAtLabel &&
-                    selectedService.subscriptionEndsAtLabel
-                      ? `Действует с ${selectedService.subscriptionStartsAtLabel} до ${selectedService.subscriptionEndsAtLabel} МСК`
+                    {selectedService!.subscriptionStartsAtLabel &&
+                    selectedService!.subscriptionEndsAtLabel
+                      ? `Действует с ${selectedService!.subscriptionStartsAtLabel} до ${selectedService!.subscriptionEndsAtLabel} МСК`
                       : "Период действия уточняется."}
                   </span>
                 )}
@@ -1826,7 +1821,7 @@ export function SignupForm({
             </div>
             <div>
               <dt>{copy.review.amount}</dt>
-              <dd>{formatMoney(estimatedAmount, selectedService.currency)}</dd>
+              <dd>{formatMoney(estimatedAmount, selectedService!.currency)}</dd>
             </div>
           </dl>
           {!isClientCabinetActive && (
