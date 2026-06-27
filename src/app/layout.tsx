@@ -5,6 +5,7 @@ import { localeCookieName, normalizeLocale } from "@/i18n/config";
 import { applySiteBrandToText } from "@/lib/site-branding";
 import { getRequestSiteBrand } from "@/server/site-branding";
 import "./globals.css";
+import "./ui-fixes.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const brand = await getRequestSiteBrand();
