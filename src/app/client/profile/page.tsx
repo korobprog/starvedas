@@ -1,6 +1,6 @@
 ﻿import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { ClientAuthRequired } from "@/components/client-auth-required";
 import { ClientProfileForm } from "@/components/client-profile-form";
 import { applySiteBrandToText } from "@/lib/site-branding";
 import { getCurrentClientProfile } from "@/server/client-auth";
@@ -24,7 +24,7 @@ export default async function ClientProfilePage() {
   const client = await getCurrentClientProfile();
 
   if (!client) {
-    redirect("/client");
+    return <ClientAuthRequired nextPath="/client/profile" />;
   }
 
   return (

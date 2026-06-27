@@ -2,6 +2,7 @@
 import { TelegramMiniAppAutoLogin } from "@/components/telegram-mini-app-auto-login";
 import { formatMoney } from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
+import { normalizeProdamusPaymentUrl } from "@/server/payform";
 import { formatStatus } from "@/lib/status-labels";
 import { canClientEditOrderStatus } from "@/server/client-order-permissions";
 import { getCurrentClientProfile } from "@/server/client-auth";
@@ -447,7 +448,9 @@ export default async function ClientCabinetPage() {
               const optionTitles = order.serviceOptions.map(
                 (option) => option.titleSnapshot
               );
-              const paymentUrl = order.payment?.paymentUrl;
+              const paymentUrl = normalizeProdamusPaymentUrl(
+                order.payment?.paymentUrl
+              );
               const subscriptionValidity = getSubscriptionValidity(order);
 
               return (

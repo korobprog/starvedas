@@ -1,8 +1,10 @@
 ﻿import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { ClientAuthRequired } from "@/components/client-auth-required";
 import { formatMoney } from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
+import { normalizeProdamusPaymentUrl } from "@/server/payform";
 import { applySiteBrandToText } from "@/lib/site-branding";
 import { formatStatus } from "@/lib/status-labels";
 import { canClientEditOrderStatus } from "@/server/client-order-permissions";
@@ -129,7 +131,12 @@ export default async function ClientOrderDetailPage({
   ]);
 
   if (!client) {
-    redirect("/client");
+    return (
+      <ClientAuthRequired
+        nextPath={`/client/orders/${encodeURIComponent(token)}`}
+        title="Войдите, чтобы открыть покупку"
+      />
+    );
   }
 
   const order = await prisma.order.findFirst({
@@ -213,7 +220,7 @@ export default async function ClientOrderDetailPage({
     notFound();
   }
 
-  const paymentUrl = order.payment?.paymentUrl;
+  const paymentUrl = normalizeProdamusPaymentUrl(order.payment?.paymentUrl);
   const optionTitles = order.serviceOptions.map(
     (option) => option.titleSnapshot
   );

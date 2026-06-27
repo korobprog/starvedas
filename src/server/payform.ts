@@ -43,6 +43,26 @@ function getProdamusUrl() {
   return process.env.PRODAMUS_API_URL?.trim() || "https://prodamus.ru";
 }
 
+export function normalizeProdamusPaymentUrl(
+  paymentUrl: string | null | undefined
+) {
+  if (!paymentUrl) {
+    return null;
+  }
+
+  try {
+    const originalUrl = new URL(paymentUrl);
+    const currentUrl = new URL(getProdamusUrl());
+
+    currentUrl.search = originalUrl.search;
+    currentUrl.hash = originalUrl.hash;
+
+    return currentUrl.toString();
+  } catch {
+    return paymentUrl;
+  }
+}
+
 function appendIfDefined(
   params: URLSearchParams,
   key: string,

@@ -6,7 +6,11 @@ import {
   waitForTelegramWebApp
 } from "@/lib/telegram-web-app-client";
 
-export function TelegramMiniAppAutoLogin() {
+export function TelegramMiniAppAutoLogin({
+  redirectPath = "/client"
+}: {
+  redirectPath?: string;
+}) {
   const [message, setMessage] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +38,7 @@ export function TelegramMiniAppAutoLogin() {
           throw new Error("Не удалось войти через Telegram");
         }
 
-        window.location.replace(getPublicClientPath("/client"));
+        window.location.replace(getPublicClientPath(redirectPath));
       })
       .catch((error: Error) => {
         if (!cancelled) {
@@ -45,7 +49,7 @@ export function TelegramMiniAppAutoLogin() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [redirectPath]);
 
   return message ? <p className="form-note">{message}</p> : null;
 }

@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
+import { ClientAuthRequired } from "@/components/client-auth-required";
 import { ClientOrderEditForm } from "@/components/client-order-edit-form";
 import { applySiteBrandToText } from "@/lib/site-branding";
 import { formatStatus } from "@/lib/status-labels";
@@ -34,7 +35,12 @@ export default async function ClientOrderEditPage({
   ]);
 
   if (!client) {
-    redirect("/client");
+    return (
+      <ClientAuthRequired
+        nextPath={`/client/orders/${encodeURIComponent(token)}/edit`}
+        title="Войдите, чтобы редактировать покупку"
+      />
+    );
   }
 
   const order = await prisma.order.findFirst({
