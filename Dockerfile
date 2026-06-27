@@ -16,7 +16,7 @@ RUN (while sleep 20; do echo "[docker] npm ci still running"; done) & keepalive=
 
 COPY . .
 RUN npm run db:generate
-RUN npm run build
+RUN rm -rf .next && npm run build
 
 FROM ${NODE_IMAGE} AS runner
 
