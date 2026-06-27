@@ -8,7 +8,7 @@ type ClientAuthRequiredProps = {
 };
 
 export function ClientAuthRequired({
-  description = "Откройте кабинет из Telegram Mini App или войдите по email, чтобы продолжить.",
+  description = "Войдите по email или зарегистрируйтесь, чтобы открыть личный кабинет.",
   nextPath,
   title = "Войдите в личный кабинет"
 }: ClientAuthRequiredProps) {
@@ -28,11 +28,11 @@ export function ClientAuthRequired({
         </div>
         <TelegramMiniAppAutoLogin redirectPath={safeNextPath} />
         <div className="form-actions client-cabinet-actions client-login-actions">
-          <Link className="button button--primary" href="/client/register">
-            Зарегистрироваться
-          </Link>
-          <Link className="button" href={loginHref}>
+          <Link className="button button--primary" href={loginHref}>
             Войти по email
+          </Link>
+          <Link className="button" href="/client/register">
+            Зарегистрироваться
           </Link>
           <Link className="button" href="/#signup">
             Перейти к форме записи

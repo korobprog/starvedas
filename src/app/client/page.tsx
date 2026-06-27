@@ -6,6 +6,7 @@ import { normalizeProdamusPaymentUrl } from "@/server/payform";
 import { formatStatus } from "@/lib/status-labels";
 import { canClientEditOrderStatus } from "@/server/client-order-permissions";
 import { getCurrentClientProfile } from "@/server/client-auth";
+import { clientLogoutAction } from "@/server/client-logout-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -220,19 +221,22 @@ export default async function ClientCabinetPage() {
         <section className="content-section content-section--narrow client-cabinet-section client-cabinet-section--login">
           <div className="section-heading">
             <p className="eyebrow">Личный кабинет</p>
-            <h1>Войдите через Telegram</h1>
+            <h1>Войдите в личный кабинет</h1>
             <p>
-              Откройте кабинет из Telegram Mini App, чтобы увидеть купленные
-              абонементы и повторить прошлую заявку без повторного ввода данных.
+              Войдите по email или зарегистрируйтесь, чтобы увидеть купленные
+              абонементы и повторить прошлую заявку.
             </p>
           </div>
           <TelegramMiniAppAutoLogin />
           <div className="form-actions client-cabinet-actions client-login-actions">
-            <Link className="button button--primary" href="/client/register">
-              Зарегистрироваться
-            </Link>
-            <Link className="button" href="/login?next=%2Fclient">
+            <Link
+              className="button button--primary"
+              href="/login?next=%2Fclient"
+            >
               Войти по email
+            </Link>
+            <Link className="button" href="/client/register">
+              Зарегистрироваться
             </Link>
             <Link className="button" href="/#signup">
               Перейти к форме записи
@@ -366,9 +370,11 @@ export default async function ClientCabinetPage() {
           <Link className="button" href="/client/profile">
             Профиль
           </Link>
-          <Link className="button" href="/client/logout">
-            Выйти
-          </Link>
+          <form action={clientLogoutAction}>
+            <button className="button" type="submit">
+              Выйти
+            </button>
+          </form>
         </div>
       </section>
 
