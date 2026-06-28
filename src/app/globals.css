@@ -3090,6 +3090,11 @@ a.button[aria-disabled="true"] {
   gap: 16px;
 }
 
+.curator-bulk-delete-form[data-selected-count="0"]
+  .curator-bulk-delete-form__submit {
+  display: none;
+}
+
 .curators-table,
 .products-table,
 .articles-table {

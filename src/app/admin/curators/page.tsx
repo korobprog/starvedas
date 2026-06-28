@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { AdminSubmitButton } from "@/components/admin-submit-button";
-import { CuratorBulkDeleteForm } from "@/components/curator-bulk-delete-form";
+import {
+  CuratorBulkDeleteForm,
+  CuratorBulkDeleteSubmitButton
+} from "@/components/curator-bulk-delete-form";
 import { PartnerApplicationsAdminPanel } from "@/components/partner-applications-admin-panel";
 import { ReferralLinkTools } from "@/components/referral-link-tools";
 import { prisma } from "@/lib/prisma";
@@ -127,12 +129,12 @@ export default async function AdminCuratorsPage() {
               </p>
             </div>
             <div className="admin-card__actions">
-              <AdminSubmitButton
+              <CuratorBulkDeleteSubmitButton
                 className="button button--danger"
                 pendingLabel="Удаляем…"
               >
                 Удалить выбранных полностью
-              </AdminSubmitButton>
+              </CuratorBulkDeleteSubmitButton>
             </div>
           </div>
 
