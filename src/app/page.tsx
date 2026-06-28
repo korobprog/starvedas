@@ -172,49 +172,29 @@ export default async function Home({
         </div>
       </section>
 
-      <section className="section section--warm" id="services">
+      <section className="section section--warm" id="signup">
         <div className="container">
-          <div className="section__header">
-            <h2>{copy.sections.services.title}</h2>
-            <p>{copy.sections.services.lead}</p>
-          </div>
-          {availableServices.length > 0 ? (
-            <div className="card-grid">
-              {availableServices.map((service) => (
-                <a
-                  className="card card--link"
-                  href={`?service=${encodeURIComponent(service.slug)}#signup`}
-                  key={service.title}
-                >
-                  <h3>{service.title}</h3>
-                  <p>{service.description}</p>
-                  <span className="price">{service.priceLabel}</span>
-                  {service.slug === "monthly-pass" && (
-                    <div className="service-gift-note">
-                      <strong>🎁 Подарок при покупке месяца</strong>
-                      <span>
-                        Разбор по ведической астрологии входит в абонемент.
-                      </span>
-                    </div>
-                  )}
-                  {service.options.length > 0 && (
-                    <small>Выбрать обряды списком</small>
-                  )}
-                </a>
-              ))}
+          <div className="signup-box">
+            <div className="section__header">
+              <h2>{copy.sections.signup.title}</h2>
+              <p>{copy.sections.signup.lead}</p>
             </div>
-          ) : (
-            <p className="form-note">
-              Продукты пока не добавлены администратором.
-            </p>
-          )}
-          <SupportCta
-            className="support-cta--card"
-            note="По тарифам можно обратиться к администратору."
-            supportButtonLabel="Уточнить тарифы"
-            supportEnabled={curatorSupportEnabled}
-            supportUrl={assignedCurator.supportUrl}
-          />
+            <SignupForm
+              assignedCurator={{
+                ...assignedCurator,
+                supportEnabled: curatorSupportEnabled
+              }}
+              brandName={brand.name}
+              highlightMonthlyPassBonus={
+                brand.sourceDomain === "chintamanidhama.ru"
+              }
+              initialServiceSlug={initialServiceSlug}
+              locale={locale}
+              paymentProviders={paymentProviders}
+              referralSlug={referralSlug ?? assignedCurator.slug}
+              services={availableServices}
+            />
+          </div>
         </div>
       </section>
 
@@ -335,29 +315,49 @@ export default async function Home({
         </div>
       </section>
 
-      <section className="section section--warm" id="signup">
+      <section className="section section--warm" id="services">
         <div className="container">
-          <div className="signup-box">
-            <div className="section__header">
-              <h2>{copy.sections.signup.title}</h2>
-              <p>{copy.sections.signup.lead}</p>
-            </div>
-            <SignupForm
-              assignedCurator={{
-                ...assignedCurator,
-                supportEnabled: curatorSupportEnabled
-              }}
-              brandName={brand.name}
-              highlightMonthlyPassBonus={
-                brand.sourceDomain === "chintamanidhama.ru"
-              }
-              initialServiceSlug={initialServiceSlug}
-              locale={locale}
-              paymentProviders={paymentProviders}
-              referralSlug={referralSlug ?? assignedCurator.slug}
-              services={availableServices}
-            />
+          <div className="section__header">
+            <h2>{copy.sections.services.title}</h2>
+            <p>{copy.sections.services.lead}</p>
           </div>
+          {availableServices.length > 0 ? (
+            <div className="card-grid">
+              {availableServices.map((service) => (
+                <a
+                  className="card card--link"
+                  href={`?service=${encodeURIComponent(service.slug)}#signup`}
+                  key={service.title}
+                >
+                  <h3>{service.title}</h3>
+                  <p>{service.description}</p>
+                  <span className="price">{service.priceLabel}</span>
+                  {service.slug === "monthly-pass" && (
+                    <div className="service-gift-note">
+                      <strong>🎁 Подарок при покупке месяца</strong>
+                      <span>
+                        Разбор по ведической астрологии входит в абонемент.
+                      </span>
+                    </div>
+                  )}
+                  {service.options.length > 0 && (
+                    <small>Выбрать обряды списком</small>
+                  )}
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p className="form-note">
+              Продукты пока не добавлены администратором.
+            </p>
+          )}
+          <SupportCta
+            className="support-cta--card"
+            note="По тарифам можно обратиться к администратору."
+            supportButtonLabel="Уточнить тарифы"
+            supportEnabled={curatorSupportEnabled}
+            supportUrl={assignedCurator.supportUrl}
+          />
         </div>
       </section>
 
