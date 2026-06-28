@@ -252,12 +252,7 @@ async function main() {
           sortOrder: index + 1,
           requiresExactParticipantList: true
         },
-        update: {
-          ...service,
-          sortOrder: index + 1,
-          active: true,
-          requiresExactParticipantList: true
-        }
+        update: {}
       })
     )
   );
@@ -305,12 +300,7 @@ async function main() {
             title: option.title
           },
           update: {
-            active: true,
-            description: option.description,
-            priceRub: option.priceRub,
-            serviceId: singleRite.id,
-            sortOrder: option.sortOrder,
-            title: option.title
+            serviceId: singleRite.id
           }
         })
       )

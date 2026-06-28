@@ -6,3 +6,4 @@
 - Do not print `.env` contents or secrets. Use existence/key-name checks only.
 - If library/framework/API/CLI docs are needed, use Context7 first as configured in `C:\Users\makst\.codex\AGENTS.md`.
 - Use Dokploy MCP only when deployment/server management is actually needed.
+- Never run `prisma db seed` automatically on every production start/redeploy. Split seeding into `seed:init` for first-time setup and a safe production seed that only creates missing records (`create if not exists`) without updating user-managed fields.

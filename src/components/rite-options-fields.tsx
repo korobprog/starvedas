@@ -27,6 +27,15 @@ type EditableRiteOption = Partial<RiteOptionInput> & {
   markedForDelete?: boolean;
 };
 
+const priceUnitOptions: Array<{
+  label: string;
+  value: RiteOptionInput["priceUnit"];
+}> = [
+  { label: "За заказ", value: "PER_ORDER" },
+  { label: "За участника", value: "PER_PARTICIPANT" },
+  { label: "За имя", value: "PER_NAME" }
+];
+
 function createEmptyOption(index: number): EditableRiteOption {
   return {
     active: true,
@@ -64,6 +73,16 @@ function formatMoscowDateTimeInput(value: Date | string | null | undefined) {
 
 function normalizeTemplateTitle(value?: string | null) {
   return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function isPastEvent(value: Date | string | null | undefined) {
+  if (!value) {
+    return false;
+  }
+
+  const date = new Date(value);
+
+  return !Number.isNaN(date.getTime()) && date.getTime() <= Date.now();
 }
 
 function parseBulkDateTime(line: string) {
@@ -285,6 +304,9 @@ export function RiteOptionsFields({
       </div>
 
       {items.map((option, index) => {
+        const isHiddenByInactiveFlag = option.active === false;
+        const isHiddenByPastDate = isPastEvent(option.eventStartsAt);
+
         if (option.markedForDelete) {
           return (
             <div className="rite-option-card is-deleted" key={option.key}>
@@ -451,6 +473,23 @@ export function RiteOptionsFields({
                   type="number"
                 />
               </label>
+              <label className="field">
+                <span>Единица цены</span>
+                <select
+                  defaultValue={option.priceUnit ?? "PER_PARTICIPANT"}
+                  name="optionPriceUnit"
+                  required
+                >
+                  {priceUnitOptions.map((priceUnitOption) => (
+                    <option
+                      key={priceUnitOption.value}
+                      value={priceUnitOption.value}
+                    >
+                      {priceUnitOption.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             <label className="checkbox-field">
@@ -462,6 +501,18 @@ export function RiteOptionsFields({
               />
               <span>Активен и показывается клиентам</span>
             </label>
+
+            {(isHiddenByInactiveFlag || isHiddenByPastDate) && (
+              <p className="form-warning">
+                Скрыт на сайте
+                {isHiddenByInactiveFlag ? ": выключен флаг активности" : ""}
+                {isHiddenByInactiveFlag && isHiddenByPastDate ? " и " : ""}
+                {isHiddenByPastDate
+                  ? `${isHiddenByInactiveFlag ? "дата" : ": дата"} мероприятия уже прошла`
+                  : ""}
+                .
+              </p>
+            )}
 
             {option._count?.orderItems ? (
               <p className="admin-muted">

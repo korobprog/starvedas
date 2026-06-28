@@ -41,6 +41,10 @@ function isCuratorPollingDisabled() {
   return trimEnv("CURATOR_TELEGRAM_POLLING_DISABLED") === "1";
 }
 
+function isProductionSeedEnabled() {
+  return trimEnv("RUN_PRODUCTION_SEED") === "1";
+}
+
 function start(command, args, label, options = {}) {
   const restart = options.restart ?? false;
   const restartDelayMs = options.restartDelayMs ?? 5000;
@@ -96,7 +100,13 @@ process.once("SIGINT", () => shutdown(0));
 try {
   await run("node", ["scripts/repair-accounting-migration.mjs"]);
   await run("npx", ["prisma", "migrate", "deploy"]);
-  await run("npx", ["prisma", "db", "seed"]);
+  if (isProductionSeedEnabled()) {
+    await run("npx", ["prisma", "db", "seed"]);
+  } else {
+    console.log(
+      "[startup] prisma db seed skipped: set RUN_PRODUCTION_SEED=1 to run it explicitly"
+    );
+  }
   if (hasCuratorBotToken() && !isCuratorPollingDisabled()) {
     start("node", ["scripts/curator-bot-poller.mjs"], "curator-poller", {
       restart: true
