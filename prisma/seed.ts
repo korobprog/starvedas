@@ -2,6 +2,8 @@ import { PrismaClient, PriceUnit, SellerType, UserRole } from "@prisma/client";
 import { hashPassword } from "../src/server/password";
 
 const prisma = new PrismaClient();
+const seedMode = process.argv.includes("--init") ? "init" : "prod-safe";
+const shouldUpdateSeededData = seedMode === "init";
 
 const services = [
   {
@@ -174,6 +176,8 @@ const paymentProviders = [
 ];
 
 async function main() {
+  console.log(`Seeding mode: ${seedMode}`);
+
   const adminEmail = process.env.ADMIN_EMAIL?.trim();
   const adminPassword = process.env.ADMIN_PASSWORD?.trim();
   const adminName = process.env.ADMIN_NAME?.trim() || "Администратор";
@@ -188,12 +192,14 @@ async function main() {
             passwordHash: await hashPassword(adminPassword),
             role: UserRole.SUPER_ADMIN
           },
-          update: {
-            active: true,
-            name: adminName,
-            passwordHash: await hashPassword(adminPassword),
-            role: UserRole.SUPER_ADMIN
-          }
+          update: shouldUpdateSeededData
+            ? {
+                active: true,
+                name: adminName,
+                passwordHash: await hashPassword(adminPassword),
+                role: UserRole.SUPER_ADMIN
+              }
+            : {}
         })
       : null;
 
@@ -216,16 +222,18 @@ async function main() {
       sortOrder: 0,
       userId: adminUser?.id
     },
-    update: {
-      active: true,
-      canEditPostPurchase: true,
-      canEditSupport: true,
-      canViewClients: true,
-      hidden: false,
-      isSystem: true,
-      name: "Администратор",
-      userId: adminUser?.id
-    }
+    update: shouldUpdateSeededData
+      ? {
+          active: true,
+          canEditPostPurchase: true,
+          canEditSupport: true,
+          canViewClients: true,
+          hidden: false,
+          isSystem: true,
+          name: adminName,
+          userId: adminUser?.id
+        }
+      : {}
   });
 
   await prisma.referralLink.upsert({
@@ -236,11 +244,13 @@ async function main() {
       isPrimary: true,
       slug: adminCurator.slug
     },
-    update: {
-      active: true,
-      curatorId: adminCurator.id,
-      isPrimary: true
-    }
+    update: shouldUpdateSeededData
+      ? {
+          active: true,
+          curatorId: adminCurator.id,
+          isPrimary: true
+        }
+      : {}
   });
 
   await Promise.all(
@@ -252,7 +262,14 @@ async function main() {
           sortOrder: index + 1,
           requiresExactParticipantList: true
         },
-        update: {}
+        update: shouldUpdateSeededData
+          ? {
+              ...service,
+              sortOrder: index + 1,
+              active: true,
+              requiresExactParticipantList: true
+            }
+          : {}
       })
     )
   );
@@ -299,9 +316,16 @@ async function main() {
             sortOrder: option.sortOrder,
             title: option.title
           },
-          update: {
-            serviceId: singleRite.id
-          }
+          update: shouldUpdateSeededData
+            ? {
+                active: true,
+                description: option.description,
+                priceRub: option.priceRub,
+                serviceId: singleRite.id,
+                sortOrder: option.sortOrder,
+                title: option.title
+              }
+            : {}
         })
       )
     );
@@ -328,12 +352,14 @@ async function main() {
       prisma.paymentMethod.upsert({
         where: { code: method.code },
         create: method,
-        update: {
-          description: method.description,
-          name: method.name,
-          sortOrder: method.sortOrder,
-          active: true
-        }
+        update: shouldUpdateSeededData
+          ? {
+              description: method.description,
+              name: method.name,
+              sortOrder: method.sortOrder,
+              active: true
+            }
+          : {}
       })
     )
   );
@@ -343,12 +369,14 @@ async function main() {
       prisma.paymentProvider.upsert({
         where: { code: provider.code },
         create: provider,
-        update: {
-          description: provider.description,
-          name: provider.name,
-          sortOrder: provider.sortOrder,
-          supportedLocales: provider.supportedLocales
-        }
+        update: shouldUpdateSeededData
+          ? {
+              description: provider.description,
+              name: provider.name,
+              sortOrder: provider.sortOrder,
+              supportedLocales: provider.supportedLocales
+            }
+          : {}
       })
     )
   );
@@ -393,9 +421,11 @@ async function main() {
       sellerType: SellerType.IP,
       officialTelegram: "https://t.me/art_om108"
     },
-    update: {
-      officialTelegram: "https://t.me/art_om108"
-    }
+    update: shouldUpdateSeededData
+      ? {
+          officialTelegram: "https://t.me/art_om108"
+        }
+      : {}
   });
 }
 
