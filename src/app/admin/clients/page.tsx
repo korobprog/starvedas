@@ -106,7 +106,8 @@ export default async function AdminClientsPage({
 }: Readonly<{
   searchParams?: Promise<SearchParams>;
 }>) {
-  const filters = parseFilters(await searchParams);
+  const rawSearchParams = await searchParams;
+  const filters = parseFilters(rawSearchParams);
   const where = buildClientWhere(filters);
   const [clients, curators, services] = await Promise.all([
     prisma.clientProfile.findMany({
@@ -182,7 +183,8 @@ export default async function AdminClientsPage({
       ],
       select: {
         id: true,
-        name: true
+        name: true,
+        active: true
       }
     }),
     prisma.service.findMany({
@@ -210,6 +212,17 @@ export default async function AdminClientsPage({
             </div>
           ))}
         </div>
+        {firstParam(rawSearchParams?.transferred) && (
+          <p className="admin-success">
+            Клиенты переведены: {firstParam(rawSearchParams?.transferred)}
+          </p>
+        )}
+        {firstParam(rawSearchParams?.transferError) && (
+          <p className="form-warning">
+            Не удалось перевести клиентов. Выберите клиентов и активного
+            куратора.
+          </p>
+        )}
         <form className="admin-form filter-form">
           <label className="field">
             <span>Дата статуса с</span>
@@ -283,6 +296,7 @@ export default async function AdminClientsPage({
         </form>
         <ClientsTable
           clients={clients}
+          curators={curators.filter((curator) => curator.active)}
           emptyText="Клиенты по выбранным сегментам не найдены."
         />
       </section>

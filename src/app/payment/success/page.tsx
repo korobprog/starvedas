@@ -73,10 +73,11 @@ export default async function PaymentSuccessPage({
   const params = await searchParams;
   const copy = getPaymentResultCopy(cookieStore.get(localeCookieName)?.value);
   const order = await getOrderPostPurchase(params.order);
-  const supportCurator =
-    order?.curator ?? (await getAssignedCuratorFromCookie().catch(() => null));
   const sourceDomain =
     order?.sourceDomain ?? getSourceDomainFromHeaders(await headers());
+  const supportCurator =
+    order?.curator ??
+    (await getAssignedCuratorFromCookie(sourceDomain).catch(() => null));
   const hideAdminSupportButtons = supportCurator
     ? await shouldHideAdminSupportButtonsOnSourceDomain({
         curatorSlug: supportCurator.slug,

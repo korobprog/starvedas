@@ -196,7 +196,7 @@ export async function POST(request: Request) {
     const requestedReferralSlug =
       firstStoredReferralSlug ?? data.referralSlug ?? undefined;
     const [curator, service] = await Promise.all([
-      getCuratorForReferral(requestedReferralSlug),
+      getCuratorForReferral(requestedReferralSlug, sourceDomain),
       getServiceForOrder(data.serviceSlug, locale)
     ]);
 

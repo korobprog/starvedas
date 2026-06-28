@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     currentClient?.referralSlug ||
     parsed.data.referralSlug ||
     cookieStore.get(referralCookieName)?.value;
-  const curator = await getCuratorForReferral(referralSlug);
+  const curator = await getCuratorForReferral(referralSlug, sourceDomain);
   const consentMailings = curator.showMailingConsentCheckbox
     ? parsed.data.consentMailings
     : false;

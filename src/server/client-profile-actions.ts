@@ -1,6 +1,7 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
@@ -9,7 +10,7 @@ import {
   isValidPhoneNumberForCountry,
   normalizePhoneNumber
 } from "@/lib/phone-validation";
-import { getCurrentUser } from "@/server/auth";
+import { getCurrentUser, requireAdminUser } from "@/server/auth";
 import { getCurrentClientProfile } from "@/server/client-auth";
 
 export type ClientProfileActionState = {
@@ -44,6 +45,11 @@ const clientProfileSchema = z
       });
     }
   });
+
+const transferClientsSchema = z.object({
+  clientIds: z.array(z.string().trim().min(1)).min(1),
+  targetCuratorId: z.string().trim().min(1)
+});
 
 function getBooleanFormValue(value: FormDataEntryValue | null) {
   return value === "on" || value === "true" || value === "1";
@@ -138,4 +144,69 @@ export async function updateClientProfileAction(
   revalidatePath("/client/profile");
 
   return { success: "Профиль сохранён" };
+}
+
+export async function transferClientsToCuratorAction(formData: FormData) {
+  await requireAdminUser("/admin/clients");
+
+  const parsed = transferClientsSchema.safeParse({
+    clientIds: Array.from(
+      new Set(
+        formData
+          .getAll("clientIds")
+          .map((id) => String(id).trim())
+          .filter(Boolean)
+      )
+    ),
+    targetCuratorId: formData.get("targetCuratorId")
+  });
+
+  if (!parsed.success) {
+    redirect("/admin/clients?transferError=select");
+  }
+
+  const targetCurator = await prisma.curator.findFirst({
+    where: {
+      active: true,
+      id: parsed.data.targetCuratorId
+    },
+    select: {
+      id: true,
+      referralLinks: {
+        orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
+        select: {
+          slug: true
+        },
+        where: {
+          active: true
+        }
+      },
+      slug: true
+    }
+  });
+
+  if (!targetCurator) {
+    redirect("/admin/clients?transferError=curator");
+  }
+
+  const referralSlug =
+    targetCurator.referralLinks[0]?.slug ?? targetCurator.slug;
+
+  const result = await prisma.clientProfile.updateMany({
+    where: {
+      id: {
+        in: parsed.data.clientIds
+      }
+    },
+    data: {
+      curatorId: targetCurator.id,
+      referralSlug
+    }
+  });
+
+  revalidatePath("/admin/clients");
+  revalidatePath("/admin/curators");
+  revalidatePath("/cabinet");
+
+  redirect(`/admin/clients?transferred=${result.count}`);
 }

@@ -62,9 +62,12 @@ function formatPublishedDate(
   }).format(new Date(value));
 }
 
-async function getAssignedCurator(referralSlug?: string) {
+async function getAssignedCurator(
+  referralSlug?: string,
+  sourceDomain?: string
+) {
   try {
-    return await getCuratorForReferral(referralSlug);
+    return await getCuratorForReferral(referralSlug, sourceDomain);
   } catch {
     return {
       id: "administrator",
@@ -95,19 +98,17 @@ export default async function Home({
   const locale = cookieStore.get(localeCookieName)?.value;
   const brand = await getRequestSiteBrand();
   const copy = applySiteBrandToCopy(getHomeCopy(locale), brand.name);
-  const [
-    activeSchedule,
-    assignedCurator,
-    { contact },
-    availableServices,
-    featuredArticles
-  ] = await Promise.all([
-    getActiveSchedule(),
-    getAssignedCurator(referralSlug),
-    getPublicOrganizationSettings(),
-    getPublicServices(locale),
-    getFeaturedPublicArticles(locale)
-  ]);
+  const [activeSchedule, { contact }, availableServices, featuredArticles] =
+    await Promise.all([
+      getActiveSchedule(),
+      getPublicOrganizationSettings(),
+      getPublicServices(locale),
+      getFeaturedPublicArticles(locale)
+    ]);
+  const assignedCurator = await getAssignedCurator(
+    referralSlug,
+    brand.sourceDomain
+  );
   const paymentProviders = await getCheckoutPaymentProvidersForCurator(
     assignedCurator.id,
     locale

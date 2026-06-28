@@ -40,7 +40,7 @@ export default async function ClientRegisterPage({
 
   const referralSlug =
     params.ref?.trim() || cookieStore.get(referralCookieName)?.value || "";
-  const curator = await getCuratorForReferral(referralSlug);
+  const curator = await getCuratorForReferral(referralSlug, brand.sourceDomain);
 
   return (
     <main className="simple-page">

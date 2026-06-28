@@ -11,6 +11,7 @@ import { hashPassword } from "@/server/password";
 import {
   adminCuratorSlug,
   buildReferralPath,
+  chintamaniAdminCuratorSlug,
   ensureSystemCurator
 } from "@/server/referrals";
 import {
@@ -224,6 +225,18 @@ function generateTemporaryPassword() {
   return crypto.randomBytes(9).toString("base64url");
 }
 
+function getSystemCuratorSlug(slug: string) {
+  return slug === chintamaniAdminCuratorSlug
+    ? chintamaniAdminCuratorSlug
+    : adminCuratorSlug;
+}
+
+function getSystemCuratorUserRole(slug: string) {
+  return slug === chintamaniAdminCuratorSlug
+    ? UserRole.ADMIN
+    : UserRole.SUPER_ADMIN;
+}
+
 async function ensureEmailAvailable(email: string, currentUserId?: string) {
   const existing = await prisma.user.findUnique({
     where: { email },
@@ -408,6 +421,7 @@ export async function updateCuratorAction(
     where: { id: data.id },
     select: {
       isSystem: true,
+      slug: true,
       userId: true
     }
   });
@@ -416,10 +430,9 @@ export async function updateCuratorAction(
     return { error: "Куратор не найден" };
   }
 
-  const slug =
-    curator.isSystem && data.slug !== adminCuratorSlug
-      ? adminCuratorSlug
-      : await createUniqueSlug(data.slug, data.id);
+  const slug = curator.isSystem
+    ? getSystemCuratorSlug(curator.slug)
+    : await createUniqueSlug(data.slug, data.id);
 
   if (
     data.email &&
@@ -442,7 +455,9 @@ export async function updateCuratorAction(
             passwordHash: data.password
               ? await hashPassword(data.password)
               : undefined,
-            role: curator.isSystem ? UserRole.SUPER_ADMIN : undefined
+            role: curator.isSystem
+              ? getSystemCuratorUserRole(curator.slug)
+              : undefined
           }
         });
       } else if (data.email && data.password) {
@@ -451,7 +466,9 @@ export async function updateCuratorAction(
             email: data.email,
             name: data.name,
             passwordHash: await hashPassword(data.password),
-            role: curator.isSystem ? UserRole.SUPER_ADMIN : UserRole.CURATOR
+            role: curator.isSystem
+              ? getSystemCuratorUserRole(curator.slug)
+              : UserRole.CURATOR
           },
           select: { id: true }
         });

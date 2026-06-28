@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
 import { slugifyReferralValue } from "@/lib/slugs";
 import { prisma } from "@/lib/prisma";
+import { normalizeSourceDomain } from "@/server/source-domain";
 
 export const adminCuratorSlug = "administrator";
+export const chintamaniAdminCuratorSlug = "chintamani-administrator";
 export const referralCookieName = "starvedas_ref_curator";
 export const referralCookieMaxAge = 60 * 60 * 24 * 90;
 export const defaultReferralOrigin = "https://chintamanidhama.ru";
@@ -161,6 +163,54 @@ export async function ensureSystemCurator() {
   return curator;
 }
 
+export async function ensureChintamaniSystemCurator() {
+  const curator = await prisma.curator.upsert({
+    where: { slug: chintamaniAdminCuratorSlug },
+    create: {
+      active: true,
+      canEditPostPurchase: true,
+      canEditSupport: true,
+      canViewClients: true,
+      hidden: false,
+      isSystem: true,
+      name: "Администратор Chintamani Dhama",
+      postPurchaseText:
+        "Спасибо за оплату. Администратор свяжется с вами и передаст дальнейшую информацию.",
+      supportButtonLabel: "Написать вопрос администратору",
+      supportEnabled: true,
+      supportUrl: "https://t.me/art_om108",
+      slug: chintamaniAdminCuratorSlug,
+      sortOrder: 1
+    },
+    update: {
+      active: true,
+      canEditPostPurchase: true,
+      canEditSupport: true,
+      canViewClients: true,
+      hidden: false,
+      isSystem: true
+    },
+    select: publicCuratorSelect
+  });
+
+  await ensurePrimaryReferralLink(curator.id, chintamaniAdminCuratorSlug);
+
+  return curator;
+}
+
+export function getDefaultSystemCuratorSlug(sourceDomain?: string | null) {
+  return normalizeSourceDomain(sourceDomain) === "chintamanidhama.ru"
+    ? chintamaniAdminCuratorSlug
+    : adminCuratorSlug;
+}
+
+export async function ensureDefaultSystemCurator(sourceDomain?: string | null) {
+  return getDefaultSystemCuratorSlug(sourceDomain) ===
+    chintamaniAdminCuratorSlug
+    ? ensureChintamaniSystemCurator()
+    : ensureSystemCurator();
+}
+
 export async function findActiveCuratorBySlug(slug: string) {
   const slugs = slugLookupValues(slug);
 
@@ -208,20 +258,25 @@ export async function findActiveCuratorByReferralSlug(slug: string) {
   return referralLink?.curator ?? null;
 }
 
-export async function getCuratorForReferral(referralSlug?: string | null) {
+export async function getCuratorForReferral(
+  referralSlug?: string | null,
+  sourceDomain?: string | null
+) {
   const curator = referralSlug
     ? await findActiveCuratorByReferralSlug(referralSlug)
     : null;
 
-  return curator ?? ensureSystemCurator();
+  return curator ?? ensureDefaultSystemCurator(sourceDomain);
 }
 
-export async function getAssignedCuratorFromCookie() {
+export async function getAssignedCuratorFromCookie(
+  sourceDomain?: string | null
+) {
   const cookieStore = await cookies();
   const slug = cookieStore.get(referralCookieName)?.value;
   const curator = await findActiveCuratorByReferralSlug(slug ?? "");
 
-  return curator ?? ensureSystemCurator();
+  return curator ?? ensureDefaultSystemCurator(sourceDomain);
 }
 
 export function buildReferralPath(slug: string) {

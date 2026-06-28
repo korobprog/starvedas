@@ -133,7 +133,10 @@ export async function registerClientAction(
   const requestedReferralSlug =
     normalizeOptional(parsed.data.referralSlug) ||
     normalizeOptional(cookieStore.get(referralCookieName)?.value);
-  const curator = await getCuratorForReferral(requestedReferralSlug);
+  const curator = await getCuratorForReferral(
+    requestedReferralSlug,
+    sourceDomain
+  );
   const email = parsed.data.email.toLocaleLowerCase("ru");
   const phone = normalizePhoneNumber(
     parsed.data.phone,

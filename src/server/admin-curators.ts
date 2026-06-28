@@ -6,6 +6,8 @@ import {
   adminCuratorSlug,
   buildReferralPath,
   buildReferralUrl,
+  chintamaniAdminCuratorSlug,
+  ensureChintamaniSystemCurator,
   ensureSystemCurator
 } from "@/server/referrals";
 
@@ -132,7 +134,9 @@ async function normalizeCuratorReferralSlugs() {
       curator.referralLinks.find((link) => link.isPrimary)?.slug ??
       curator.slug;
     const normalizedSlug = curator.isSystem
-      ? adminCuratorSlug
+      ? curator.slug === chintamaniAdminCuratorSlug
+        ? chintamaniAdminCuratorSlug
+        : adminCuratorSlug
       : await createUniqueLatinReferralSlug(
           primarySlug || curator.slug || curator.name,
           curator.id
@@ -191,7 +195,7 @@ async function normalizeCuratorReferralSlugs() {
 }
 
 export async function getAdminCurators() {
-  await ensureSystemCurator();
+  await Promise.all([ensureSystemCurator(), ensureChintamaniSystemCurator()]);
   await normalizeCuratorReferralSlugs();
 
   return prisma.curator.findMany({
@@ -201,7 +205,7 @@ export async function getAdminCurators() {
 }
 
 export async function getAdminCurator(id: string) {
-  await ensureSystemCurator();
+  await Promise.all([ensureSystemCurator(), ensureChintamaniSystemCurator()]);
   await normalizeCuratorReferralSlugs();
 
   return prisma.curator.findUnique({
