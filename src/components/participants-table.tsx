@@ -154,10 +154,12 @@ export function ParticipantsTable({
                     <>
                       <br />
                       <Link
-                        className="button button--small"
+                        aria-label="Restore order"
+                        className="icon-button"
                         href={`/admin/recovery?backupOrder=${participant.order.id}`}
+                        title="Restore order"
                       >
-                        Восстановление
+                        {"\u21BA"}
                       </Link>
                     </>
                   ) : null}

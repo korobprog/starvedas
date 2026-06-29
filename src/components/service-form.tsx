@@ -1,6 +1,7 @@
 import type { PriceUnit } from "@prisma/client";
 import Link from "next/link";
 import { AdminSubmitButton } from "@/components/admin-submit-button";
+import { DigitsOnlyInput } from "@/components/digits-only-input";
 import { ProductSubscriptionAndRitesFields } from "@/components/product-subscription-and-rites-fields";
 import {
   createService,
@@ -231,35 +232,26 @@ export function ServiceFields({
       <div className="field-grid">
         <label className="field">
           <span>Цена RUB</span>
-          <input
+          <DigitsOnlyInput
             defaultValue={service?.priceRub ?? 0}
-            inputMode="numeric"
             name="priceRub"
-            pattern="[0-9]*"
             required
-            type="text"
           />
         </label>
         <label className="field">
           <span>Цена USD</span>
-          <input
+          <DigitsOnlyInput
             defaultValue={service?.priceUsd ?? ""}
-            inputMode="numeric"
             name="priceUsd"
-            pattern="[0-9]*"
             placeholder="если пусто — пересчёт из RUB"
-            type="text"
           />
         </label>
         <label className="field">
           <span>Цена INR</span>
-          <input
+          <DigitsOnlyInput
             defaultValue={service?.priceInr ?? ""}
-            inputMode="numeric"
             name="priceInr"
-            pattern="[0-9]*"
             placeholder="если пусто — пересчёт из RUB"
-            type="text"
           />
         </label>
         <label className="field">
