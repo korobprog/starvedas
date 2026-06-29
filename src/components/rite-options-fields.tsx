@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState } from "react";
+import { DigitsOnlyInput } from "@/components/digits-only-input";
 
 export type RiteOptionInput = {
   _count?: {
@@ -450,33 +451,24 @@ export function RiteOptionsFields({
             <div className="field-grid">
               <label className="field">
                 <span>Цена RUB</span>
-                <input
+                <DigitsOnlyInput
                   defaultValue={option.priceRub ?? 0}
-                  inputMode="numeric"
                   name="optionPriceRub"
-                  pattern="[0-9]*"
                   required
-                  type="text"
                 />
               </label>
               <label className="field">
                 <span>Цена USD</span>
-                <input
+                <DigitsOnlyInput
                   defaultValue={option.priceUsd ?? ""}
-                  inputMode="numeric"
                   name="optionPriceUsd"
-                  pattern="[0-9]*"
-                  type="text"
                 />
               </label>
               <label className="field">
                 <span>Цена INR</span>
-                <input
+                <DigitsOnlyInput
                   defaultValue={option.priceInr ?? ""}
-                  inputMode="numeric"
                   name="optionPriceInr"
-                  pattern="[0-9]*"
-                  type="text"
                 />
               </label>
               <label className="field">

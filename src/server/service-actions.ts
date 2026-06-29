@@ -19,6 +19,29 @@ const optionalDetailsText = z
   .max(30000)
   .transform((value) => value || null);
 
+const digitsOnlyNumber = z.preprocess(
+  (value) => (typeof value === "string" ? value.trim() : value),
+  z
+    .string()
+    .regex(/^\d+$/, "Разрешены только цифры")
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(100_000_000))
+);
+
+const nullableDigitsOnlyNumber = z.preprocess((value) => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim();
+
+    return normalized === "" ? null : normalized;
+  }
+
+  return value;
+}, z.union([z.null(), digitsOnlyNumber]));
+
 const prodamusVatTaxTypes = [0, 1, 2, 4, 6, 7, 10, 11, 12, 13, 14, 15];
 
 function validateSubscriptionPeriod(
@@ -71,10 +94,10 @@ const serviceCoreSchema = z.object({
   detailsContentEn: optionalDetailsText,
   detailsContentHi: optionalDetailsText,
   isSubscription: z.boolean(),
-  priceInr: z.coerce.number().int().min(0).max(100_000_000).nullable(),
-  priceRub: z.coerce.number().int().min(0).max(100_000_000),
+  priceInr: nullableDigitsOnlyNumber,
+  priceRub: digitsOnlyNumber,
   receiptName: z.string().trim().min(2).max(200).nullable(),
-  priceUsd: z.coerce.number().int().min(0).max(100_000_000).nullable(),
+  priceUsd: nullableDigitsOnlyNumber,
   priceUnit: z.enum(["PER_ORDER", "PER_PARTICIPANT", "PER_NAME"]),
   requiresExactParticipantList: z.boolean(),
   slug: z.string().trim().min(1).max(120),
@@ -116,10 +139,10 @@ const serviceOptionFormSchema = z.object({
   descriptionHi: optionalText,
   eventStartsAt: z.date().nullable(),
   id: z.string().trim().optional(),
-  priceInr: z.coerce.number().int().min(0).max(100_000_000).nullable(),
-  priceRub: z.coerce.number().int().min(0).max(100_000_000),
+  priceInr: nullableDigitsOnlyNumber,
+  priceRub: digitsOnlyNumber,
   priceUnit: z.enum(["PER_ORDER", "PER_PARTICIPANT", "PER_NAME"]),
-  priceUsd: z.coerce.number().int().min(0).max(100_000_000).nullable(),
+  priceUsd: nullableDigitsOnlyNumber,
   sortOrder: z.coerce.number().int().min(-100_000).max(100_000),
   title: z.string().trim().min(2).max(200),
   titleEn: optionalText,

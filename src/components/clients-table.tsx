@@ -221,10 +221,12 @@ export function ClientsTable({
                           <br />
                           {showRecoveryLinks ? (
                             <Link
-                              className="button button--small"
+                              aria-label="Restore order"
+                              className="icon-button"
                               href={`/admin/recovery?backupOrder=${lastOrder.id}`}
+                              title="Restore order"
                             >
-                              Восстановление
+                              {"\u21BA"}
                             </Link>
                           ) : null}
                           <br />

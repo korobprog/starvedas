@@ -339,10 +339,12 @@ export default async function AdminParticipantsPage({
                         </button>
                       </form>
                       <Link
-                        className="button button--small"
+                        aria-label="Restore order"
+                        className="icon-button"
                         href={`/admin/recovery?backupOrder=${order.id}`}
+                        title="Restore order"
                       >
-                        Восстановление
+                        {"\u21BA"}
                       </Link>
                     </td>
                   </tr>
