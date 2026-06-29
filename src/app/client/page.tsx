@@ -250,7 +250,7 @@ export default async function ClientCabinetPage() {
   const [orders, savedParticipants] = await Promise.all([
     prisma.order.findMany({
       orderBy: { createdAt: "desc" },
-      where: { clientId: client.id },
+      where: { clientId: client.id, deletedAt: null },
       select: {
         amountRub: true,
         createdAt: true,

@@ -46,6 +46,7 @@ export default async function ClientOrderEditPage({
   const order = await prisma.order.findFirst({
     where: {
       clientId: client.id,
+      deletedAt: null,
       publicToken: token
     },
     select: {

@@ -11,6 +11,10 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole, requireUser, type SessionUser } from "@/server/auth";
+import {
+  captureOrderRevision,
+  orderRevisionEventTypes
+} from "@/server/order-revisions";
 import { hasAcceptedStatisticianRole } from "@/server/statistician-role";
 import { sendParticipantListTelegramNotification } from "@/server/telegram-notifications";
 
@@ -229,7 +233,10 @@ async function ensureParticipantLists(where: Prisma.OrderWhereInput) {
         orderBy: { sortOrder: "asc" }
       }
     },
-    where
+    where: {
+      ...where,
+      deletedAt: null
+    }
   });
   const missing = orders.filter((order) => !order.participantList);
 
@@ -262,6 +269,7 @@ export async function getStatisticianParticipantLists() {
     select: participantListSelect,
     where: {
       order: {
+        deletedAt: null,
         status: OrderStatus.PAID
       }
     }
@@ -277,6 +285,7 @@ export async function getCuratorParticipantLists(curatorId: string) {
     where: {
       order: {
         curatorId,
+        deletedAt: null,
         status: OrderStatus.PAID
       }
     }
@@ -312,6 +321,7 @@ export async function updateParticipantListAction(formData: FormData) {
       bookmarked: true,
       eventStartsAt: true,
       note: true,
+      orderId: true,
       serviceTitleOverride: true,
       status: true
     }
@@ -344,6 +354,13 @@ export async function updateParticipantListAction(formData: FormData) {
   ].filter(([, from, to]) => formatFieldValue(from) !== formatFieldValue(to));
 
   await prisma.$transaction(async (tx) => {
+    await captureOrderRevision(tx, {
+      actorUserId: user.id,
+      eventType: orderRevisionEventTypes.participantListEdit,
+      note: "Изменены статус или заметки списка участников",
+      orderId: current.orderId
+    });
+
     await tx.participantList.update({
       data: nextData,
       where: { id: parsed.data.listId }
@@ -412,6 +429,13 @@ export async function updateParticipantListRowAction(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
+    await captureOrderRevision(tx, {
+      actorUserId: user.id,
+      eventType: orderRevisionEventTypes.participantRowEdit,
+      note: "Изменена строка участника в списке",
+      orderId: participant.orderId
+    });
+
     await tx.orderParticipant.update({
       data: {
         fullName: parsed.data.fullName,

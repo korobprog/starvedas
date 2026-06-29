@@ -168,9 +168,13 @@ export function PartnerApplicationGate({
           </label>
 
           {agreementText && (
-            <div className="form-note">
-              <strong>Правила партнёрской программы</strong>
-              <p style={{ whiteSpace: "pre-wrap" }}>{agreementText}</p>
+            <div className="partner-agreement">
+              <strong className="partner-agreement__title">
+                Правила партнёрской программы
+              </strong>
+              <div className="partner-agreement__scroll">
+                <p style={{ whiteSpace: "pre-wrap" }}>{agreementText}</p>
+              </div>
             </div>
           )}
 

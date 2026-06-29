@@ -777,7 +777,7 @@ async function getAccountingOrders(sourceDomain: SourceDomain) {
       }
     },
     orderBy: [{ createdAt: "asc" }, { orderNumber: "asc" }],
-    where: { sourceDomain }
+    where: { deletedAt: null, sourceDomain }
   });
 }
 

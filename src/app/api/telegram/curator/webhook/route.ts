@@ -436,7 +436,7 @@ async function buildStatsText(curator: { id: string; name: string }) {
 
   const [orders, todayOrders, clientsCount] = await Promise.all([
     prisma.order.findMany({
-      where: { curatorId: curator.id },
+      where: { curatorId: curator.id, deletedAt: null },
       select: {
         amountRub: true,
         status: true
@@ -445,7 +445,8 @@ async function buildStatsText(curator: { id: string; name: string }) {
     prisma.order.findMany({
       where: {
         createdAt: { gte: today },
-        curatorId: curator.id
+        curatorId: curator.id,
+        deletedAt: null
       },
       select: {
         amountRub: true,

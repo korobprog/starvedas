@@ -16,6 +16,10 @@ import {
   sendPaymentReceiptEmail,
   sendPaymentSucceededEmail
 } from "@/server/email/order-emails";
+import {
+  captureOrderRevision,
+  orderRevisionEventTypes
+} from "@/server/order-revisions";
 import { isCustomPaymentProviderCode } from "@/server/payment-providers";
 
 const orderIdSchema = z.object({
@@ -50,6 +54,7 @@ const participantUpdateSchema = z.object({
 function revalidateOrderWorkspaces() {
   revalidatePath("/admin/participants");
   revalidatePath("/admin/clients");
+  revalidatePath("/admin/recovery");
   revalidatePath("/cabinet");
 }
 
@@ -70,8 +75,9 @@ export async function savePaymentReceiptAction(formData: FormData) {
     );
   }
 
-  const order = await prisma.order.findUnique({
+  const order = await prisma.order.findFirst({
     where: {
+      deletedAt: null,
       id: parsed.data.orderId
     },
     select: {
@@ -96,16 +102,26 @@ export async function savePaymentReceiptAction(formData: FormData) {
 
   const receiptUrl = parsed.data.receiptUrl?.trim() || null;
   const receiptLabel = parsed.data.receiptLabel?.trim() || null;
+  const paymentId = order.payment.id;
 
-  await prisma.payment.update({
-    where: {
-      id: order.payment.id
-    },
-    data: {
-      receiptLabel,
-      receiptUploadedAt: receiptUrl ? new Date() : null,
-      receiptUrl
-    }
+  await prisma.$transaction(async (tx) => {
+    await captureOrderRevision(tx, {
+      actorUserId: user.id,
+      eventType: orderRevisionEventTypes.paymentReceipt,
+      note: "Изменены ссылка или подпись чека",
+      orderId: order.id
+    });
+
+    await tx.payment.update({
+      where: {
+        id: paymentId
+      },
+      data: {
+        receiptLabel,
+        receiptUploadedAt: receiptUrl ? new Date() : null,
+        receiptUrl
+      }
+    });
   });
 
   revalidateOrderWorkspaces();
@@ -133,8 +149,9 @@ export async function confirmCustomPaymentAction(formData: FormData) {
     throw new Error("Некорректный заказ");
   }
 
-  const order = await prisma.order.findUnique({
+  const order = await prisma.order.findFirst({
     where: {
+      deletedAt: null,
       id: parsed.data.orderId
     },
     select: {
@@ -168,6 +185,13 @@ export async function confirmCustomPaymentAction(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
+    await captureOrderRevision(tx, {
+      actorUserId: user.id,
+      eventType: orderRevisionEventTypes.manualPaymentConfirm,
+      note: "Ручное подтверждение оплаты администратором или куратором",
+      orderId: order.id
+    });
+
     await tx.payment.update({
       where: {
         orderId: order.id
@@ -261,6 +285,13 @@ export async function updateParticipantAction(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
+    await captureOrderRevision(tx, {
+      actorUserId: user.id,
+      eventType: orderRevisionEventTypes.adminParticipantEdit,
+      note: "Изменение участника в кабинете",
+      orderId: participant.orderId
+    });
+
     await tx.orderParticipant.update({
       where: {
         id: participant.id

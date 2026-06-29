@@ -22,6 +22,7 @@ export async function GET(request: Request) {
   const order = await prisma.order.findFirst({
     where: {
       clientId: client.id,
+      deletedAt: null,
       publicToken
     },
     select: {

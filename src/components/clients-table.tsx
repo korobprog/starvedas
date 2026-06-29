@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   MailingExportTools,
   type MailingExportRow
@@ -27,6 +28,7 @@ export type ClientTableRow = {
     amountRub: number;
     currency: string;
     createdAt: Date;
+    id: string;
     orderNumber: number;
     payment: {
       status: string;
@@ -102,11 +104,13 @@ function toMailingRows(clients: ClientTableRow[]): MailingExportRow[] {
 export function ClientsTable({
   clients,
   curators,
-  emptyText
+  emptyText,
+  showRecoveryLinks = false
 }: {
   clients: ClientTableRow[];
   curators?: ClientTransferCuratorOption[];
   emptyText: string;
+  showRecoveryLinks?: boolean;
 }) {
   const mailingRows = toMailingRows(clients);
   const canTransferClients = Boolean(curators?.length);
@@ -214,6 +218,15 @@ export function ClientsTable({
                           {lastOrder.payment?.status
                             ? ` / ${formatStatus(lastOrder.payment.status)}`
                             : ""}
+                          <br />
+                          {showRecoveryLinks ? (
+                            <Link
+                              className="button button--small"
+                              href={`/admin/recovery?backupOrder=${lastOrder.id}`}
+                            >
+                              Восстановление
+                            </Link>
+                          ) : null}
                           <br />
                           Всего заказов: {client._count.orders}
                         </>

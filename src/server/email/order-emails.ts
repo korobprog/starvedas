@@ -48,8 +48,9 @@ function toOrderEmailData(
 }
 
 async function getOrderForEmail(orderId: string) {
-  return prisma.order.findUnique({
+  return prisma.order.findFirst({
     where: {
+      deletedAt: null,
       id: orderId
     },
     select: {

@@ -348,11 +348,13 @@ export function RiteOptionsFields({
               />
               <input
                 name="optionPriceRub"
+                pattern="[0-9]*"
                 type="hidden"
                 value={option.priceRub ?? 0}
               />
               <input
                 name="optionPriceUsd"
+                pattern="[0-9]*"
                 type="hidden"
                 value={option.priceUsd ?? ""}
               />
@@ -363,6 +365,7 @@ export function RiteOptionsFields({
               />
               <input
                 name="optionPriceInr"
+                pattern="[0-9]*"
                 type="hidden"
                 value={option.priceInr ?? ""}
               />
@@ -449,28 +452,31 @@ export function RiteOptionsFields({
                 <span>Цена RUB</span>
                 <input
                   defaultValue={option.priceRub ?? 0}
-                  min={0}
+                  inputMode="numeric"
                   name="optionPriceRub"
+                  pattern="[0-9]*"
                   required
-                  type="number"
+                  type="text"
                 />
               </label>
               <label className="field">
                 <span>Цена USD</span>
                 <input
                   defaultValue={option.priceUsd ?? ""}
-                  min={0}
+                  inputMode="numeric"
                   name="optionPriceUsd"
-                  type="number"
+                  pattern="[0-9]*"
+                  type="text"
                 />
               </label>
               <label className="field">
                 <span>Цена INR</span>
                 <input
                   defaultValue={option.priceInr ?? ""}
-                  min={0}
+                  inputMode="numeric"
                   name="optionPriceInr"
-                  type="number"
+                  pattern="[0-9]*"
+                  type="text"
                 />
               </label>
               <label className="field">

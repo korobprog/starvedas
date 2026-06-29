@@ -134,6 +134,8 @@ model User {
   clientProfile               ClientProfile?
   changedStatuses             LeadStatusHistory[]
   changedParticipants         ParticipantChangeHistory[]
+  createdOrderRevisions       OrderRevision[]
+  deletedOrders               Order[]                    @relation("OrderDeletedBy")
   reviewedPartnerApplications CuratorPartnerApplication[]
   participantListChanges      ParticipantListChange[]
   participantListMessages     ParticipantListMessage[]
@@ -241,6 +243,9 @@ model Service {
   isSubscription               Boolean   @default(false)
   subscriptionStartsAt         DateTime?
   subscriptionEndsAt           DateTime?
+  vedicGiftEnabled             Boolean   @default(false)
+  vedicGiftTitle               String?
+  vedicGiftDescription         String?
   active                       Boolean   @default(true)
   sortOrder                    Int       @default(0)
   createdAt                    DateTime  @default(now())
@@ -411,24 +416,31 @@ model Order {
   subscriptionStartsAtSnapshot DateTime?
   subscriptionEndsAtSnapshot   DateTime?
   createdAt                    DateTime    @default(now())
+  deletedAt                    DateTime?
+  deleteReason                 String?
   updatedAt                    DateTime    @updatedAt
 
   curatorId String
   serviceId String
   clientId  String?
+  deletedById String?
 
   curator         Curator              @relation(fields: [curatorId], references: [id], onDelete: Restrict)
   service         Service              @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   client          ClientProfile?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  deletedBy       User?                @relation("OrderDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
   participants    OrderParticipant[]
   serviceOptions  OrderServiceOption[]
   payment         Payment?
+  revisions       OrderRevision[]
   statusHistory   LeadStatusHistory[]
   participantList ParticipantList?
   vedicGiftData   VedicGiftData?
 
   @@index([sourceDomain])
   @@index([referralSlug])
+  @@index([deletedAt, updatedAt])
+  @@index([deletedById, deletedAt])
 }
 
 model OrderServiceOption {
@@ -541,6 +553,25 @@ model Payment {
 
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model OrderRevision {
+  id               String   @id @default(cuid())
+  eventType        String
+  note             String?
+  snapshot         Json
+  sourceRevisionId String?
+  createdAt        DateTime @default(now())
+
+  orderId      String
+  actorUserId  String?
+
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([eventType, createdAt])
 }
 
 model AccountingReport {

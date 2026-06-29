@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   ParticipantExportTools,
   type ParticipantExportRow
@@ -27,6 +28,7 @@ type ParticipantRow = {
     customerName: string;
     customerPhone: string | null;
     customerTelegram: string | null;
+    id: string;
     orderNumber: number;
     payment: {
       status: string;
@@ -79,10 +81,12 @@ function toExportRows(participants: ParticipantRow[]): ParticipantExportRow[] {
 
 export function ParticipantsTable({
   emptyText,
-  participants
+  participants,
+  showRecoveryLinks = false
 }: {
   emptyText: string;
   participants: ParticipantRow[];
+  showRecoveryLinks?: boolean;
 }) {
   const exportRows = toExportRows(participants);
 
@@ -144,7 +148,20 @@ export function ParticipantsTable({
                     </ul>
                   ) : null}
                 </td>
-                <td>#{participant.order.orderNumber}</td>
+                <td>
+                  #{participant.order.orderNumber}
+                  {showRecoveryLinks ? (
+                    <>
+                      <br />
+                      <Link
+                        className="button button--small"
+                        href={`/admin/recovery?backupOrder=${participant.order.id}`}
+                      >
+                        Восстановление
+                      </Link>
+                    </>
+                  ) : null}
+                </td>
                 <td>
                   <strong>{participant.order.customerName}</strong>
                   <br />

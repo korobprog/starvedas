@@ -15,8 +15,9 @@ async function getOrderPostPurchase(publicToken?: string) {
   }
 
   try {
-    return await prisma.order.findUnique({
+    return await prisma.order.findFirst({
       where: {
+        deletedAt: null,
         publicToken
       },
       select: {
@@ -36,7 +37,10 @@ async function getOrderPostPurchase(publicToken?: string) {
         orderNumber: true,
         service: {
           select: {
-            slug: true
+            slug: true,
+            vedicGiftDescription: true,
+            vedicGiftEnabled: true,
+            vedicGiftTitle: true
           }
         },
         sourceDomain: true,
@@ -85,7 +89,7 @@ export default async function PaymentSuccessPage({
       })
     : false;
 
-  const isMonthlyPass = order?.service?.slug === "monthly-pass";
+  const showVedicGift = Boolean(order?.service?.vedicGiftEnabled);
   const initialContactName = order?.client?.name ?? order?.customerName;
   const initialContactEmail =
     order?.client?.email ?? order?.customerEmail ?? undefined;
@@ -139,15 +143,23 @@ export default async function PaymentSuccessPage({
           {copy.success.backHome}
         </Link>
       </section>
-      {isMonthlyPass && order?.service && order?.curator && order?.id && (
+      {showVedicGift && order?.service && order?.curator && order?.id && (
         <section className="simple-card">
           <VedicGiftForm
             alreadySubmitted={Boolean(order.vedicGiftData)}
+            description={
+              order.service.vedicGiftDescription?.trim() ||
+              "Пожалуйста, укажите данные для составления разбора по ведической астрологии (Джйотиш)."
+            }
             initialEmail={initialContactEmail}
             initialName={initialContactName}
             initialPhone={initialContactPhone}
             initialTelegram={initialContactTelegram}
             orderId={order.id}
+            title={
+              order.service.vedicGiftTitle?.trim() ||
+              "🎁 Подарок: ведический астрологический разбор"
+            }
           />
         </section>
       )}

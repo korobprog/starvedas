@@ -43,6 +43,9 @@ export type SiteService = {
   subscriptionStartsAt: string | null;
   subscriptionStartsAtLabel: string;
   title: string;
+  vedicGiftDescription: string;
+  vedicGiftEnabled: boolean;
+  vedicGiftTitle: string;
 };
 
 export type SiteServiceList = [SiteService, ...SiteService[]];
@@ -53,6 +56,12 @@ const noSubscriptionPeriod = {
   subscriptionEndsAtLabel: "",
   subscriptionStartsAt: null,
   subscriptionStartsAtLabel: ""
+} as const;
+
+const noVedicGift = {
+  vedicGiftDescription: "",
+  vedicGiftEnabled: false,
+  vedicGiftTitle: ""
 } as const;
 
 export const services = [
@@ -68,7 +77,10 @@ export const services = [
     currency: "RUB",
     priceAmount: 6000,
     priceLabel: "6000 руб.",
-    priceUnit: "PER_PARTICIPANT" satisfies PriceUnit
+    priceUnit: "PER_PARTICIPANT" satisfies PriceUnit,
+    vedicGiftDescription: "Разбор по ведической астрологии входит в абонемент.",
+    vedicGiftEnabled: true,
+    vedicGiftTitle: "🎁 Подарок: ведический астрологический разбор"
   },
   {
     title: "Марафон, тариф 2500",
@@ -81,7 +93,8 @@ export const services = [
     currency: "RUB",
     priceAmount: 2500,
     priceLabel: "2500 руб.",
-    priceUnit: "PER_PARTICIPANT" satisfies PriceUnit
+    priceUnit: "PER_PARTICIPANT" satisfies PriceUnit,
+    ...noVedicGift
   },
   {
     title: "Марафон, тариф 3500",
@@ -94,7 +107,8 @@ export const services = [
     currency: "RUB",
     priceAmount: 3500,
     priceLabel: "3500 руб.",
-    priceUnit: "PER_PARTICIPANT" satisfies PriceUnit
+    priceUnit: "PER_PARTICIPANT" satisfies PriceUnit,
+    ...noVedicGift
   },
   {
     title: "Марафон, тариф 4500",
@@ -107,7 +121,8 @@ export const services = [
     currency: "RUB",
     priceAmount: 4500,
     priceLabel: "4500 руб.",
-    priceUnit: "PER_PARTICIPANT" satisfies PriceUnit
+    priceUnit: "PER_PARTICIPANT" satisfies PriceUnit,
+    ...noVedicGift
   },
   {
     title: "Один обряд",
@@ -120,7 +135,8 @@ export const services = [
     currency: "RUB",
     priceAmount: 1200,
     priceLabel: "1200 руб.",
-    priceUnit: "PER_PARTICIPANT" satisfies PriceUnit
+    priceUnit: "PER_PARTICIPANT" satisfies PriceUnit,
+    ...noVedicGift
   },
   {
     title: "Абхишека",
@@ -133,7 +149,8 @@ export const services = [
     currency: "RUB",
     priceAmount: 1000,
     priceLabel: "1000 руб.",
-    priceUnit: "PER_PARTICIPANT" satisfies PriceUnit
+    priceUnit: "PER_PARTICIPANT" satisfies PriceUnit,
+    ...noVedicGift
   },
   {
     title: "Шраддха ягья (за каждого участника)",
@@ -147,7 +164,8 @@ export const services = [
     currency: "RUB",
     priceAmount: 250,
     priceLabel: "250 руб. за участника",
-    priceUnit: "PER_NAME" satisfies PriceUnit
+    priceUnit: "PER_NAME" satisfies PriceUnit,
+    ...noVedicGift
   }
 ] satisfies SiteServiceList;
 

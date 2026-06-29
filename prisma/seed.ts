@@ -15,7 +15,10 @@ const services = [
     receiptName: "Абонемент на участие в онлайн-церемониях",
     vatTaxType: 0,
     priceRub: 6000,
-    priceUnit: PriceUnit.PER_PARTICIPANT
+    priceUnit: PriceUnit.PER_PARTICIPANT,
+    vedicGiftEnabled: true,
+    vedicGiftTitle: "🎁 Подарок: ведический астрологический разбор",
+    vedicGiftDescription: "Разбор по ведической астрологии входит в абонемент."
   },
   {
     title: "Марафон, тариф 2500",

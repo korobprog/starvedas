@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { cookies } from "next/headers";
 import Link from "next/link";
+import { CabinetBurgerNav } from "@/components/cabinet-burger-nav";
 import { ClientsTable } from "@/components/clients-table";
 import { ParticipantsTable } from "@/components/participants-table";
 import { PartnerApplicationGate } from "@/components/partner-application-gate";
@@ -193,7 +194,7 @@ async function getCabinetCurator(
       ? await prisma.order.findMany({
           orderBy: { createdAt: "desc" },
           select: cabinetOrderSelect,
-          where: { curatorId: curator.id }
+          where: { curatorId: curator.id, deletedAt: null }
         })
       : [];
 
@@ -214,7 +215,7 @@ async function getCabinetCurator(
   const orders = await prisma.order.findMany({
     orderBy: { createdAt: "desc" },
     select: cabinetOrderSelect,
-    where: { curatorId: curator.id }
+    where: { curatorId: curator.id, deletedAt: null }
   });
 
   return { ...curator, orders };
@@ -354,6 +355,7 @@ function buildParticipantOrderWhere(
   return {
     createdAt: Object.keys(createdAt).length ? createdAt : undefined,
     curatorId,
+    deletedAt: null,
     referralSlug: filters.referralSlug || undefined,
     serviceId: filters.serviceId || undefined,
     sourceDomain: filters.sourceDomain || undefined,
@@ -407,6 +409,7 @@ async function getCabinetParticipantData(
             customerName: true,
             customerPhone: true,
             customerTelegram: true,
+            id: true,
             orderNumber: true,
             payment: {
               select: {
@@ -444,6 +447,7 @@ async function getCabinetParticipantData(
         orders: {
           some: {
             curatorId,
+            deletedAt: null,
             status: OrderStatus.PAID
           }
         }
@@ -479,6 +483,7 @@ function buildClientWhere(
     orders: filters.serviceId
       ? {
           some: {
+            deletedAt: null,
             serviceId: filters.serviceId
           }
         }
@@ -502,7 +507,11 @@ async function getCabinetClientData(
       select: {
         _count: {
           select: {
-            orders: true
+            orders: {
+              where: {
+                deletedAt: null
+              }
+            }
           }
         },
         boughtAt: true,
@@ -527,6 +536,7 @@ async function getCabinetClientData(
             amountRub: true,
             currency: true,
             createdAt: true,
+            id: true,
             orderNumber: true,
             payment: {
               select: {
@@ -547,6 +557,9 @@ async function getCabinetClientData(
             },
             sourceDomain: true,
             status: true
+          },
+          where: {
+            deletedAt: null
           },
           take: 1
         },
@@ -569,7 +582,8 @@ async function getCabinetClientData(
       where: {
         orders: {
           some: {
-            curatorId
+            curatorId,
+            deletedAt: null
           }
         }
       }
@@ -620,6 +634,7 @@ async function getAwaitingCustomOrders(
     },
     where: {
       curatorId,
+      deletedAt: null,
       payment: {
         provider: {
           in: [...customPaymentProviderCodes]
@@ -660,6 +675,7 @@ async function getReferralStats(curatorId: string) {
       },
       where: {
         curatorId,
+        deletedAt: null,
         referralSlug: {
           not: null
         }
@@ -944,21 +960,35 @@ export default async function CabinetPage({
                 )}
             </div>
           </div>
-          <nav className="admin-nav" aria-label="Кабинет">
-            {user.role !== UserRole.CURATOR && (
+          {user.role === UserRole.CURATOR ? (
+            <CabinetBurgerNav>
+              <Link className="button" href="/">
+                На сайт
+              </Link>
+              <form action={logoutAction}>
+                <button className="button" type="submit">
+                  Выйти
+                </button>
+              </form>
+            </CabinetBurgerNav>
+          ) : (
+            <nav className="admin-nav" aria-label="Кабинет">
               <Link className="button" href="/admin/curators">
                 Админка
               </Link>
-            )}
-            <Link className="button" href="/">
-              На сайт
-            </Link>
-            <form action={logoutAction}>
-              <button className="button" type="submit">
-                Выйти
-              </button>
-            </form>
-          </nav>
+              <Link className="button" href="/admin/recovery">
+                Восстановление
+              </Link>
+              <Link className="button" href="/">
+                На сайт
+              </Link>
+              <form action={logoutAction}>
+                <button className="button" type="submit">
+                  Выйти
+                </button>
+              </form>
+            </nav>
+          )}
         </header>
 
         <nav className="cabinet-section-menu" aria-label="Разделы кабинета">
@@ -1679,6 +1709,7 @@ export default async function CabinetPage({
               <ParticipantsTable
                 emptyText="Участники по выбранным фильтрам не найдены."
                 participants={participants}
+                showRecoveryLinks={user.role !== UserRole.CURATOR}
               />
             </section>
           )}
@@ -1786,6 +1817,7 @@ export default async function CabinetPage({
               <ClientsTable
                 clients={clients}
                 emptyText="Клиенты по выбранным сегментам не найдены."
+                showRecoveryLinks={user.role !== UserRole.CURATOR}
               />
             </section>
           )}

@@ -29,6 +29,9 @@ export const adminCuratorSelect = {
       customerTelegram: true,
       id: true,
       status: true
+    },
+    where: {
+      deletedAt: null
     }
   },
   postPurchaseText: true,

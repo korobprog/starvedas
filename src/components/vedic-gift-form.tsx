@@ -20,6 +20,8 @@ type VedicGiftFormProps = {
   initialPhone?: string;
   initialTelegram?: string;
   orderId: string;
+  title?: string;
+  description?: string;
 };
 
 const initialFormData: VedicGiftFormData = {
@@ -39,7 +41,9 @@ export function VedicGiftForm({
   initialName,
   initialPhone,
   initialTelegram,
-  orderId
+  orderId,
+  title = "🎁 Подарок: ведический астрологический разбор",
+  description = "Пожалуйста, укажите данные для составления разбора по ведической астрологии (Джйотиш)."
 }: VedicGiftFormProps) {
   const [initialLastName, initialFirstName] = useMemo(() => {
     const parts = (initialName ?? "").trim().split(/\s+/).filter(Boolean);
@@ -130,11 +134,8 @@ export function VedicGiftForm({
 
   return (
     <form className="vedic-gift-form" onSubmit={handleSubmit}>
-      <h3>🎁 Подарок: ведический астрологический разбор</h3>
-      <p className="vedic-gift-form__lead">
-        Пожалуйста, укажите данные для составления разбора по ведической
-        астрологии (Джйотиш).
-      </p>
+      <h3>{title}</h3>
+      <p className="vedic-gift-form__lead">{description}</p>
 
       {error && <div className="form-error">{error}</div>}
 

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { slugifyReferralValue } from "@/lib/slugs";
 import { requireUser } from "@/server/auth";
+import { softDeleteOrder } from "@/server/order-revisions";
 import { hashPassword } from "@/server/password";
 import {
   adminCuratorSlug,
@@ -574,7 +575,10 @@ export async function bulkDeleteCuratorsAction(
   _state: BulkDeleteCuratorsState,
   formData: FormData
 ): Promise<BulkDeleteCuratorsState> {
-  await requireUser([UserRole.ADMIN, UserRole.SUPER_ADMIN], "/admin/curators");
+  const user = await requireUser(
+    [UserRole.ADMIN, UserRole.SUPER_ADMIN],
+    "/admin/curators"
+  );
 
   const ids = Array.from(
     new Set(
@@ -612,6 +616,7 @@ export async function bulkDeleteCuratorsAction(
   const userIds = curators
     .map((curator) => curator.userId)
     .filter((userId): userId is string => Boolean(userId));
+  const systemCurator = await ensureSystemCurator();
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -623,19 +628,13 @@ export async function bulkDeleteCuratorsAction(
           id: true
         }
       });
-      const orderIds = orders.map((order) => order.id);
 
-      if (orderIds.length > 0) {
-        await tx.vedicGiftData.deleteMany({
-          where: {
-            orderId: { in: orderIds }
-          }
-        });
-
-        await tx.order.deleteMany({
-          where: {
-            id: { in: orderIds }
-          }
+      for (const order of orders) {
+        await softDeleteOrder(tx, {
+          actorUserId: user.id,
+          deleteReason: "Заказ скрыт при полном удалении куратора",
+          nextCuratorId: systemCurator.id,
+          orderId: order.id
         });
       }
 
@@ -662,6 +661,9 @@ export async function bulkDeleteCuratorsAction(
   }
 
   revalidateCuratorPages();
+  revalidatePath("/admin/participants");
+  revalidatePath("/admin/clients");
+  revalidatePath("/admin/recovery");
 
   return {
     deletedCount: curatorIds.length,

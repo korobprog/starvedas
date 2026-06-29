@@ -17,6 +17,10 @@ import {
   getParticipantNames,
   isParticipantNameValid
 } from "@/server/order-validation";
+import {
+  captureOrderRevision,
+  orderRevisionEventTypes
+} from "@/server/order-revisions";
 import { saveClientParticipants } from "@/server/saved-participants";
 
 export type ClientOrderEditActionState = {
@@ -123,6 +127,7 @@ export async function updateClientOrderAction(
   const order = await prisma.order.findFirst({
     where: {
       clientId: client.id,
+      deletedAt: null,
       publicToken: parsed.data.publicToken
     },
     select: {
@@ -169,6 +174,13 @@ export async function updateClientOrderAction(
 
   try {
     await prisma.$transaction(async (tx) => {
+      await captureOrderRevision(tx, {
+        actorUserId: currentUser?.id,
+        eventType: orderRevisionEventTypes.clientEdit,
+        note: "Клиент изменил контакты или список участников",
+        orderId: order.id
+      });
+
       await tx.order.update({
         where: { id: order.id },
         data: {

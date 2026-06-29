@@ -142,6 +142,7 @@ export default async function ClientOrderDetailPage({
   const order = await prisma.order.findFirst({
     where: {
       clientId: client.id,
+      deletedAt: null,
       publicToken: token
     },
     select: {

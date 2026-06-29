@@ -29,6 +29,9 @@ const publicServiceSelect = {
   title: true,
   titleEn: true,
   titleHi: true,
+  vedicGiftDescription: true,
+  vedicGiftEnabled: true,
+  vedicGiftTitle: true,
   options: {
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     select: {
@@ -63,7 +66,11 @@ const orderServiceSelect = {
 const managedServiceSelect = {
   _count: {
     select: {
-      orders: true
+      orders: {
+        where: {
+          deletedAt: null
+        }
+      }
     }
   },
   active: true,
@@ -89,6 +96,9 @@ const managedServiceSelect = {
   title: true,
   titleEn: true,
   titleHi: true,
+  vedicGiftDescription: true,
+  vedicGiftEnabled: true,
+  vedicGiftTitle: true,
   options: {
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     select: {
@@ -327,7 +337,12 @@ function toSiteService(
     subscriptionStartsAtLabel: formatMoscowEventLabel(
       service.subscriptionStartsAt
     ),
-    title: getLocalizedTitle(service, locale)
+    title: getLocalizedTitle(service, locale),
+    vedicGiftDescription: service.vedicGiftDescription?.trim() || "",
+    vedicGiftEnabled: service.vedicGiftEnabled,
+    vedicGiftTitle:
+      service.vedicGiftTitle?.trim() ||
+      "🎁 Подарок: ведический астрологический разбор"
   };
 }
 

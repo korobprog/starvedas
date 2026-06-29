@@ -185,9 +185,6 @@ export default async function Home({
                 supportEnabled: curatorSupportEnabled
               }}
               brandName={brand.name}
-              highlightMonthlyPassBonus={
-                brand.sourceDomain === "chintamanidhama.ru"
-              }
               initialServiceSlug={initialServiceSlug}
               locale={locale}
               paymentProviders={paymentProviders}
@@ -332,12 +329,12 @@ export default async function Home({
                   <h3>{service.title}</h3>
                   <p>{service.description}</p>
                   <span className="price">{service.priceLabel}</span>
-                  {service.slug === "monthly-pass" && (
+                  {service.vedicGiftEnabled && (
                     <div className="service-gift-note">
-                      <strong>🎁 Подарок при покупке месяца</strong>
-                      <span>
-                        Разбор по ведической астрологии входит в абонемент.
-                      </span>
+                      <strong>{service.vedicGiftTitle}</strong>
+                      {service.vedicGiftDescription && (
+                        <span>{service.vedicGiftDescription}</span>
+                      )}
                     </div>
                   )}
                   {service.options.length > 0 && (

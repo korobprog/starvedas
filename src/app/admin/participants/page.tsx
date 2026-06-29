@@ -78,6 +78,7 @@ function buildOrderWhere(filters: ReturnType<typeof parseFilters>) {
   return {
     createdAt: Object.keys(createdAt).length ? createdAt : undefined,
     curatorId: filters.curatorId || undefined,
+    deletedAt: null,
     serviceId: filters.serviceId || undefined,
     sourceDomain: filters.sourceDomain || undefined,
     status: filters.status
@@ -141,6 +142,7 @@ export default async function AdminParticipantsPage({
             customerName: true,
             customerPhone: true,
             customerTelegram: true,
+            id: true,
             orderNumber: true,
             payment: {
               select: {
@@ -228,6 +230,7 @@ export default async function AdminParticipantsPage({
         status: true
       },
       where: {
+        deletedAt: null,
         payment: {
           provider: {
             in: [...customPaymentProviderCodes]
@@ -335,6 +338,12 @@ export default async function AdminParticipantsPage({
                           Подтвердить оплату
                         </button>
                       </form>
+                      <Link
+                        className="button button--small"
+                        href={`/admin/recovery?backupOrder=${order.id}`}
+                      >
+                        Восстановление
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -414,6 +423,7 @@ export default async function AdminParticipantsPage({
         <ParticipantsTable
           emptyText="Участники по выбранным фильтрам не найдены."
           participants={participants}
+          showRecoveryLinks
         />
       </section>
     </div>

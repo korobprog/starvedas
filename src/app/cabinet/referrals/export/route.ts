@@ -97,6 +97,7 @@ export async function GET(request: Request) {
     },
     where: {
       curatorId,
+      deletedAt: null,
       referralSlug: slug || undefined,
       status: {
         in: [OrderStatus.PAID, OrderStatus.REFUNDED]

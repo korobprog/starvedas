@@ -45,6 +45,7 @@ export default async function AdminLayout({
                 { href: "/admin/vedic-gifts", label: "Ведические разборы" },
                 { href: "/admin/statisticians", label: "Статисты" },
                 { href: "/admin/clients", label: "Клиенты" },
+                { href: "/admin/recovery", label: "Восстановление" },
                 { href: "/admin/schedule", label: copy.layout.schedule },
                 ...(canManageCriticalSettings
                   ? [
