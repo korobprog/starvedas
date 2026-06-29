@@ -2834,6 +2834,18 @@ select {
   font-size: 1.1rem;
 }
 
+.admin-error {
+  display: grid;
+  gap: 4px;
+  border-color: rgb(185 28 28 / 28%);
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.admin-error strong {
+  font-size: 1.1rem;
+}
+
 .admin-form,
 .admin-list,
 .admin-list-item {

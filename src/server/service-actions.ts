@@ -593,15 +593,28 @@ function revalidateServicePages() {
   revalidatePath("/cabinet");
 }
 
-function handlePrismaError(error: unknown): never {
+function isServiceSlugConflict(error: unknown) {
   if (
-    error instanceof Prisma.PrismaClientKnownRequestError &&
-    error.code === "P2002"
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== "P2002"
   ) {
-    throw new Error("Продукт с таким slug уже существует");
+    return false;
   }
 
-  throw error;
+  const target = error.meta?.target;
+
+  return (
+    !target ||
+    (Array.isArray(target) && target.includes("slug")) ||
+    (typeof target === "string" && target.includes("slug"))
+  );
+}
+
+function duplicateSlugQuery(slug: string) {
+  return new URLSearchParams({
+    error: "duplicate-slug",
+    slug
+  }).toString();
 }
 
 export async function createService(formData: FormData) {
@@ -626,7 +639,11 @@ export async function createService(formData: FormData) {
       await saveServiceOptions(tx, service.id, options);
     });
   } catch (error) {
-    handlePrismaError(error);
+    if (isServiceSlugConflict(error)) {
+      redirect(`/admin/products/new?${duplicateSlugQuery(data.slug)}`);
+    }
+
+    throw error;
   }
 
   revalidateServicePages();
@@ -679,7 +696,11 @@ export async function updateService(formData: FormData) {
       await saveServiceOptions(tx, data.id, options);
     });
   } catch (error) {
-    handlePrismaError(error);
+    if (isServiceSlugConflict(error)) {
+      redirect(`/admin/products/${data.id}?${duplicateSlugQuery(data.slug)}`);
+    }
+
+    throw error;
   }
 
   revalidateServicePages();

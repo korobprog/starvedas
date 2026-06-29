@@ -22,12 +22,30 @@ function formatServicePrices(
     .join(" · ");
 }
 
+function DuplicateSlugAlert({ slug }: Readonly<{ slug?: string }>) {
+  return (
+    <section className="admin-card admin-card--wide admin-error">
+      <strong>Slug уже занят</strong>
+      <span>
+        {slug
+          ? `Продукт с адресом /${slug} уже существует. Укажите другой slug.`
+          : "Продукт с таким slug уже существует. Укажите другой slug."}
+      </span>
+    </section>
+  );
+}
+
 export default async function AdminProductDetailPage({
   params,
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ created?: string; saved?: string }>;
+  searchParams: Promise<{
+    created?: string;
+    error?: string;
+    saved?: string;
+    slug?: string;
+  }>;
 }) {
   await requireAdminUser("/admin/products");
 
@@ -53,6 +71,9 @@ export default async function AdminProductDetailPage({
               : "Изменения продукта и карточек обрядов успешно сохранены."}
           </span>
         </section>
+      )}
+      {query.error === "duplicate-slug" && (
+        <DuplicateSlugAlert slug={query.slug} />
       )}
 
       <section className="admin-card admin-card--wide">

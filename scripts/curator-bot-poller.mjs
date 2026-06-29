@@ -4,13 +4,31 @@ import tls from "node:tls";
 import { PrismaClient, OrderStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
-const telegramRequestTimeoutMs = 60000;
+const telegramLongPollingTimeoutSeconds = 50;
+const telegramRequestTimeoutMs = getTelegramRequestTimeoutMs();
 const defaultTelegramApiIps = ["149.154.167.220"];
 
 let updateOffset = 0;
 
 function trimEnv(name) {
   return process.env[name]?.trim() || "";
+}
+
+function getTelegramRequestTimeoutMs() {
+  const raw =
+    trimEnv("CURATOR_TELEGRAM_REQUEST_TIMEOUT_MS") ||
+    trimEnv("TELEGRAM_REQUEST_TIMEOUT_MS");
+  const parsed = Number(raw);
+
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed;
+  }
+
+  return (telegramLongPollingTimeoutSeconds + 25) * 1000;
+}
+
+function isTelegramTimeoutError(error) {
+  return error instanceof Error && /timed out/i.test(error.message);
 }
 
 function getBotToken() {
@@ -564,7 +582,7 @@ async function getUpdates() {
   return callTelegramMethod("getUpdates", {
     allowed_updates: ["message", "callback_query"],
     offset: updateOffset || undefined,
-    timeout: 50
+    timeout: telegramLongPollingTimeoutSeconds
   });
 }
 
@@ -600,7 +618,14 @@ async function pollingLoop() {
         }
       }
     } catch (error) {
-      console.error("Curator polling bot loop failed", error);
+      if (isTelegramTimeoutError(error)) {
+        console.warn(
+          "Curator polling bot Telegram request timed out; retrying",
+          error.message
+        );
+      } else {
+        console.error("Curator polling bot loop failed", error);
+      }
       await sleep(5000);
     }
   }
