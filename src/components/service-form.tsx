@@ -233,30 +233,33 @@ export function ServiceFields({
           <span>Цена RUB</span>
           <input
             defaultValue={service?.priceRub ?? 0}
-            min={0}
+            inputMode="numeric"
             name="priceRub"
+            pattern="[0-9]*"
             required
-            type="number"
+            type="text"
           />
         </label>
         <label className="field">
           <span>Цена USD</span>
           <input
             defaultValue={service?.priceUsd ?? ""}
-            min={0}
+            inputMode="numeric"
             name="priceUsd"
+            pattern="[0-9]*"
             placeholder="если пусто — пересчёт из RUB"
-            type="number"
+            type="text"
           />
         </label>
         <label className="field">
           <span>Цена INR</span>
           <input
             defaultValue={service?.priceInr ?? ""}
-            min={0}
+            inputMode="numeric"
             name="priceInr"
+            pattern="[0-9]*"
             placeholder="если пусто — пересчёт из RUB"
-            type="number"
+            type="text"
           />
         </label>
         <label className="field">
@@ -307,6 +310,38 @@ export function ServiceFields({
         options={service?.options ?? []}
         serviceSlug={service?.slug}
       />
+
+      <div className="admin-card admin-card--nested">
+        <label className="checkbox-field">
+          <input
+            defaultChecked={service?.vedicGiftEnabled ?? false}
+            name="vedicGiftEnabled"
+            type="checkbox"
+          />
+          <span>Включить подарок на карточке продукта</span>
+        </label>
+        <label className="field">
+          <span>Заголовок подарка</span>
+          <input
+            defaultValue={
+              service?.vedicGiftTitle ??
+              "🎁 Подарок: ведический астрологический разбор"
+            }
+            name="vedicGiftTitle"
+            placeholder="Например: 🎁 Подарок: ведический астрологический разбор"
+            type="text"
+          />
+        </label>
+        <label className="field">
+          <span>Текст подарка</span>
+          <textarea
+            defaultValue={service?.vedicGiftDescription ?? ""}
+            name="vedicGiftDescription"
+            placeholder="Например: Разбор по ведической астрологии входит в абонемент."
+            rows={3}
+          />
+        </label>
+      </div>
 
       <label className="checkbox-field">
         <input

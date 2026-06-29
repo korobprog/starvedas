@@ -84,6 +84,7 @@ function buildClientWhere(filters: ReturnType<typeof parseFilters>) {
     orders: filters.serviceId
       ? {
           some: {
+            deletedAt: null,
             serviceId: filters.serviceId
           }
         }
@@ -115,7 +116,11 @@ export default async function AdminClientsPage({
       select: {
         _count: {
           select: {
-            orders: true
+            orders: {
+              where: {
+                deletedAt: null
+              }
+            }
           }
         },
         boughtAt: true,
@@ -140,6 +145,7 @@ export default async function AdminClientsPage({
             amountRub: true,
             currency: true,
             createdAt: true,
+            id: true,
             orderNumber: true,
             payment: {
               select: {
@@ -162,6 +168,9 @@ export default async function AdminClientsPage({
             },
             sourceDomain: true,
             status: true
+          },
+          where: {
+            deletedAt: null
           },
           take: 1
         },
@@ -297,6 +306,7 @@ export default async function AdminClientsPage({
         <ClientsTable
           clients={clients}
           curators={curators.filter((curator) => curator.active)}
+          showRecoveryLinks
           emptyText="Клиенты по выбранным сегментам не найдены."
         />
       </section>

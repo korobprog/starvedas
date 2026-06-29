@@ -524,7 +524,6 @@ function SubscriptionInfoCard({ service }: { service: SiteService }) {
 export function SignupForm({
   assignedCurator,
   brandName,
-  highlightMonthlyPassBonus = false,
   initialServiceSlug,
   locale,
   paymentProviders,
@@ -533,7 +532,6 @@ export function SignupForm({
 }: {
   assignedCurator: AssignedCurator;
   brandName: string;
-  highlightMonthlyPassBonus?: boolean;
   initialServiceSlug?: string;
   locale?: string | null;
   paymentProviders: PaymentProviderOption[];
@@ -1386,14 +1384,13 @@ export function SignupForm({
           <legend>{copy.legend.ceremony}</legend>
           <div className="option-grid">
             {services.map((service) => {
-              const showMonthlyPassBonus =
-                highlightMonthlyPassBonus && service.slug === "monthly-pass";
+              const showVedicGift = service.vedicGiftEnabled;
               const inputId = `service-${service.slug}`;
 
               return (
                 <div
                   className={
-                    showMonthlyPassBonus
+                    showVedicGift
                       ? "choice-card choice-card--stacked choice-card--bonus"
                       : "choice-card choice-card--stacked"
                   }
@@ -1429,9 +1426,15 @@ export function SignupForm({
                       </small>
                     </span>
                   </label>
-                  {showMonthlyPassBonus && (
+                  {showVedicGift && (
                     <p className="service-gift-note service-gift-note--compact">
-                      🎁 Бонус: ведическая астрология — разбор
+                      {service.vedicGiftTitle}
+                      {service.vedicGiftDescription && (
+                        <>
+                          <br />
+                          <span>{service.vedicGiftDescription}</span>
+                        </>
+                      )}
                     </p>
                   )}
                   {service.description && (

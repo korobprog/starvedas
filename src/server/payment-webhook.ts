@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { markOrderClientBought } from "@/server/client-profiles";
 import { sendPaymentStatusEmail } from "@/server/email/order-emails";
+import {
+  captureOrderRevision,
+  orderRevisionEventTypes
+} from "@/server/order-revisions";
 import { type PayformData, verifyPayformSignature } from "@/server/payform";
 import { sendPaymentSucceededTelegramNotification } from "@/server/telegram-notifications";
 
@@ -205,8 +209,9 @@ export async function handlePaymentWebhook({
       "Открыть чек")
     : undefined;
 
-  const order = await prisma.order.findUnique({
+  const order = await prisma.order.findFirst({
     where: {
+      deletedAt: null,
       orderNumber
     },
     select: {
@@ -265,6 +270,12 @@ export async function handlePaymentWebhook({
   }
 
   await prisma.$transaction(async (tx) => {
+    await captureOrderRevision(tx, {
+      eventType: orderRevisionEventTypes.paymentWebhook,
+      note: `Webhook ${providerName} изменил статус оплаты`,
+      orderId: order.id
+    });
+
     await tx.payment.update({
       where: {
         orderId: order.id

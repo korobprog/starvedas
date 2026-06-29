@@ -57,18 +57,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+    const order = await prisma.order.findFirst({
+      where: { deletedAt: null, id: orderId },
       select: {
         id: true,
-        service: { select: { slug: true } }
+        service: { select: { vedicGiftEnabled: true } }
       }
     });
 
-    if (!order || order.service.slug !== "monthly-pass") {
+    if (!order || !order.service.vedicGiftEnabled) {
       return NextResponse.json(
         {
-          message: "Подарочный разбор доступен только для месячного абонемента"
+          message: "Подарочный разбор недоступен для этого продукта"
         },
         { status: 403 }
       );

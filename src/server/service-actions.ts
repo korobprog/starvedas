@@ -84,6 +84,9 @@ const serviceCoreSchema = z.object({
   title: z.string().trim().min(2).max(200),
   titleEn: optionalText,
   titleHi: optionalText,
+  vedicGiftDescription: optionalDetailsText,
+  vedicGiftEnabled: z.boolean(),
+  vedicGiftTitle: optionalText,
   vatTaxType: z.coerce
     .number()
     .int()
@@ -145,6 +148,9 @@ function parseServiceFormData(formData: FormData) {
     detailsContentEn: formData.get("detailsContentEn") ?? "",
     detailsContentHi: formData.get("detailsContentHi") ?? "",
     isSubscription,
+    vedicGiftDescription: formData.get("vedicGiftDescription") ?? "",
+    vedicGiftEnabled: formData.get("vedicGiftEnabled") === "on",
+    vedicGiftTitle: formData.get("vedicGiftTitle") ?? "",
     priceInr: formData.get("priceInr") || null,
     priceRub: formData.get("priceRub") ?? 0,
     priceUsd: formData.get("priceUsd") || null,
@@ -200,6 +206,9 @@ function parseServiceUpdateFormData(formData: FormData) {
     detailsContentHi: formData.get("detailsContentHi") ?? "",
     id: formData.get("id"),
     isSubscription,
+    vedicGiftDescription: formData.get("vedicGiftDescription") ?? "",
+    vedicGiftEnabled: formData.get("vedicGiftEnabled") === "on",
+    vedicGiftTitle: formData.get("vedicGiftTitle") ?? "",
     priceInr: formData.get("priceInr") || null,
     priceRub: formData.get("priceRub") ?? 0,
     priceUsd: formData.get("priceUsd") || null,
@@ -637,6 +646,9 @@ export async function updateService(formData: FormData) {
           title: data.title,
           titleEn: data.titleEn,
           titleHi: data.titleHi,
+          vedicGiftDescription: data.vedicGiftDescription,
+          vedicGiftEnabled: data.vedicGiftEnabled,
+          vedicGiftTitle: data.vedicGiftTitle,
           vatTaxType: data.vatTaxType
         }
       });

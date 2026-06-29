@@ -2283,6 +2283,39 @@ select {
   display: contents;
 }
 
+.login-help {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgb(216 154 43 / 34%);
+  border-radius: 20px;
+  padding: 16px;
+  background: rgb(255 250 242 / 72%);
+  color: var(--text);
+}
+
+.login-help strong {
+  color: var(--primary-dark);
+}
+
+.login-help ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.login-help code {
+  border: 1px solid rgb(216 154 43 / 34%);
+  border-radius: 8px;
+  padding: 0.12rem 0.35rem;
+  background: rgb(255 255 255 / 78%);
+  color: var(--primary-dark);
+  font-weight: 800;
+}
+
 .form-actions .button {
   min-width: 0;
   white-space: normal;
@@ -3401,6 +3434,43 @@ a.button[aria-disabled="true"] {
   font-size: 0.9rem;
 }
 
+.recovery-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.recovery-revision--active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 45%, transparent);
+}
+
+.recovery-comparison {
+  display: grid;
+  gap: 12px;
+}
+
+.recovery-comparison__row {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  background: var(--surface);
+}
+
+.recovery-comparison__row p {
+  margin: 4px 0 0;
+  word-break: break-word;
+}
+
+.recovery-comparison__row--changed {
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  background: color-mix(in srgb, var(--surface-warm) 65%, #fff);
+}
+
 .payment-option-list,
 .payment-settings-list,
 .custom-payment-details {
@@ -3476,7 +3546,9 @@ a.button[aria-disabled="true"] {
   .cabinet-section-menu,
   .admin-grid,
   .admin-list,
-  .filter-form {
+  .filter-form,
+  .recovery-layout,
+  .recovery-comparison__row {
     grid-template-columns: 1fr;
   }
 
@@ -4381,5 +4453,132 @@ a.button[aria-disabled="true"] {
 @media (max-width: 720px) {
   .form-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Burger menu for Telegram Mini App */
+.cabinet-burger-nav {
+  position: relative;
+}
+
+.cabinet-burger-nav__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cabinet-burger-nav__toggle:hover {
+  background: var(--surface-hover);
+}
+
+.cabinet-burger-nav__icon {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 20px;
+}
+
+.cabinet-burger-nav__icon span {
+  display: block;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.cabinet-burger-nav__icon--open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.cabinet-burger-nav__icon--open span:nth-child(2) {
+  opacity: 0;
+}
+
+.cabinet-burger-nav__icon--open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.cabinet-burger-nav__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+.cabinet-burger-nav__menu .button {
+  width: 100%;
+  justify-content: center;
+}
+
+.cabinet-burger-nav__menu form {
+  margin: 0;
+}
+
+/* Partner agreement scrollable area */
+.partner-agreement {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.partner-agreement__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.partner-agreement__scroll {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-warm);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.partner-agreement__scroll p {
+  margin: 0;
+}
+
+/* Compact section menu for mobile */
+@media (max-width: 640px) {
+  .admin-page--telegram-mini-app .cabinet-section-menu {
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .admin-page--telegram-mini-app .cabinet-section-menu__item {
+    min-height: 48px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+  }
+
+  .admin-page--telegram-mini-app .cabinet-section-menu__item span {
+    font-size: 0.875rem;
+  }
+
+  .admin-page--telegram-mini-app .cabinet-section-menu__item small {
+    display: none;
   }
 }

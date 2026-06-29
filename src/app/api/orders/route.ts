@@ -33,6 +33,10 @@ import { getSourceDomainFromHeaders } from "@/server/source-domain";
 import { saveClientParticipants } from "@/server/saved-participants";
 import { sendOrderCreatedEmail } from "@/server/email/order-emails";
 import { getSiteUrlForSourceDomain } from "@/server/email/site-url";
+import {
+  captureOrderRevision,
+  orderRevisionEventTypes
+} from "@/server/order-revisions";
 import { sendOrderCreatedTelegramNotification } from "@/server/telegram-notifications";
 
 function createProviderPaymentUrl({
@@ -345,7 +349,7 @@ export async function POST(request: Request) {
 
       await saveClientParticipants(tx, client.id, names);
 
-      return tx.order.create({
+      const order = await tx.order.create({
         data: {
           amountRub,
           currency: service.currency,
@@ -436,6 +440,15 @@ export async function POST(request: Request) {
           publicToken: true
         }
       });
+
+      await captureOrderRevision(tx, {
+        actorUserId: undefined,
+        eventType: orderRevisionEventTypes.created,
+        note: "Заказ создан через публичную форму",
+        orderId: order.id
+      });
+
+      return order;
     });
 
     const resultBaseUrl = getSiteUrlForSourceDomain(sourceDomain);

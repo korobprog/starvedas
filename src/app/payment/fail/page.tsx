@@ -14,8 +14,9 @@ async function getOrderSupport(publicToken?: string) {
   }
 
   try {
-    return await prisma.order.findUnique({
+    return await prisma.order.findFirst({
       where: {
+        deletedAt: null,
         publicToken
       },
       select: {
