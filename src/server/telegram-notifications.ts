@@ -1,7 +1,19 @@
+import http from "node:http";
+import https from "node:https";
+import tls from "node:tls";
+
 import { formatLocalizedPrice } from "@/i18n/pricing";
 
 const TELEGRAM_MESSAGE_LIMIT = 4096;
-const TELEGRAM_REQUEST_TIMEOUT_MS = 5000;
+const DEFAULT_TELEGRAM_REQUEST_TIMEOUT_MS = 5000;
+const defaultTelegramApiIps = ["149.154.167.220"];
+
+type TelegramResponse = {
+  body: string;
+  ok: boolean;
+  status: number;
+  statusText: string;
+};
 
 type OrderCreatedNotificationInput = {
   amountRub: number;
@@ -171,41 +183,9 @@ async function sendTelegramMessage(text: string) {
     return false;
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    TELEGRAM_REQUEST_TIMEOUT_MS
-  );
+  await callTelegramSendMessage(botToken, chatId, text);
 
-  try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${botToken}/sendMessage`,
-      {
-        body: JSON.stringify({
-          chat_id: chatId,
-          disable_web_page_preview: true,
-          text: trimTelegramMessage(text)
-        }),
-        headers: {
-          "Content-Type": "application/json"
-        },
-        method: "POST",
-        signal: controller.signal
-      }
-    );
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-
-      throw new Error(
-        `Telegram sendMessage failed (${response.status} ${response.statusText}): ${body}`.trim()
-      );
-    }
-
-    return true;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return true;
 }
 
 async function sendTelegramMessageToChat(chatId: string, text: string) {
@@ -217,41 +197,331 @@ async function sendTelegramMessageToChat(chatId: string, text: string) {
     return false;
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(
-    () => controller.abort(),
-    TELEGRAM_REQUEST_TIMEOUT_MS
-  );
+  await callTelegramSendMessage(botToken, chatId, text);
+
+  return true;
+}
+
+async function callTelegramSendMessage(
+  botToken: string,
+  chatId: string,
+  text: string
+) {
+  const response = await postTelegramJson(botToken, "sendMessage", {
+    chat_id: chatId,
+    disable_web_page_preview: true,
+    text: trimTelegramMessage(text)
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Telegram sendMessage failed (${response.status} ${response.statusText}): ${response.body}`.trim()
+    );
+  }
+
+  const parsed = JSON.parse(response.body || "{}") as { ok?: boolean };
+
+  if (!parsed.ok) {
+    throw new Error(
+      `Telegram sendMessage returned ok=false: ${response.body}`.trim()
+    );
+  }
+}
+
+async function postTelegramJson(
+  botToken: string,
+  method: string,
+  payload: Record<string, unknown>
+) {
+  const url = `https://api.telegram.org/bot${botToken}/${method}`;
+  const proxyUrl = getTelegramProxyUrl();
+
+  if (proxyUrl) {
+    return postJsonViaHttpProxy(url, payload, proxyUrl);
+  }
 
   try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${botToken}/sendMessage`,
+    return await postJsonViaTelegramHost(url, payload);
+  } catch (error) {
+    let lastError = error;
+
+    for (const ipAddress of getTelegramApiIps()) {
+      try {
+        return await postJsonViaTelegramIp(url, payload, ipAddress);
+      } catch (pinnedIpError) {
+        lastError = pinnedIpError;
+      }
+    }
+
+    throw lastError;
+  }
+}
+
+function getTelegramProxyUrl() {
+  return (
+    process.env.CURATOR_TELEGRAM_PROXY_URL?.trim() ||
+    process.env.TELEGRAM_PROXY_URL?.trim() ||
+    process.env.HTTPS_PROXY?.trim() ||
+    process.env.HTTP_PROXY?.trim() ||
+    null
+  );
+}
+
+function getTelegramApiIps() {
+  return (
+    process.env.TELEGRAM_API_IPS?.split(",")
+      .map((ip) => ip.trim())
+      .filter(Boolean) ?? defaultTelegramApiIps
+  );
+}
+
+function getTelegramRequestTimeoutMs() {
+  const parsed = Number(
+    process.env.TELEGRAM_NOTIFICATION_REQUEST_TIMEOUT_MS?.trim() ||
+      process.env.TELEGRAM_REQUEST_TIMEOUT_MS?.trim()
+  );
+
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed;
+  }
+
+  return DEFAULT_TELEGRAM_REQUEST_TIMEOUT_MS;
+}
+
+function parseHttpStatus(rawResponse: string): TelegramResponse {
+  const [rawHeaders, body = ""] = rawResponse.split("\r\n\r\n");
+  const statusLine = rawHeaders?.split("\r\n", 1)[0] ?? "";
+  const match = statusLine.match(/^HTTP\/\d(?:\.\d)?\s+(\d{3})\s*(.*)$/);
+
+  if (!match) {
+    throw new Error("Telegram proxy returned an invalid HTTP response");
+  }
+
+  const status = Number(match[1]);
+
+  return {
+    body: body.slice(0, 500),
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: match[2] || ""
+  };
+}
+
+async function postJsonViaHttpProxy(
+  targetUrl: string,
+  payload: Record<string, unknown>,
+  proxyUrl: string
+): Promise<TelegramResponse> {
+  const target = new URL(targetUrl);
+  const proxy = new URL(proxyUrl);
+
+  if (proxy.protocol !== "http:") {
+    throw new Error("Only http:// Telegram proxy URLs are supported");
+  }
+
+  const body = JSON.stringify(payload);
+  const proxyPort = Number(proxy.port || 80);
+  const requestTimeoutMs = getTelegramRequestTimeoutMs();
+  const targetPort = Number(target.port || 443);
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const settleResolve = (value: TelegramResponse) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      resolve(value);
+    };
+    const settleReject = (error: unknown) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      reject(error);
+    };
+    const headers: http.OutgoingHttpHeaders = {};
+
+    if (proxy.username || proxy.password) {
+      headers["Proxy-Authorization"] = `Basic ${Buffer.from(
+        `${decodeURIComponent(proxy.username)}:${decodeURIComponent(
+          proxy.password
+        )}`
+      ).toString("base64")}`;
+    }
+
+    const request = http.request({
+      headers,
+      host: proxy.hostname,
+      method: "CONNECT",
+      path: `${target.hostname}:${targetPort}`,
+      port: proxyPort,
+      timeout: requestTimeoutMs
+    });
+
+    request.once("connect", (response, socket, head) => {
+      if (response.statusCode !== 200) {
+        socket.destroy();
+        settleReject(
+          new Error(
+            `Telegram proxy CONNECT failed: ${response.statusCode ?? "unknown"}`
+          )
+        );
+        return;
+      }
+
+      if (head.length > 0) {
+        socket.unshift(head);
+      }
+
+      const secureSocket = tls.connect({
+        servername: target.hostname,
+        socket
+      });
+      const chunks: Buffer[] = [];
+
+      secureSocket.setTimeout(requestTimeoutMs);
+      secureSocket.once("secureConnect", () => {
+        secureSocket.write(
+          [
+            `POST ${target.pathname}${target.search} HTTP/1.1`,
+            `Host: ${target.hostname}`,
+            "Content-Type: application/json",
+            `Content-Length: ${Buffer.byteLength(body)}`,
+            "Connection: close",
+            "",
+            body
+          ].join("\r\n")
+        );
+      });
+      secureSocket.on("data", (chunk: Buffer) => chunks.push(chunk));
+      secureSocket.once("end", () => {
+        try {
+          settleResolve(
+            parseHttpStatus(Buffer.concat(chunks).toString("utf8"))
+          );
+        } catch (error) {
+          settleReject(
+            error instanceof Error ? error : new Error(String(error))
+          );
+        }
+      });
+      secureSocket.once("timeout", () => {
+        secureSocket.destroy(new Error("Telegram proxy request timed out"));
+      });
+      secureSocket.once("error", (error) => {
+        settleReject(error);
+      });
+    });
+    request.once("timeout", () => {
+      request.destroy(new Error("Telegram proxy CONNECT timed out"));
+    });
+    request.once("error", (error) => {
+      settleReject(error);
+    });
+    request.end();
+  });
+}
+
+async function postJsonViaTelegramIp(
+  targetUrl: string,
+  payload: Record<string, unknown>,
+  ipAddress: string
+) {
+  return postJsonViaHttpsTarget(targetUrl, payload, {
+    headers: {
+      Host: new URL(targetUrl).hostname
+    },
+    hostname: ipAddress,
+    servername: new URL(targetUrl).hostname
+  });
+}
+
+async function postJsonViaTelegramHost(
+  targetUrl: string,
+  payload: Record<string, unknown>
+) {
+  const target = new URL(targetUrl);
+
+  return postJsonViaHttpsTarget(targetUrl, payload, {
+    hostname: target.hostname,
+    servername: target.hostname
+  });
+}
+
+async function postJsonViaHttpsTarget(
+  targetUrl: string,
+  payload: Record<string, unknown>,
+  requestOptions: {
+    headers?: Record<string, string>;
+    hostname: string;
+    servername: string;
+  }
+): Promise<TelegramResponse> {
+  const target = new URL(targetUrl);
+  const body = JSON.stringify(payload);
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const settleResolve = (value: TelegramResponse) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      resolve(value);
+    };
+    const settleReject = (error: unknown) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      reject(error);
+    };
+    const request = https.request(
       {
-        body: JSON.stringify({
-          chat_id: chatId,
-          disable_web_page_preview: true,
-          text: trimTelegramMessage(text)
-        }),
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...(requestOptions.headers ?? {})
         },
+        hostname: requestOptions.hostname,
         method: "POST",
-        signal: controller.signal
+        path: `${target.pathname}${target.search}`,
+        port: 443,
+        servername: requestOptions.servername,
+        timeout: getTelegramRequestTimeoutMs()
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+
+        response.on("data", (chunk: Buffer) => chunks.push(chunk));
+        response.once("aborted", () => {
+          settleReject(new Error("Telegram response aborted"));
+        });
+        response.once("error", (error) => {
+          settleReject(error);
+        });
+        response.once("end", () => {
+          const status = response.statusCode ?? 0;
+
+          settleResolve({
+            body: Buffer.concat(chunks).toString("utf8").slice(0, 500),
+            ok: status >= 200 && status < 300,
+            status,
+            statusText: response.statusMessage ?? ""
+          });
+        });
       }
     );
 
-    if (!response.ok) {
-      const body = await response.text().catch(() => "");
-
-      throw new Error(
-        `Telegram sendMessage failed (${response.status} ${response.statusText}): ${body}`.trim()
-      );
-    }
-
-    return true;
-  } finally {
-    clearTimeout(timeout);
-  }
+    request.once("timeout", () => {
+      request.destroy(new Error("Telegram request timed out"));
+    });
+    request.once("error", (error) => {
+      settleReject(error);
+    });
+    request.write(body);
+    request.end();
+  });
 }
 
 function formatOptional(value: string | null) {
