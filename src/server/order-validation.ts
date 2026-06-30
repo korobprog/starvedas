@@ -18,15 +18,31 @@ const phoneCountrySchema = z
     message: "Некорректная страна телефона"
   });
 
+const participantNamesMessage =
+  "Каждая строка участника должна содержать ровно два слова: имя и фамилию, без цифр, телефонов и лишних символов";
+
+export const orderItemSchema = z.object({
+  serviceSlug: z.string().trim().min(2).max(120),
+  selectedServiceOptionIds: z
+    .array(z.string().trim().min(1))
+    .max(100)
+    .default([]),
+  participantCount: z.number().int().min(0).max(200),
+  participantsText: z.string().trim().max(5000).default("")
+});
+
+export type OrderItemInput = z.infer<typeof orderItemSchema>;
+
 export const createOrderSchema = z
   .object({
-    serviceSlug: z.string().trim().min(2).max(120),
+    serviceSlug: z.string().trim().min(2).max(120).optional(),
     selectedServiceOptionIds: z
       .array(z.string().trim().min(1))
       .max(100)
       .default([]),
-    participantCount: z.number().int().min(1).max(200),
-    participantsText: z.string().trim().min(2).max(5000),
+    participantCount: z.number().int().min(1).max(200).optional(),
+    participantsText: z.string().trim().max(5000).optional(),
+    items: z.array(orderItemSchema).min(1).max(50).optional(),
     customerName: z.string().trim().min(2).max(120),
     customerTelegram: z.string().trim().max(120).optional(),
     customerPhone: z.string().trim().max(50).optional(),
@@ -66,6 +82,66 @@ export const createOrderSchema = z
       });
     }
 
+    const isMulti = Boolean(data.items && data.items.length > 0);
+
+    if (isMulti) {
+      let totalNames = 0;
+
+      data.items!.forEach((item, index) => {
+        const names = getParticipantNames(item.participantsText);
+
+        totalNames += names.length;
+
+        if (names.length !== item.participantCount) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Количество участников не совпадает со списком",
+            path: ["items", index, "participantsText"]
+          });
+        }
+
+        if (names.some((name) => !isParticipantNameValid(name))) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: participantNamesMessage,
+            path: ["items", index, "participantsText"]
+          });
+        }
+      });
+
+      if (totalNames > 200) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Слишком много участников в заказе",
+          path: ["items"]
+        });
+      }
+
+      return;
+    }
+
+    if (!data.serviceSlug) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Выберите услугу",
+        path: ["serviceSlug"]
+      });
+      return;
+    }
+
+    if (
+      typeof data.participantsText !== "string" ||
+      data.participantsText.trim().length < 2 ||
+      typeof data.participantCount !== "number"
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Добавьте список участников",
+        path: ["participantsText"]
+      });
+      return;
+    }
+
     const participantNames = getParticipantNames(data.participantsText);
 
     if (participantNames.length !== data.participantCount) {
@@ -82,8 +158,7 @@ export const createOrderSchema = z
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message:
-          "Каждая строка участника должна содержать ровно два слова: имя и фамилию, без цифр, телефонов и лишних символов",
+        message: participantNamesMessage,
         path: ["participantsText"]
       });
     }

@@ -339,6 +339,23 @@ function getOptionQuantity(
   return participantCount;
 }
 
+function multiServiceNeedsParticipants(
+  service: SiteService,
+  optionIds: string[]
+) {
+  if (service.isSubscription) {
+    return service.priceUnit !== "PER_ORDER";
+  }
+
+  if (service.priceUnit !== "PER_ORDER") {
+    return true;
+  }
+
+  return service.options.some(
+    (option) => optionIds.includes(option.id) && option.priceUnit !== "PER_ORDER"
+  );
+}
+
 function getFormScrollBehavior(): ScrollBehavior {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ? "auto"
@@ -545,6 +562,10 @@ export function SignupForm({
   const initialAvailableServiceSlug =
     services.find((service) => service.slug === initialServiceSlug)?.slug ?? "";
   const [step, setStep] = useState(0);
+  const [mode, setMode] = useState<"wizard" | "multi">("wizard");
+  const [multiSelections, setMultiSelections] = useState<
+    Record<string, { optionIds: string[]; participantsInput: string }>
+  >({});
   const [serviceSlug, setServiceSlug] = useState(initialAvailableServiceSlug);
   const [selectedServiceOptionIds, setSelectedServiceOptionIds] = useState<
     string[]
@@ -670,20 +691,134 @@ export function SignupForm({
     return selectedService.priceAmount * participantCount;
   }, [participantCount, selectedService, selectedServiceOptions]);
 
+  const multiLines = useMemo(() => {
+    return services
+      .filter((service) => multiSelections[service.slug])
+      .map((service) => {
+        const selection = multiSelections[service.slug];
+        const optionIds = service.isSubscription ? [] : selection.optionIds;
+        const options = service.isSubscription
+          ? []
+          : service.options.filter((option) => optionIds.includes(option.id));
+        const names = getParticipantNamesFromText(selection.participantsInput);
+        const invalidLines = getInvalidParticipantLines(
+          selection.participantsInput
+        );
+        const needsParticipants = multiServiceNeedsParticipants(
+          service,
+          optionIds
+        );
+        const mustSelectOptions =
+          !service.isSubscription &&
+          (service.slug === "single-rite" || service.options.length > 0);
+        const amount = options.length
+          ? options.reduce(
+              (sum, option) =>
+                sum +
+                option.priceAmount *
+                  getOptionQuantity(option.priceUnit, names.length),
+              0
+            )
+          : service.priceUnit === "PER_ORDER"
+            ? service.priceAmount
+            : service.priceAmount * names.length;
+        const optionsOk = !mustSelectOptions || options.length > 0;
+        const participantsOk =
+          !needsParticipants ||
+          (names.length > 0 &&
+            invalidLines.length === 0 &&
+            names.length <= 200);
+
+        return {
+          amount,
+          invalidLines,
+          mustSelectOptions,
+          names,
+          needsParticipants,
+          optionIds,
+          options,
+          selection,
+          service,
+          valid: optionsOk && participantsOk
+        };
+      });
+  }, [multiSelections, services]);
+  const multiCurrency = services[0]?.currency ?? "RUB";
+  const multiTotal = multiLines.reduce((sum, line) => sum + line.amount, 0);
+  const multiTotalNames = multiLines.reduce(
+    (sum, line) => sum + line.names.length,
+    0
+  );
+  const isMultiSelectionValid =
+    multiLines.length > 0 &&
+    multiTotalNames <= 200 &&
+    multiLines.every((line) => line.valid);
+
+  function toggleMultiService(slug: string) {
+    setMultiSelections((current) => {
+      if (current[slug]) {
+        const next = { ...current };
+
+        delete next[slug];
+
+        return next;
+      }
+
+      return {
+        ...current,
+        [slug]: { optionIds: [], participantsInput: "" }
+      };
+    });
+  }
+
+  function toggleMultiOption(slug: string, optionId: string) {
+    setMultiSelections((current) => {
+      const selection = current[slug] ?? {
+        optionIds: [],
+        participantsInput: ""
+      };
+      const optionIds = selection.optionIds.includes(optionId)
+        ? selection.optionIds.filter((id) => id !== optionId)
+        : [...selection.optionIds, optionId];
+
+      return { ...current, [slug]: { ...selection, optionIds } };
+    });
+  }
+
+  function setMultiParticipants(slug: string, value: string) {
+    setMultiSelections((current) => {
+      const selection = current[slug] ?? {
+        optionIds: [],
+        participantsInput: ""
+      };
+
+      return {
+        ...current,
+        [slug]: { ...selection, participantsInput: value }
+      };
+    });
+  }
+
   const hasContact = Boolean(
     customerTelegram.trim() || customerPhone.trim() || customerEmail.trim()
   );
   const isSubmitDisabled =
-    submitState.status === "loading" ||
-    !selectedService ||
-    (step === 0 &&
-      mustSelectServiceOptions &&
-      selectedServiceOptions.length < 1) ||
-    (step === 1 && (hasInvalidParticipants || participantCount < 1)) ||
-    (step === 2 && (!hasContact || !isCustomerPhoneValid)) ||
-    (step === 4 && paymentProviders.length === 0);
+    mode === "multi"
+      ? submitState.status === "loading" ||
+        !isMultiSelectionValid ||
+        !hasContact ||
+        !isCustomerPhoneValid ||
+        paymentProviders.length === 0
+      : submitState.status === "loading" ||
+        !selectedService ||
+        (step === 0 &&
+          mustSelectServiceOptions &&
+          selectedServiceOptions.length < 1) ||
+        (step === 1 && (hasInvalidParticipants || participantCount < 1)) ||
+        (step === 2 && (!hasContact || !isCustomerPhoneValid)) ||
+        (step === 4 && paymentProviders.length === 0);
   const submitButtonLabel =
-    step === formSteps.length - 1
+    mode === "multi" || step === formSteps.length - 1
       ? submitState.status === "loading"
         ? copy.actions.creating
         : copy.actions.pay
@@ -1071,7 +1206,7 @@ export function SignupForm({
   }
 
   async function submitOrder() {
-    if (!selectedService) {
+    if (mode === "wizard" && !selectedService) {
       setSubmitState({
         status: "error",
         message: "Запись временно недоступна: продукты пока не добавлены."
@@ -1079,7 +1214,49 @@ export function SignupForm({
       return;
     }
 
+    if (mode === "multi" && !isMultiSelectionValid) {
+      setSubmitState({
+        status: "error",
+        message: "Выберите услуги и заполните участников."
+      });
+      return;
+    }
+
     setSubmitState({ status: "loading" });
+
+    const sharedPayload = {
+      consentMailings: showMailingConsentCheckbox ? consentMailings : false,
+      consentPersonalData: true as const,
+      customerEmail,
+      customerName,
+      customerPhone,
+      customerPhoneCountry,
+      customerTelegram,
+      paymentProvider,
+      referralSlug
+    };
+    const payload =
+      mode === "multi"
+        ? {
+            ...sharedPayload,
+            items: multiLines.map((line) => ({
+              participantCount: line.names.length,
+              participantsText: line.names.join("\n"),
+              selectedServiceOptionIds: line.service.isSubscription
+                ? []
+                : line.optionIds,
+              serviceSlug: line.service.slug
+            }))
+          }
+        : {
+            ...sharedPayload,
+            participantCount,
+            participantsText,
+            selectedServiceOptionIds: selectedService!.isSubscription
+              ? []
+              : selectedServiceOptionIds,
+            serviceSlug: selectedService!.slug
+          };
 
     let response: Response;
 
@@ -1089,23 +1266,7 @@ export function SignupForm({
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          serviceSlug: selectedService.slug,
-          selectedServiceOptionIds: selectedService.isSubscription
-            ? []
-            : selectedServiceOptionIds,
-          participantCount,
-          participantsText,
-          customerName,
-          customerTelegram,
-          customerPhone,
-          customerPhoneCountry,
-          customerEmail,
-          consentPersonalData: true,
-          consentMailings: showMailingConsentCheckbox ? consentMailings : false,
-          paymentProvider,
-          referralSlug
-        })
+        body: JSON.stringify(payload)
       });
     } catch {
       setSubmitState({
@@ -1166,6 +1327,11 @@ export function SignupForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (mode === "multi") {
+      await submitOrder();
+      return;
+    }
 
     if (step < formSteps.length - 1) {
       if (
@@ -1305,8 +1471,40 @@ export function SignupForm({
       ref={formRef}
       tabIndex={-1}
     >
-      <ol className="form-progress" aria-label={copy.progressAria}>
-        {formSteps.map(({ Icon, label }, index) => (
+      <div
+        className="signup-mode-toggle"
+        role="group"
+        aria-label="Режим выбора услуг"
+      >
+        <button
+          aria-pressed={mode === "wizard"}
+          className={
+            mode === "wizard"
+              ? "button button--small button--primary"
+              : "button button--small"
+          }
+          onClick={() => setMode("wizard")}
+          type="button"
+        >
+          Пошагово (одна услуга)
+        </button>
+        <button
+          aria-pressed={mode === "multi"}
+          className={
+            mode === "multi"
+              ? "button button--small button--primary"
+              : "button button--small"
+          }
+          onClick={() => setMode("multi")}
+          type="button"
+        >
+          Выбрать несколько услуг
+        </button>
+      </div>
+
+      {mode === "wizard" && (
+        <ol className="form-progress" aria-label={copy.progressAria}>
+          {formSteps.map(({ Icon, label }, index) => (
           <li
             className={
               index === step
@@ -1324,8 +1522,9 @@ export function SignupForm({
             </span>
             <span className="form-progress__label">{label}</span>
           </li>
-        ))}
-      </ol>
+          ))}
+        </ol>
+      )}
 
       <div
         className="signup-auth-links"
@@ -1379,7 +1578,168 @@ export function SignupForm({
         )}
       </div>
 
-      {step === 0 && (
+      {mode === "multi" && (
+        <fieldset className="form-step">
+          <legend>{copy.legend.ceremony}</legend>
+          <p className="form-note">
+            Отметьте все услуги, которые хотите оформить одним заказом. Для услуг
+            с участниками укажите список, для услуг с обрядами выберите нужные.
+          </p>
+          <div className="option-grid">
+            {services.map((service) => {
+              const selection = multiSelections[service.slug];
+              const isSelected = Boolean(selection);
+              const optionIds = selection?.optionIds ?? [];
+              const needsParticipants =
+                isSelected &&
+                multiServiceNeedsParticipants(service, optionIds);
+              const mustSelectOptions =
+                !service.isSubscription &&
+                (service.slug === "single-rite" ||
+                  service.options.length > 0);
+              const invalidLines = selection
+                ? getInvalidParticipantLines(selection.participantsInput)
+                : [];
+              const selectedOptions = service.isSubscription
+                ? []
+                : service.options.filter((option) =>
+                    optionIds.includes(option.id)
+                  );
+
+              return (
+                <div
+                  className={
+                    isSelected
+                      ? "choice-card choice-card--stacked is-selected"
+                      : "choice-card choice-card--stacked"
+                  }
+                  key={service.slug}
+                >
+                  <label className="choice-card__select">
+                    <input
+                      checked={isSelected}
+                      onChange={() => toggleMultiService(service.slug)}
+                      type="checkbox"
+                    />
+                    <span className="choice-card__label-content">
+                      <span className="choice-card__title">
+                        {service.title}
+                      </span>
+                      <small className="choice-card__price">
+                        {service.priceLabel}
+                      </small>
+                    </span>
+                  </label>
+                  {service.description && (
+                    <p className="choice-card__note">{service.description}</p>
+                  )}
+                  {isSelected && mustSelectOptions && (
+                    <div className="rite-choice-list">
+                      <strong>Выберите один или несколько обрядов</strong>
+                      {service.options.length > 0 ? (
+                        service.options.map((option) => (
+                          <label
+                            className="choice-card rite-choice-card"
+                            key={option.id}
+                          >
+                            <input
+                              checked={optionIds.includes(option.id)}
+                              onChange={() =>
+                                toggleMultiOption(service.slug, option.id)
+                              }
+                              type="checkbox"
+                            />
+                            {option.eventStartsAtLabel && (
+                              <span className="rite-choice-card__date">
+                                {option.eventStartsAtLabel} МСК
+                              </span>
+                            )}
+                            <span className="rite-choice-card__title">
+                              {option.title}
+                            </span>
+                            {option.description && (
+                              <small>{option.description}</small>
+                            )}
+                            <small className="rite-choice-card__price">
+                              {option.priceLabel}
+                            </small>
+                          </label>
+                        ))
+                      ) : (
+                        <p className="form-warning">
+                          Обряды пока не добавлены администратором.
+                        </p>
+                      )}
+                      {selectedOptions.length < 1 && (
+                        <p className="form-warning">
+                          Выберите хотя бы один обряд.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {isSelected && needsParticipants && (
+                    <label className="field">
+                      <span>{copy.fields.participantList}</span>
+                      <textarea
+                        onChange={(event) =>
+                          setMultiParticipants(
+                            service.slug,
+                            event.target.value
+                          )
+                        }
+                        placeholder={"Иван Иванов\nМария Петрова"}
+                        rows={4}
+                        value={selection.participantsInput}
+                      />
+                      {invalidLines.length > 0 && (
+                        <small className="field-error">
+                          Проверьте строки:{" "}
+                          {invalidLines
+                            .map((line) => line.lineNumber)
+                            .join(", ")}
+                        </small>
+                      )}
+                    </label>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="multi-summary">
+            {multiLines.length > 0 ? (
+              <>
+                <ul className="rite-summary-list">
+                  {multiLines.map((line) => (
+                    <li key={line.service.slug}>
+                      {line.service.title}
+                      {line.options.length > 0
+                        ? ` — ${line.options
+                            .map((option) => option.title)
+                            .join(", ")}`
+                        : ""}
+                      {line.names.length > 0
+                        ? ` — ${line.names.length} уч.`
+                        : ""}
+                      {" — "}
+                      {formatMoney(line.amount, line.service.currency)}
+                    </li>
+                  ))}
+                </ul>
+                <p className="multi-summary__total">
+                  <strong>
+                    Итого: {formatMoney(multiTotal, multiCurrency)}
+                  </strong>
+                </p>
+              </>
+            ) : (
+              <p className="form-note">Отметьте хотя бы одну услугу.</p>
+            )}
+          </div>
+        </fieldset>
+      )}
+
+      {mode === "wizard" && step === 0 && (
         <fieldset className="form-step">
           <legend>{copy.legend.ceremony}</legend>
           <div className="option-grid">
@@ -1515,7 +1875,7 @@ export function SignupForm({
         </fieldset>
       )}
 
-      {step === 1 && (
+      {mode === "wizard" && step === 1 && (
         <fieldset className="form-step">
           <legend>{copy.legend.participants}</legend>
           <p className="form-note">{copy.placeholders.participants}</p>
@@ -1603,7 +1963,7 @@ export function SignupForm({
         </fieldset>
       )}
 
-      {step === 2 && (
+      {(mode === "multi" || step === 2) && (
         <fieldset className="form-step">
           <legend>{copy.legend.contacts}</legend>
           <div className="telegram-auth-card">
@@ -1784,7 +2144,7 @@ export function SignupForm({
         </fieldset>
       )}
 
-      {step === 3 && (
+      {mode === "wizard" && step === 3 && (
         <div className="form-step">
           <h3>{copy.review.title}</h3>
           <dl className="summary-list">
@@ -1840,7 +2200,7 @@ export function SignupForm({
         </div>
       )}
 
-      {step === 4 && (
+      {(mode === "multi" || step === 4) && (
         <div className="form-step">
           <h3>{copy.payment.title}</h3>
           <p>{copy.payment.text}</p>
@@ -1910,7 +2270,7 @@ export function SignupForm({
       />
 
       <div className="form-actions">
-        {step > 0 && (
+        {mode === "wizard" && step > 0 && (
           <button
             className="button"
             onClick={() => setStep((current) => current - 1)}

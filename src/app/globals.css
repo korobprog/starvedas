@@ -4093,6 +4093,33 @@ a.button[aria-disabled="true"] {
   background: rgba(130, 70, 45, 0.08);
 }
 
+.signup-mode-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.choice-card.is-selected {
+  border-color: var(--primary, #b5651d);
+  box-shadow: 0 0 0 2px var(--primary, #b5651d) inset;
+}
+
+.choice-card .field {
+  margin-top: 0.9rem;
+}
+
+.multi-summary {
+  border-top: 1px dashed var(--border, #d8c4a6);
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+}
+
+.multi-summary__total {
+  font-size: 1.1rem;
+  margin-top: 0.6rem;
+}
+
 .rite-choice-list {
   display: grid;
   gap: 0.9rem;

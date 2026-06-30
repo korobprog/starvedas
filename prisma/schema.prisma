@@ -251,8 +251,9 @@ model Service {
   createdAt                    DateTime  @default(now())
   updatedAt                    DateTime  @updatedAt
 
-  orders  Order[]
-  options ServiceOption[]
+  orders     Order[]
+  orderItems OrderItem[]
+  options    ServiceOption[]
 }
 
 model ServiceOption {
@@ -415,6 +416,7 @@ model Order {
   isSubscriptionSnapshot       Boolean     @default(false)
   subscriptionStartsAtSnapshot DateTime?
   subscriptionEndsAtSnapshot   DateTime?
+  isMultiItem                  Boolean     @default(false)
   createdAt                    DateTime    @default(now())
   deletedAt                    DateTime?
   deleteReason                 String?
@@ -429,6 +431,7 @@ model Order {
   service         Service              @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   client          ClientProfile?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
   deletedBy       User?                @relation("OrderDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  items           OrderItem[]
   participants    OrderParticipant[]
   serviceOptions  OrderServiceOption[]
   payment         Payment?
@@ -443,9 +446,39 @@ model Order {
   @@index([deletedById, deletedAt])
 }
 
+model OrderItem {
+  id                           String    @id @default(cuid())
+  sortOrder                    Int       @default(0)
+  titleSnapshot                String
+  priceRubSnapshot             Int
+  priceUnitSnapshot            PriceUnit @default(PER_PARTICIPANT)
+  currencySnapshot             String    @default("RUB")
+  vatTaxTypeSnapshot           Int       @default(0)
+  receiptNameSnapshot          String?
+  isSubscriptionSnapshot       Boolean   @default(false)
+  subscriptionStartsAtSnapshot DateTime?
+  subscriptionEndsAtSnapshot   DateTime?
+  participantCount             Int       @default(0)
+  participantsText             String    @default("")
+  amountRub                    Int
+  createdAt                    DateTime  @default(now())
+
+  orderId   String
+  serviceId String
+
+  order          Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  service        Service              @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  participants   OrderParticipant[]
+  serviceOptions OrderServiceOption[]
+
+  @@index([orderId, sortOrder])
+  @@index([serviceId])
+}
+
 model OrderServiceOption {
   id                  String    @id @default(cuid())
   titleSnapshot       String
+  serviceTitleSnapshot String?
   descriptionSnapshot String?
   priceRubSnapshot    Int
   priceUnitSnapshot   PriceUnit @default(PER_PARTICIPANT)
@@ -454,13 +487,16 @@ model OrderServiceOption {
   sortOrder           Int       @default(0)
   createdAt           DateTime  @default(now())
 
-  orderId  String
-  optionId String?
+  orderId     String
+  orderItemId String?
+  optionId    String?
 
-  order  Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  option ServiceOption? @relation(fields: [optionId], references: [id], onDelete: SetNull)
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem OrderItem?     @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  option    ServiceOption? @relation(fields: [optionId], references: [id], onDelete: SetNull)
 
   @@index([orderId, sortOrder])
+  @@index([orderItemId])
   @@index([optionId])
 }
 
@@ -473,9 +509,13 @@ model OrderParticipant {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
-  orderId String
-  order   Order                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  history ParticipantChangeHistory[]
+  orderId     String
+  orderItemId String?
+  order       Order                      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem   OrderItem?                 @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  history     ParticipantChangeHistory[]
+
+  @@index([orderItemId])
 }
 
 model ParticipantList {

@@ -1,4 +1,4 @@
-﻿CREATE TABLE "AccountingReport" (
+CREATE TABLE "AccountingReport" (
     "id" TEXT NOT NULL,
     "sourceDomain" TEXT NOT NULL,
     "spreadsheetId" TEXT,

@@ -49,7 +49,29 @@ const orderRevisionAggregateSelect = Prisma.validator<Prisma.OrderSelect>()({
   customerTelegram: true,
   curatorId: true,
   id: true,
+  isMultiItem: true,
   isSubscriptionSnapshot: true,
+  items: {
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: {
+      amountRub: true,
+      createdAt: true,
+      currencySnapshot: true,
+      id: true,
+      isSubscriptionSnapshot: true,
+      participantCount: true,
+      participantsText: true,
+      priceRubSnapshot: true,
+      priceUnitSnapshot: true,
+      receiptNameSnapshot: true,
+      serviceId: true,
+      sortOrder: true,
+      subscriptionEndsAtSnapshot: true,
+      subscriptionStartsAtSnapshot: true,
+      titleSnapshot: true,
+      vatTaxTypeSnapshot: true
+    }
+  },
   leadStatus: true,
   orderNumber: true,
   participantCount: true,
@@ -59,6 +81,7 @@ const orderRevisionAggregateSelect = Prisma.validator<Prisma.OrderSelect>()({
       createdAt: true,
       fullName: true,
       id: true,
+      orderItemId: true,
       rowStatus: true,
       sortOrder: true,
       statisticianComment: true,
@@ -107,9 +130,11 @@ const orderRevisionAggregateSelect = Prisma.validator<Prisma.OrderSelect>()({
       descriptionSnapshot: true,
       id: true,
       optionId: true,
+      orderItemId: true,
       priceRubSnapshot: true,
       priceUnitSnapshot: true,
       quantitySnapshot: true,
+      serviceTitleSnapshot: true,
       sortOrder: true,
       titleSnapshot: true,
       totalRubSnapshot: true
@@ -180,6 +205,7 @@ export type OrderRevisionSnapshot = {
     customerTelegram: string | null;
     curatorId: string;
     id: string;
+    isMultiItem: boolean;
     isSubscriptionSnapshot: boolean;
     leadStatus: LeadStatus;
     orderNumber: number;
@@ -195,6 +221,24 @@ export type OrderRevisionSnapshot = {
     subscriptionStartsAtSnapshot: string | null;
     updatedAt: string;
   };
+  items: Array<{
+    amountRub: number;
+    createdAt: string;
+    currencySnapshot: string;
+    id: string;
+    isSubscriptionSnapshot: boolean;
+    participantCount: number;
+    participantsText: string;
+    priceRubSnapshot: number;
+    priceUnitSnapshot: PriceUnit;
+    receiptNameSnapshot: string | null;
+    serviceId: string;
+    sortOrder: number;
+    subscriptionEndsAtSnapshot: string | null;
+    subscriptionStartsAtSnapshot: string | null;
+    titleSnapshot: string;
+    vatTaxTypeSnapshot: number;
+  }>;
   participantList: {
     bookmarked: boolean;
     createdAt: string;
@@ -210,6 +254,7 @@ export type OrderRevisionSnapshot = {
     createdAt: string;
     fullName: string;
     id: string;
+    orderItemId: string | null;
     rowStatus: ParticipantRowStatus;
     sortOrder: number;
     statisticianComment: string | null;
@@ -236,9 +281,11 @@ export type OrderRevisionSnapshot = {
     descriptionSnapshot: string | null;
     id: string;
     optionId: string | null;
+    orderItemId: string | null;
     priceRubSnapshot: number;
     priceUnitSnapshot: PriceUnit;
     quantitySnapshot: number;
+    serviceTitleSnapshot: string | null;
     sortOrder: number;
     titleSnapshot: string;
     totalRubSnapshot: number;
@@ -284,6 +331,7 @@ export function serializeOrderAggregate(
       customerTelegram: order.customerTelegram,
       curatorId: order.curatorId,
       id: order.id,
+      isMultiItem: order.isMultiItem,
       isSubscriptionSnapshot: order.isSubscriptionSnapshot,
       leadStatus: order.leadStatus,
       orderNumber: order.orderNumber,
@@ -301,6 +349,26 @@ export function serializeOrderAggregate(
       ),
       updatedAt: order.updatedAt.toISOString()
     },
+    items: order.items.map((item) => ({
+      amountRub: item.amountRub,
+      createdAt: item.createdAt.toISOString(),
+      currencySnapshot: item.currencySnapshot,
+      id: item.id,
+      isSubscriptionSnapshot: item.isSubscriptionSnapshot,
+      participantCount: item.participantCount,
+      participantsText: item.participantsText,
+      priceRubSnapshot: item.priceRubSnapshot,
+      priceUnitSnapshot: item.priceUnitSnapshot,
+      receiptNameSnapshot: item.receiptNameSnapshot,
+      serviceId: item.serviceId,
+      sortOrder: item.sortOrder,
+      subscriptionEndsAtSnapshot: toIsoString(item.subscriptionEndsAtSnapshot),
+      subscriptionStartsAtSnapshot: toIsoString(
+        item.subscriptionStartsAtSnapshot
+      ),
+      titleSnapshot: item.titleSnapshot,
+      vatTaxTypeSnapshot: item.vatTaxTypeSnapshot
+    })),
     participantList: order.participantList
       ? {
           bookmarked: order.participantList.bookmarked,
@@ -318,6 +386,7 @@ export function serializeOrderAggregate(
       createdAt: participant.createdAt.toISOString(),
       fullName: participant.fullName,
       id: participant.id,
+      orderItemId: participant.orderItemId,
       rowStatus: participant.rowStatus,
       sortOrder: participant.sortOrder,
       statisticianComment: participant.statisticianComment,
@@ -346,9 +415,11 @@ export function serializeOrderAggregate(
       descriptionSnapshot: option.descriptionSnapshot,
       id: option.id,
       optionId: option.optionId,
+      orderItemId: option.orderItemId,
       priceRubSnapshot: option.priceRubSnapshot,
       priceUnitSnapshot: option.priceUnitSnapshot,
       quantitySnapshot: option.quantitySnapshot,
+      serviceTitleSnapshot: option.serviceTitleSnapshot,
       sortOrder: option.sortOrder,
       titleSnapshot: option.titleSnapshot,
       totalRubSnapshot: option.totalRubSnapshot
@@ -643,6 +714,7 @@ export async function restoreOrderRevision(
       deletedAt: parseSnapshotDate(snapshot.order.deletedAt),
       deletedById: restoredDeletedById,
       deleteReason: snapshot.order.deleteReason,
+      isMultiItem: snapshot.order.isMultiItem ?? false,
       leadStatus: snapshot.order.leadStatus,
       participantCount: snapshot.order.participantCount,
       participantsText: snapshot.order.participantsText,
@@ -700,6 +772,52 @@ export async function restoreOrderRevision(
     });
   }
 
+  const snapshotItems = snapshot.items ?? [];
+  const validItemIds = new Set<string>();
+
+  for (const item of snapshotItems) {
+    const service = await tx.service.findUnique({
+      where: { id: item.serviceId },
+      select: { id: true }
+    });
+
+    if (!service) {
+      continue;
+    }
+
+    const itemData = {
+      amountRub: item.amountRub,
+      currencySnapshot: item.currencySnapshot,
+      isSubscriptionSnapshot: item.isSubscriptionSnapshot,
+      participantCount: item.participantCount,
+      participantsText: item.participantsText,
+      priceRubSnapshot: item.priceRubSnapshot,
+      priceUnitSnapshot: item.priceUnitSnapshot,
+      receiptNameSnapshot: item.receiptNameSnapshot,
+      serviceId: item.serviceId,
+      sortOrder: item.sortOrder,
+      subscriptionEndsAtSnapshot: parseSnapshotDate(
+        item.subscriptionEndsAtSnapshot
+      ),
+      subscriptionStartsAtSnapshot: parseSnapshotDate(
+        item.subscriptionStartsAtSnapshot
+      ),
+      titleSnapshot: item.titleSnapshot,
+      vatTaxTypeSnapshot: item.vatTaxTypeSnapshot
+    };
+
+    await tx.orderItem.upsert({
+      where: { id: item.id },
+      update: itemData,
+      create: { id: item.id, orderId: revision.orderId, ...itemData }
+    });
+
+    validItemIds.add(item.id);
+  }
+
+  const resolveSnapshotItemId = (orderItemId: string | null | undefined) =>
+    orderItemId && validItemIds.has(orderItemId) ? orderItemId : null;
+
   const currentParticipants = [...currentOrder.participants];
   const snapshotParticipants = snapshot.participants;
   const sharedCount = Math.min(
@@ -741,6 +859,7 @@ export async function restoreOrderRevision(
         .map((participant) => ({
           fullName: participant.fullName,
           orderId: revision.orderId,
+          orderItemId: resolveSnapshotItemId(participant.orderItemId),
           rowStatus: participant.rowStatus,
           sortOrder: participant.sortOrder,
           statisticianComment: participant.statisticianComment
@@ -758,9 +877,11 @@ export async function restoreOrderRevision(
         descriptionSnapshot: option.descriptionSnapshot,
         optionId: option.optionId,
         orderId: revision.orderId,
+        orderItemId: resolveSnapshotItemId(option.orderItemId),
         priceRubSnapshot: option.priceRubSnapshot,
         priceUnitSnapshot: option.priceUnitSnapshot,
         quantitySnapshot: option.quantitySnapshot,
+        serviceTitleSnapshot: option.serviceTitleSnapshot ?? null,
         sortOrder: option.sortOrder,
         titleSnapshot: option.titleSnapshot,
         totalRubSnapshot: option.totalRubSnapshot
