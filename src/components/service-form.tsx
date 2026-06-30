@@ -1,8 +1,11 @@
+import { randomBytes } from "node:crypto";
 import type { PriceUnit } from "@prisma/client";
 import Link from "next/link";
 import { AdminSubmitButton } from "@/components/admin-submit-button";
 import { DigitsOnlyInput } from "@/components/digits-only-input";
 import { ProductSubscriptionAndRitesFields } from "@/components/product-subscription-and-rites-fields";
+import { ServiceTitleSlugFields } from "@/components/service-title-slug-fields";
+import { ValidatedForm } from "@/components/validated-form";
 import {
   createService,
   toggleServiceActive,
@@ -106,32 +109,21 @@ function formatSubscriptionPeriod(service: ManagedService) {
 }
 
 export function ServiceFields({
+  previewCode,
   service
 }: Readonly<{
+  previewCode?: string;
   service?: ManagedService;
 }>) {
   return (
     <>
       <div className="field-grid">
-        <label className="field">
-          <span>Название</span>
-          <input
-            defaultValue={service?.title ?? ""}
-            name="title"
-            required
-            type="text"
-          />
-        </label>
-        <label className="field">
-          <span>Slug</span>
-          <input
-            defaultValue={service?.slug ?? ""}
-            name="slug"
-            placeholder="personal-consultation"
-            required
-            type="text"
-          />
-        </label>
+        <ServiceTitleSlugFields
+          defaultSlug={service?.slug ?? ""}
+          defaultTitle={service?.title ?? ""}
+          previewCode={previewCode}
+          slugLocked={Boolean(service?.id)}
+        />
         <label className="field">
           <span>Сортировка</span>
           <input
@@ -348,13 +340,19 @@ export function ServiceFields({
 }
 
 export function CreateServiceForm() {
+  const previewCode = randomBytes(3).toString("hex");
+
   return (
-    <form action={createService} className="admin-form">
-      <ServiceFields />
+    <ValidatedForm
+      action={createService}
+      className="admin-form"
+      id="create-service-form"
+    >
+      <ServiceFields previewCode={previewCode} />
       <AdminSubmitButton className="button button--primary">
         Создать продукт
       </AdminSubmitButton>
-    </form>
+    </ValidatedForm>
   );
 }
 
@@ -364,13 +362,13 @@ export function UpdateServiceForm({
   service: ManagedService;
 }>) {
   return (
-    <form action={updateService} className="admin-form">
+    <ValidatedForm action={updateService} className="admin-form">
       <input name="id" type="hidden" value={service.id} />
       <ServiceFields service={service} />
       <AdminSubmitButton className="button button--primary">
         Сохранить
       </AdminSubmitButton>
-    </form>
+    </ValidatedForm>
   );
 }
 

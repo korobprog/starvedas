@@ -8,8 +8,8 @@ type ScheduleContentProps = {
   title: string;
 };
 
-const previewCharLimit = 700;
-const previewLineLimit = 8;
+const previewCharLimit = 360;
+const previewLineLimit = 4;
 
 function normalizeScheduleBody(value: string) {
   return value.replaceAll("\r\n", "\n").replaceAll("\r", "\n").trim();

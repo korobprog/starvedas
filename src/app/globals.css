@@ -1844,12 +1844,52 @@ select {
     box-shadow 0.15s ease;
 }
 
+.field input:disabled,
+.field select:disabled,
+.field textarea:disabled,
+.field input[readonly],
+.field select[readonly],
+.field textarea[readonly] {
+  background: #f5efe7;
+  color: #8a735f;
+  cursor: not-allowed;
+}
+
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgb(163 82 25 / 14%);
   outline: none;
+}
+
+.field:has(input:user-invalid),
+.field:has(select:user-invalid),
+.field:has(textarea:user-invalid),
+.field:has(input[aria-invalid="true"]),
+.field:has(select[aria-invalid="true"]),
+.field:has(textarea[aria-invalid="true"]),
+.checkbox-field:has(input:user-invalid),
+.checkbox-field:has(input[aria-invalid="true"]) {
+  color: #991b1b;
+}
+
+.field input:user-invalid,
+.field select:user-invalid,
+.field textarea:user-invalid,
+.field input[aria-invalid="true"],
+.field select[aria-invalid="true"],
+.field textarea[aria-invalid="true"] {
+  border-color: #dc2626;
+  background: #fff7f7;
+  box-shadow: 0 0 0 3px rgb(220 38 38 / 14%);
+  outline: none;
+}
+
+.checkbox-field:has(input:user-invalid) input[type="checkbox"],
+.checkbox-field:has(input[aria-invalid="true"]) input[type="checkbox"] {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
 }
 
 .field textarea {

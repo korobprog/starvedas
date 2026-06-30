@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FormPristineHint } from "@/components/form-pristine-hint";
 import { CreateServiceForm } from "@/components/service-form";
 import { requireAdminUser } from "@/server/auth";
 
@@ -10,8 +11,8 @@ function DuplicateSlugAlert({ slug }: Readonly<{ slug?: string }>) {
       <strong>Slug уже занят</strong>
       <span>
         {slug
-          ? `Продукт с адресом /${slug} уже существует. Укажите другой slug.`
-          : "Продукт с таким slug уже существует. Укажите другой slug."}
+          ? `Продукт с адресом /${slug} уже существует. Измените название — slug сформируется автоматически.`
+          : "Продукт с таким slug уже существует. Измените название — slug сформируется автоматически."}
       </span>
     </section>
   );
@@ -37,10 +38,13 @@ export default async function AdminNewProductPage({
           <div>
             <p className="eyebrow">Новый продукт</p>
             <h2>Создать продукт</h2>
-            <p className="admin-muted">
-              Заполните базовые данные, цены и карточки обрядов при
-              необходимости. Для абонемента укажите период действия.
-            </p>
+            <FormPristineHint
+              formId="create-service-form"
+              variant="service-create"
+            >
+              Подсказка: заполните базовые данные, цены и карточки обрядов
+              при необходимости. Для абонемента укажите период действия.
+            </FormPristineHint>
           </div>
           <div className="admin-card__actions">
             <Link className="button" href="/admin/products">

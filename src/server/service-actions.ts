@@ -1,10 +1,12 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { slugifyReferralValue } from "@/lib/slugs";
 import { requireServiceManager } from "@/server/auth";
 
 const optionalText = z
@@ -43,6 +45,8 @@ const nullableDigitsOnlyNumber = z.preprocess((value) => {
 }, z.union([z.null(), digitsOnlyNumber]));
 
 const prodamusVatTaxTypes = [0, 1, 2, 4, 6, 7, 10, 11, 12, 13, 14, 15];
+const SERVICE_SLUG_CODE_LENGTH = 6;
+const SERVICE_SLUG_MAX_LENGTH = 120;
 
 function validateSubscriptionPeriod(
   data: {
@@ -116,11 +120,16 @@ const serviceCoreSchema = z.object({
     .refine((value) => prodamusVatTaxTypes.includes(value))
 });
 
-const serviceBaseSchema = serviceCoreSchema.superRefine(
-  validateSubscriptionPeriod
-);
+const serviceCreateSchema = serviceCoreSchema
+  .omit({
+    slug: true
+  })
+  .superRefine(validateSubscriptionPeriod);
 
 const serviceUpdateSchema = serviceCoreSchema
+  .omit({
+    slug: true
+  })
   .extend({
     id: z.string().trim().min(1)
   })
@@ -152,17 +161,63 @@ const serviceOptionFormSchema = z.object({
 type ParsedServiceOption = z.infer<typeof serviceOptionFormSchema>;
 
 function normalizeSlug(value: string) {
-  return value
+  return slugifyReferralValue(value);
+}
+
+function generateServiceSlugCode() {
+  return randomBytes(SERVICE_SLUG_CODE_LENGTH / 2).toString("hex");
+}
+
+function normalizeSlugCode(value: FormDataEntryValue | null) {
+  const normalized = String(value ?? "")
     .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-{2,}/g, "-");
+    .toLowerCase();
+
+  return /^[a-f0-9]{6}$/.test(normalized) ? normalized : null;
+}
+
+function buildServiceSlug(baseSlug: string, code: string) {
+  const maxBaseLength =
+    SERVICE_SLUG_MAX_LENGTH - SERVICE_SLUG_CODE_LENGTH - 1;
+  const trimmedBaseSlug = baseSlug
+    .slice(0, maxBaseLength)
+    .replace(/-+$/g, "");
+  const safeBaseSlug =
+    trimmedBaseSlug || baseSlug.slice(0, Math.max(maxBaseLength, 1));
+
+  return `${safeBaseSlug}-${code}`;
+}
+
+async function createUniqueServiceSlug(
+  db: Pick<typeof prisma, "service">,
+  baseSlug: string,
+  preferredCode?: string | null
+) {
+  const attemptedCodes = new Set<string>();
+
+  while (true) {
+    const code =
+      preferredCode && !attemptedCodes.has(preferredCode)
+        ? preferredCode
+        : generateServiceSlugCode();
+    const slug = buildServiceSlug(baseSlug, code);
+    const existingService = await db.service.findUnique({
+      where: { slug },
+      select: { id: true }
+    });
+
+    if (!existingService) {
+      return slug;
+    }
+
+    attemptedCodes.add(code);
+    preferredCode = null;
+  }
 }
 
 function parseServiceFormData(formData: FormData) {
   const isSubscription = formData.get("isSubscription") === "on";
-  const parsed = serviceBaseSchema.safeParse({
+  const parsed = serviceCreateSchema.safeParse({
     active: formData.get("active") === "on",
     description: formData.get("description") ?? "",
     descriptionEn: formData.get("descriptionEn") ?? "",
@@ -181,7 +236,6 @@ function parseServiceFormData(formData: FormData) {
     priceUnit: formData.get("priceUnit") ?? "PER_PARTICIPANT",
     requiresExactParticipantList:
       formData.get("requiresExactParticipantList") === "on",
-    slug: formData.get("slug"),
     sortOrder: formData.get("sortOrder") ?? 0,
     subscriptionEndsAt: isSubscription
       ? parseMoscowDateTime(
@@ -205,15 +259,17 @@ function parseServiceFormData(formData: FormData) {
     throw new Error("Некорректные данные продукта");
   }
 
-  const slug = normalizeSlug(parsed.data.slug);
+  const slugBase = normalizeSlug(parsed.data.title);
+  const slugCode = normalizeSlugCode(formData.get("slugCode"));
 
-  if (!slug) {
+  if (!slugBase) {
     throw new Error("Slug должен содержать латинские буквы, цифры или дефисы");
   }
 
   return {
     ...parsed.data,
-    slug
+    slugBase,
+    slugCode: slugCode ?? generateServiceSlugCode()
   };
 }
 
@@ -239,7 +295,6 @@ function parseServiceUpdateFormData(formData: FormData) {
     priceUnit: formData.get("priceUnit") ?? "PER_PARTICIPANT",
     requiresExactParticipantList:
       formData.get("requiresExactParticipantList") === "on",
-    slug: formData.get("slug"),
     sortOrder: formData.get("sortOrder") ?? 0,
     subscriptionEndsAt: isSubscription
       ? parseMoscowDateTime(
@@ -263,16 +318,7 @@ function parseServiceUpdateFormData(formData: FormData) {
     throw new Error("Некорректные данные продукта");
   }
 
-  const slug = normalizeSlug(parsed.data.slug);
-
-  if (!slug) {
-    throw new Error("Slug должен содержать латинские буквы, цифры или дефисы");
-  }
-
-  return {
-    ...parsed.data,
-    slug
-  };
+  return parsed.data;
 }
 
 function getAllFormValues(formData: FormData, name: string) {
@@ -610,40 +656,47 @@ function isServiceSlugConflict(error: unknown) {
   );
 }
 
-function duplicateSlugQuery(slug: string) {
-  return new URLSearchParams({
-    error: "duplicate-slug",
-    slug
-  }).toString();
-}
-
 export async function createService(formData: FormData) {
   await requireServiceManager();
 
-  const data = parseServiceFormData(formData);
+  const { slugBase, slugCode, ...serviceData } = parseServiceFormData(formData);
   const formOptions = parseServiceOptionsFormData(formData);
   const options = normalizeOptionSortOrders([
     ...formOptions,
     ...parseBulkServiceOptionsFormData(formData, formOptions)
   ]);
   let serviceId = "";
+  let nextSlugCode: string | null = slugCode;
 
-  try {
-    await prisma.$transaction(async (tx) => {
-      const service = await tx.service.create({
-        data,
-        select: { id: true }
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const slug = await createUniqueServiceSlug(prisma, slugBase, nextSlugCode);
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        const service = await tx.service.create({
+          data: {
+            ...serviceData,
+            slug
+          },
+          select: { id: true }
+        });
+
+        serviceId = service.id;
+        await saveServiceOptions(tx, service.id, options);
       });
 
-      serviceId = service.id;
-      await saveServiceOptions(tx, service.id, options);
-    });
-  } catch (error) {
-    if (isServiceSlugConflict(error)) {
-      redirect(`/admin/products/new?${duplicateSlugQuery(data.slug)}`);
-    }
+      break;
+    } catch (error) {
+      if (!isServiceSlugConflict(error)) {
+        throw error;
+      }
 
-    throw error;
+      nextSlugCode = null;
+    }
+  }
+
+  if (!serviceId) {
+    throw new Error("Не удалось создать уникальный slug для продукта");
   }
 
   revalidateServicePages();
@@ -679,7 +732,6 @@ export async function updateService(formData: FormData) {
           receiptName: data.receiptName,
           requiresExactParticipantList: data.requiresExactParticipantList,
           isSubscription: data.isSubscription,
-          slug: data.slug,
           sortOrder: data.sortOrder,
           subscriptionEndsAt: data.subscriptionEndsAt,
           subscriptionStartsAt: data.subscriptionStartsAt,
@@ -696,10 +748,6 @@ export async function updateService(formData: FormData) {
       await saveServiceOptions(tx, data.id, options);
     });
   } catch (error) {
-    if (isServiceSlugConflict(error)) {
-      redirect(`/admin/products/${data.id}?${duplicateSlugQuery(data.slug)}`);
-    }
-
     throw error;
   }
 
