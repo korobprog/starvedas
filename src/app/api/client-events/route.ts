@@ -80,9 +80,9 @@ export async function POST(request: Request) {
     cookieStore.get(visitorCookieName)?.value || crypto.randomUUID();
   const currentClient = await getCurrentClientProfile();
   const referralSlug =
-    currentClient?.referralSlug ||
     parsed.data.referralSlug ||
-    cookieStore.get(referralCookieName)?.value;
+    cookieStore.get(referralCookieName)?.value ||
+    currentClient?.referralSlug;
   const curator = await getCuratorForReferral(referralSlug, sourceDomain);
   const consentMailings = curator.showMailingConsentCheckbox
     ? parsed.data.consentMailings

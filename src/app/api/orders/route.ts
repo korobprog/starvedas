@@ -220,7 +220,7 @@ export async function POST(request: Request) {
       telegram: customerTelegram
     });
     const requestedReferralSlug =
-      firstStoredReferralSlug ?? data.referralSlug ?? undefined;
+      data.referralSlug ?? firstStoredReferralSlug ?? undefined;
     const curator = await getCuratorForReferral(
       requestedReferralSlug,
       sourceDomain

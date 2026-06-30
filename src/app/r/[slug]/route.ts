@@ -30,12 +30,12 @@ export async function GET(
   const requestedCurator = await findActiveCuratorByReferralSlug(
     referralSlug
   ).catch(() => null);
-  const appliedReferralSlug = existingCurator
-    ? existingReferralSlug
-    : requestedCurator
-      ? referralSlug
+  const appliedReferralSlug = requestedCurator
+    ? referralSlug
+    : existingCurator
+      ? existingReferralSlug
       : "";
-  const curator = existingCurator ?? requestedCurator;
+  const curator = requestedCurator ?? existingCurator;
   const target = new URL("/", clientReferralOrigin);
 
   if (curator && appliedReferralSlug) {
@@ -45,7 +45,7 @@ export async function GET(
 
   const response = NextResponse.redirect(target);
 
-  if (curator && appliedReferralSlug && !existingCurator) {
+  if (curator && appliedReferralSlug) {
     response.cookies.set(referralCookieName, appliedReferralSlug, {
       httpOnly: true,
       maxAge: referralCookieMaxAge,
