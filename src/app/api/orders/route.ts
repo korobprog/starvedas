@@ -487,6 +487,9 @@ export async function POST(request: Request) {
         }
       });
 
+      let participantSortOffset = 0;
+      let optionSortOffset = 0;
+
       for (const [index, line] of lines.entries()) {
         const orderItemId = isMultiItem
           ? (
@@ -525,9 +528,10 @@ export async function POST(request: Request) {
               fullName: name,
               orderId: order.id,
               orderItemId,
-              sortOrder: participantIndex + 1
+              sortOrder: participantSortOffset + participantIndex + 1
             }))
           });
+          participantSortOffset += line.names.length;
         }
 
         if (line.selectedOptions.length) {
@@ -550,12 +554,13 @@ export async function POST(request: Request) {
                 serviceTitleSnapshot: isMultiItem
                   ? line.service.localizedTitle
                   : null,
-                sortOrder: optionIndex + 1,
+                sortOrder: optionSortOffset + optionIndex + 1,
                 titleSnapshot: option.title,
                 totalRubSnapshot: option.priceRub * quantity
               };
             })
           });
+          optionSortOffset += line.selectedOptions.length;
         }
       }
 
