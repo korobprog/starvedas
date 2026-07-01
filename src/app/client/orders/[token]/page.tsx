@@ -1,4 +1,5 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClientAuthRequired } from "@/components/client-auth-required";
@@ -156,6 +157,9 @@ export default async function ClientOrderDetailPage({
       curator: {
         select: {
           name: true,
+          postPurchaseText: true,
+          postPurchaseTitle: true,
+          postPurchaseUrl: true,
           slug: true,
           supportButtonLabel: true,
           supportEnabled: true,
@@ -226,6 +230,15 @@ export default async function ClientOrderDetailPage({
     (option) => option.titleSnapshot
   );
   const subscriptionValidity = getSubscriptionValidity(order);
+  const isPaymentConfirmed =
+    order.status === OrderStatus.PAID &&
+    order.payment?.status === PaymentStatus.SUCCEEDED;
+  const hasPostPurchaseContent = Boolean(
+    order.curator.postPurchaseTitle ||
+    order.curator.postPurchaseText ||
+    order.curator.postPurchaseUrl ||
+    order.payment?.receiptUrl
+  );
 
   return (
     <main className="page-shell">
@@ -355,6 +368,42 @@ export default async function ClientOrderDetailPage({
             </a>
           )}
         </article>
+
+        {isPaymentConfirmed && hasPostPurchaseContent && (
+          <article className="client-order-card client-order-card--highlight">
+            <h2>После оплаты</h2>
+            <p className="form-note">
+              Эти данные открываются только после подтверждения оплаты.
+            </p>
+            {order.curator.postPurchaseTitle && (
+              <h3>{order.curator.postPurchaseTitle}</h3>
+            )}
+            {order.curator.postPurchaseText && (
+              <p>{order.curator.postPurchaseText}</p>
+            )}
+            {order.payment?.receiptUrl && (
+              <p>
+                <a
+                  href={order.payment.receiptUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {order.payment.receiptLabel || "Открыть чек"}
+                </a>
+              </p>
+            )}
+            {order.curator.postPurchaseUrl && (
+              <a
+                className="button button--primary"
+                href={order.curator.postPurchaseUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                Открыть ссылку куратора
+              </a>
+            )}
+          </article>
+        )}
 
         <article className="client-order-card">
           <h2>Участники</h2>

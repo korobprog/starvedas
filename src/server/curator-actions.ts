@@ -7,6 +7,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { slugifyReferralValue } from "@/lib/slugs";
 import { requireUser } from "@/server/auth";
+import { getCabinetCuratorIdForSessionUser } from "@/server/cabinet-curator";
 import { softDeleteOrder } from "@/server/order-revisions";
 import { hashPassword } from "@/server/password";
 import {
@@ -259,9 +260,7 @@ async function getCabinetCuratorIdForUser() {
     "/cabinet"
   );
 
-  return user.role === UserRole.CURATOR
-    ? user.curator?.id
-    : (await ensureSystemCurator()).id;
+  return getCabinetCuratorIdForSessionUser(user);
 }
 
 async function requireCabinetCuratorId() {
@@ -693,10 +692,7 @@ export async function saveCabinetCuratorSettings(formData: FormData) {
     throw new Error("Некорректные данные");
   }
 
-  const curatorId =
-    user.role === UserRole.CURATOR
-      ? user.curator?.id
-      : (await ensureSystemCurator()).id;
+  const curatorId = await getCabinetCuratorIdForSessionUser(user);
 
   if (!curatorId) {
     throw new Error("Профиль куратора не найден");

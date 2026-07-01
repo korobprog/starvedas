@@ -252,6 +252,7 @@ model Service {
   shraddhaDeceasedChildLabel   String?
   shraddhaChildHelpText        String?
   active                       Boolean   @default(true)
+  archivedAt                   DateTime?
   sortOrder                    Int       @default(0)
   createdAt                    DateTime  @default(now())
   updatedAt                    DateTime  @updatedAt
@@ -259,6 +260,8 @@ model Service {
   orders     Order[]
   orderItems OrderItem[]
   options    ServiceOption[]
+
+  @@index([archivedAt, active, sortOrder])
 }
 
 model ServiceOption {

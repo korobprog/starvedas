@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getPriceUnitLabel } from "@/components/service-form";
 import { requireAdminUser } from "@/server/auth";
+import { archiveService } from "@/server/service-actions";
 import { getManagedServices, type ManagedService } from "@/server/services";
 
 export const dynamic = "force-dynamic";
@@ -26,12 +27,15 @@ function formatServicePrices(service: ManagedService) {
 export default async function AdminProductsPage({
   searchParams
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ archived?: string; saved?: string }>;
 }) {
   await requireAdminUser("/admin/products");
 
   const params = await searchParams;
-  const services = await getManagedServices();
+  const [services, archivedServices] = await Promise.all([
+    getManagedServices(),
+    getManagedServices({ archived: true })
+  ]);
   const activeCount = services.filter((service) => service.active).length;
   const ordersCount = services.reduce(
     (total, service) => total + service._count.orders,
@@ -51,6 +55,15 @@ export default async function AdminProductsPage({
           <span>Изменения продукта и карточек обрядов успешно сохранены.</span>
         </section>
       )}
+      {params.archived && (
+        <section className="admin-card admin-card--wide admin-success">
+          <strong>Продукт перемещён в архив</strong>
+          <span>
+            Он скрыт с сайта и из списка продуктов. Окончательно удалить его
+            можно в архиве.
+          </span>
+        </section>
+      )}
 
       <section className="admin-card admin-card--wide">
         <div className="admin-card__header">
@@ -64,6 +77,9 @@ export default async function AdminProductsPage({
             </p>
           </div>
           <div className="admin-card__actions">
+            <Link className="button" href="/admin/products/archive">
+              Архив ({archivedServices.length})
+            </Link>
             <Link className="button button--primary" href="/admin/products/new">
               Создать продукт
             </Link>
@@ -177,8 +193,17 @@ export default async function AdminProductsPage({
                     <Link className="button button--small" href={detailHref}>
                       Открыть карточку
                     </Link>
+                    <form action={archiveService}>
+                      <input name="id" type="hidden" value={service.id} />
+                      <button
+                        className="button button--small button--danger"
+                        type="submit"
+                      >
+                        В архив
+                      </button>
+                    </form>
                     <Link
-                      aria-label={`Открыть карточку ???????? ${service.title}`}
+                      aria-label={`Открыть карточку продукта ${service.title}`}
                       className="icon-button icon-button--menu"
                       href={detailHref}
                       title="Открыть карточку"

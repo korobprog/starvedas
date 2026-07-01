@@ -14,6 +14,7 @@ import {
 } from "@/lib/shraddha";
 import {
   createService,
+  archiveService,
   toggleServiceActive,
   updateService
 } from "@/server/service-actions";
@@ -446,6 +447,21 @@ export function ToggleServiceActiveForm({
       />
       <AdminSubmitButton>
         {service.active ? "Деактивировать" : "Активировать"}
+      </AdminSubmitButton>
+    </form>
+  );
+}
+
+export function ArchiveServiceForm({
+  service
+}: Readonly<{
+  service: ManagedService;
+}>) {
+  return (
+    <form action={archiveService}>
+      <input name="id" type="hidden" value={service.id} />
+      <AdminSubmitButton className="button button--danger">
+        Удалить в архив
       </AdminSubmitButton>
     </form>
   );

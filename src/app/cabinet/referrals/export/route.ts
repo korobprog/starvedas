@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { formatStatus } from "@/lib/status-labels";
 import { requireUser } from "@/server/auth";
-import { ensureSystemCurator } from "@/server/referrals";
+import { getCabinetCuratorIdForSessionUser } from "@/server/cabinet-curator";
 
 export const dynamic = "force-dynamic";
 
@@ -40,10 +40,7 @@ export async function GET(request: Request) {
     [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.CURATOR],
     "/cabinet"
   );
-  const curatorId =
-    user.role === UserRole.CURATOR
-      ? user.curator?.id
-      : (await ensureSystemCurator()).id;
+  const curatorId = await getCabinetCuratorIdForSessionUser(user);
 
   if (!curatorId) {
     return NextResponse.json({ message: "Кабинет не найден" }, { status: 404 });

@@ -231,6 +231,7 @@ type SubmitState =
       amountRub: number;
       currency: string;
       curatorName: string;
+      clientOrderPath?: string;
       isCustomPayment?: boolean;
       orderNumber: number;
       paymentInstructions?: PaymentInstructions | null;
@@ -352,7 +353,8 @@ function multiServiceNeedsParticipants(
   }
 
   return service.options.some(
-    (option) => optionIds.includes(option.id) && option.priceUnit !== "PER_ORDER"
+    (option) =>
+      optionIds.includes(option.id) && option.priceUnit !== "PER_ORDER"
   );
 }
 
@@ -609,10 +611,47 @@ function PaymentInstructionsBox({
   );
 }
 
+const SUBSCRIPTION_DAY_MS = 24 * 60 * 60 * 1000;
+
 function getSubscriptionPeriodText(service: SiteService) {
   return service.subscriptionStartsAtLabel && service.subscriptionEndsAtLabel
     ? `с ${service.subscriptionStartsAtLabel} до ${service.subscriptionEndsAtLabel} МСК`
     : "Период действия уточняется.";
+}
+
+function formatDayCount(days: number) {
+  const normalizedDays = Math.max(0, days);
+  const lastTwoDigits = normalizedDays % 100;
+  const lastDigit = normalizedDays % 10;
+  const label =
+    lastTwoDigits >= 11 && lastTwoDigits <= 14
+      ? "дней"
+      : lastDigit === 1
+        ? "день"
+        : lastDigit >= 2 && lastDigit <= 4
+          ? "дня"
+          : "дней";
+
+  return `${normalizedDays} ${label}`;
+}
+
+function getSubscriptionDurationText(service: SiteService) {
+  if (!service.subscriptionStartsAt || !service.subscriptionEndsAt) {
+    return null;
+  }
+
+  const startsAt = Date.parse(service.subscriptionStartsAt);
+  const endsAt = Date.parse(service.subscriptionEndsAt);
+
+  if (
+    !Number.isFinite(startsAt) ||
+    !Number.isFinite(endsAt) ||
+    endsAt <= startsAt
+  ) {
+    return null;
+  }
+
+  return formatDayCount(Math.ceil((endsAt - startsAt) / SUBSCRIPTION_DAY_MS));
 }
 
 function ServiceDetailsDialog({
@@ -679,40 +718,6 @@ function ServiceDetailsDialog({
           </button>
         </div>
       </section>
-    </div>
-  );
-}
-
-function SubscriptionInfoCard({ service }: { service: SiteService }) {
-  const periodText = getSubscriptionPeriodText(service);
-
-  return (
-    <div
-      className="subscription-info-card"
-      aria-label="Информация об абонементе"
-    >
-      <div className="subscription-info-card__header">
-        <span className="subscription-info-card__badge">Месячный формат</span>
-        <strong className="subscription-info-card__title">
-          {service.title}
-        </strong>
-      </div>
-      {service.description && (
-        <p className="subscription-info-card__description">
-          <span aria-hidden="true">✓</span>
-          {service.description}
-        </p>
-      )}
-      <dl className="subscription-info-card__details">
-        <div className="subscription-info-card__detail subscription-info-card__detail--price">
-          <dt>Стоимость</dt>
-          <dd>{service.priceLabel}</dd>
-        </div>
-        <div className="subscription-info-card__detail">
-          <dt>Период действия</dt>
-          <dd>{periodText}</dd>
-        </div>
-      </dl>
     </div>
   );
 }
@@ -839,10 +844,18 @@ export function SignupForm({
   const hasInvalidParticipants =
     invalidParticipantLines.length > 0 || participantCount > 200;
   const isShraddhaService = Boolean(selectedService?.shraddhaModeEnabled);
-  const wizardChildUnits = isShraddhaService
-    ? getChildUnitsFromRows(childRows)
-    : 0;
-  const wizardChildHasIssues = isShraddhaService && childRowsHaveIssues(childRows);
+  const wizardChildPayload = isShraddhaService
+    ? childRowsToPayload(childRows)
+    : [];
+  const wizardUnbornUnits = wizardChildPayload
+    .filter((record) => record.type === "UNBORN")
+    .reduce((sum, record) => sum + record.childCount, 0);
+  const wizardDeceasedUnits = wizardChildPayload
+    .filter((record) => record.type === "DECEASED")
+    .reduce((sum, record) => sum + record.childCount, 0);
+  const wizardChildUnits = wizardUnbornUnits + wizardDeceasedUnits;
+  const wizardChildHasIssues =
+    isShraddhaService && childRowsHaveIssues(childRows);
   const phoneCountryOptions = useMemo(
     () => getPhoneCountryOptions(locale),
     [locale]
@@ -1516,6 +1529,7 @@ export function SignupForm({
           amountRub: number;
           currency: string;
           curatorName: string;
+          clientOrderPath?: string;
           isCustomPayment?: boolean;
           orderNumber: number;
           paymentInstructions?: PaymentInstructions | null;
@@ -1546,6 +1560,7 @@ export function SignupForm({
       orderNumber: result.orderNumber,
       amountRub: result.amountRub,
       currency: result.currency,
+      clientOrderPath: result.clientOrderPath,
       isCustomPayment: result.isCustomPayment,
       paymentInstructions: result.paymentInstructions,
       paymentProviderName: result.paymentProviderName,
@@ -1743,23 +1758,23 @@ export function SignupForm({
       {mode === "wizard" && (
         <ol className="form-progress" aria-label={copy.progressAria}>
           {formSteps.map(({ Icon, label }, index) => (
-          <li
-            className={
-              index === step
-                ? "form-progress__item is-active"
-                : index < step
-                  ? "form-progress__item is-done"
-                  : "form-progress__item"
-            }
-            aria-current={index === step ? "step" : undefined}
-            aria-label={label}
-            key={label}
-          >
-            <span className="form-progress__icon" aria-hidden="true">
-              <Icon />
-            </span>
-            <span className="form-progress__label">{label}</span>
-          </li>
+            <li
+              className={
+                index === step
+                  ? "form-progress__item is-active"
+                  : index < step
+                    ? "form-progress__item is-done"
+                    : "form-progress__item"
+              }
+              aria-current={index === step ? "step" : undefined}
+              aria-label={label}
+              key={label}
+            >
+              <span className="form-progress__icon" aria-hidden="true">
+                <Icon />
+              </span>
+              <span className="form-progress__label">{label}</span>
+            </li>
           ))}
         </ol>
       )}
@@ -1820,8 +1835,9 @@ export function SignupForm({
         <fieldset className="form-step">
           <legend>{copy.legend.ceremony}</legend>
           <p className="form-note">
-            Отметьте все услуги, которые хотите оформить одним заказом. Для услуг
-            с участниками укажите список, для услуг с обрядами выберите нужные.
+            Отметьте все услуги, которые хотите оформить одним заказом. Для
+            услуг с участниками укажите список, для услуг с обрядами выберите
+            нужные.
           </p>
           <div className="option-grid">
             {services.map((service) => {
@@ -1829,12 +1845,10 @@ export function SignupForm({
               const isSelected = Boolean(selection);
               const optionIds = selection?.optionIds ?? [];
               const needsParticipants =
-                isSelected &&
-                multiServiceNeedsParticipants(service, optionIds);
+                isSelected && multiServiceNeedsParticipants(service, optionIds);
               const mustSelectOptions =
                 !service.isSubscription &&
-                (service.slug === "single-rite" ||
-                  service.options.length > 0);
+                (service.slug === "single-rite" || service.options.length > 0);
               const invalidLines = selection
                 ? getInvalidParticipantLines(selection.participantsInput)
                 : [];
@@ -1843,6 +1857,8 @@ export function SignupForm({
                 : service.options.filter((option) =>
                     optionIds.includes(option.id)
                   );
+              const subscriptionDurationText =
+                getSubscriptionDurationText(service);
 
               return (
                 <div
@@ -1866,6 +1882,19 @@ export function SignupForm({
                       <small className="choice-card__price">
                         {service.priceLabel}
                       </small>
+                      {service.isSubscription && (
+                        <span className="choice-card__subscription-meta">
+                          <span>
+                            Старт:{" "}
+                            {service.subscriptionStartsAtLabel || "уточняется"}
+                            {service.subscriptionStartsAtLabel ? " МСК" : ""}
+                          </span>
+                          <span>
+                            Продлится:{" "}
+                            {subscriptionDurationText ?? "уточняется"}
+                          </span>
+                        </span>
+                      )}
                     </span>
                   </label>
                   {service.description && (
@@ -1920,10 +1949,7 @@ export function SignupForm({
                       <span>{copy.fields.participantList}</span>
                       <textarea
                         onChange={(event) =>
-                          setMultiParticipants(
-                            service.slug,
-                            event.target.value
-                          )
+                          setMultiParticipants(service.slug, event.target.value)
                         }
                         placeholder={"Иван Иванов\nМария Петрова"}
                         rows={4}
@@ -1943,9 +1969,7 @@ export function SignupForm({
                     <ChildRecordsBlock
                       deceasedChildLabel={service.shraddhaDeceasedChildLabel}
                       helpText={service.shraddhaChildHelpText}
-                      onChange={(rows) =>
-                        setMultiChildRows(service.slug, rows)
-                      }
+                      onChange={(rows) => setMultiChildRows(service.slug, rows)}
                       rows={selection?.childRows ?? emptyChildRows()}
                       unbornLabel={service.shraddhaUnbornLabel}
                       warningText={service.shraddhaWarningText}
@@ -1971,6 +1995,7 @@ export function SignupForm({
                       {line.names.length > 0
                         ? ` — ${line.names.length} уч.`
                         : ""}
+                      {line.childUnits > 0 ? ` + ${line.childUnits} дет.` : ""}
                       {" — "}
                       {formatMoney(line.amount, line.service.currency)}
                     </li>
@@ -1996,6 +2021,8 @@ export function SignupForm({
             {services.map((service) => {
               const showVedicGift = service.vedicGiftEnabled;
               const inputId = `service-${service.slug}`;
+              const subscriptionDurationText =
+                getSubscriptionDurationText(service);
 
               return (
                 <div
@@ -2028,7 +2055,9 @@ export function SignupForm({
                   >
                     <input
                       checked={activeServiceSlug === service.slug}
-                      className={showVedicGift ? "choice-card__radio--hidden" : undefined}
+                      className={
+                        showVedicGift ? "choice-card__radio--hidden" : undefined
+                      }
                       id={inputId}
                       name="service"
                       onChange={() => selectService(service.slug)}
@@ -2054,12 +2083,25 @@ export function SignupForm({
                       <small className="choice-card__price">
                         {service.priceLabel}
                       </small>
+                      {service.isSubscription && (
+                        <span className="choice-card__subscription-meta">
+                          <span>
+                            Старт:{" "}
+                            {service.subscriptionStartsAtLabel || "уточняется"}
+                            {service.subscriptionStartsAtLabel ? " МСК" : ""}
+                          </span>
+                          <span>
+                            Продлится:{" "}
+                            {subscriptionDurationText ?? "уточняется"}
+                          </span>
+                        </span>
+                      )}
                     </span>
                   </label>
                   {service.description && (
                     <p className="choice-card__note">{service.description}</p>
                   )}
-                  {service.detailsContent.trim() && (
+                  {!service.isSubscription && service.detailsContent.trim() && (
                     <button
                       aria-label={`Показать подробное пояснение: ${service.title}`}
                       className="service-details-button"
@@ -2084,10 +2126,6 @@ export function SignupForm({
               onSelect={() => selectServiceFromDetails(detailsService)}
               service={detailsService}
             />
-          )}
-
-          {selectedService?.isSubscription && (
-            <SubscriptionInfoCard service={selectedService} />
           )}
 
           {mustSelectServiceOptions && selectedService && (
@@ -2219,11 +2257,12 @@ export function SignupForm({
           {participantCount > 200 && (
             <p className="form-warning">{copy.warnings.tooManyParticipants}</p>
           )}
-          {participantCount < 1 && !(isShraddhaService && wizardChildUnits > 0) && (
-            <p className="form-warning">
-              {copy.warnings.incompleteParticipants.replace("{{count}}", "0")}
-            </p>
-          )}
+          {participantCount < 1 &&
+            !(isShraddhaService && wizardChildUnits > 0) && (
+              <p className="form-warning">
+                {copy.warnings.incompleteParticipants.replace("{{count}}", "0")}
+              </p>
+            )}
           {isShraddhaService && selectedService && (
             <ChildRecordsBlock
               deceasedChildLabel={selectedService.shraddhaDeceasedChildLabel}
@@ -2456,6 +2495,18 @@ export function SignupForm({
               <dt>{copy.review.participants}</dt>
               <dd>{participantCount}</dd>
             </div>
+            {isShraddhaService && wizardUnbornUnits > 0 && (
+              <div>
+                <dt>Нерожденных детей</dt>
+                <dd>{wizardUnbornUnits}</dd>
+              </div>
+            )}
+            {isShraddhaService && wizardDeceasedUnits > 0 && (
+              <div>
+                <dt>Умерших детей</dt>
+                <dd>{wizardDeceasedUnits}</dd>
+              </div>
+            )}
             <div>
               <dt>{copy.review.amount}</dt>
               <dd>{formatMoney(estimatedAmount, selectedService!.currency)}</dd>
@@ -2564,5 +2615,3 @@ export function SignupForm({
     </form>
   );
 }
-
-

@@ -1,3 +1,4 @@
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { PaymentReceiptLink } from "@/components/payment-receipt-link";
@@ -36,6 +37,8 @@ async function getOrderPostPurchase(publicToken?: string) {
         },
         id: true,
         orderNumber: true,
+        publicToken: true,
+        status: true,
         service: {
           select: {
             slug: true,
@@ -60,6 +63,7 @@ async function getOrderPostPurchase(publicToken?: string) {
         payment: {
           select: {
             receiptLabel: true,
+            status: true,
             receiptUrl: true
           }
         },
@@ -97,6 +101,10 @@ export default async function PaymentSuccessPage({
     : false;
 
   const showVedicGift = Boolean(order?.service?.vedicGiftEnabled);
+  const isPaymentConfirmed = Boolean(
+    order?.status === OrderStatus.PAID &&
+    order.payment?.status === PaymentStatus.SUCCEEDED
+  );
   const initialContactName = order?.client?.name ?? order?.customerName;
   const initialContactEmail =
     order?.client?.email ?? order?.customerEmail ?? undefined;
@@ -109,9 +117,17 @@ export default async function PaymentSuccessPage({
     <main className="simple-page">
       <section className="simple-card simple-card--success">
         <p className="eyebrow">{copy.success.eyebrow}</p>
-        <h1>{copy.success.title}</h1>
-        <p>{copy.success.text}</p>
-        {order && (
+        <h1>
+          {order && !isPaymentConfirmed
+            ? "Проверяем оплату"
+            : copy.success.title}
+        </h1>
+        <p>
+          {order && !isPaymentConfirmed
+            ? "Платёжная форма вернула вас на сайт. Финальный статус берём из защищённого webhook-подтверждения."
+            : copy.success.text}
+        </p>
+        {order && isPaymentConfirmed && (
           <div className="post-purchase-box">
             <p>
               Заказ #{order.orderNumber}, куратор:{" "}
@@ -141,6 +157,25 @@ export default async function PaymentSuccessPage({
             )}
           </div>
         )}
+        {order && !isPaymentConfirmed && (
+          <div className="post-purchase-box">
+            <p>
+              Возврат из платежной формы получен, но мы ещё ждём подтверждение
+              оплаты от платёжной системы.
+            </p>
+            <p className="form-note">
+              Доступ к материалам куратора откроется после webhook-подтверждения
+              оплаты. Обычно это занимает несколько секунд — обновите страницу
+              или откройте покупку в личном кабинете.
+            </p>
+            <Link
+              className="button"
+              href={`/client/orders/${order.publicToken}`}
+            >
+              Открыть покупку
+            </Link>
+          </div>
+        )}
         {supportCurator && (
           <SupportCta
             curatorName={supportCurator.name}
@@ -156,26 +191,30 @@ export default async function PaymentSuccessPage({
           {copy.success.backHome}
         </Link>
       </section>
-      {showVedicGift && order?.service && order?.curator && order?.id && (
-        <section className="simple-card">
-          <VedicGiftForm
-            alreadySubmitted={Boolean(order.vedicGiftData)}
-            description={
-              order.service.vedicGiftDescription?.trim() ||
-              "Пожалуйста, укажите данные для составления разбора по ведической астрологии (Джйотиш)."
-            }
-            initialEmail={initialContactEmail}
-            initialName={initialContactName}
-            initialPhone={initialContactPhone}
-            initialTelegram={initialContactTelegram}
-            orderId={order.id}
-            title={
-              order.service.vedicGiftTitle?.trim() ||
-              "🎁 Подарок: ведический астрологический разбор"
-            }
-          />
-        </section>
-      )}
+      {isPaymentConfirmed &&
+        showVedicGift &&
+        order?.service &&
+        order?.curator &&
+        order?.id && (
+          <section className="simple-card">
+            <VedicGiftForm
+              alreadySubmitted={Boolean(order.vedicGiftData)}
+              description={
+                order.service.vedicGiftDescription?.trim() ||
+                "Пожалуйста, укажите данные для составления разбора по ведической астрологии (Джйотиш)."
+              }
+              initialEmail={initialContactEmail}
+              initialName={initialContactName}
+              initialPhone={initialContactPhone}
+              initialTelegram={initialContactTelegram}
+              orderId={order.id}
+              title={
+                order.service.vedicGiftTitle?.trim() ||
+                "🎁 Подарок: ведический астрологический разбор"
+              }
+            />
+          </section>
+        )}
     </main>
   );
 }

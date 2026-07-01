@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  ArchiveServiceForm,
   getPriceUnitLabel,
   ToggleServiceActiveForm,
   UpdateServiceForm
@@ -131,6 +132,7 @@ export default async function AdminProductDetailPage({
       <section className="admin-card admin-card--wide">
         <UpdateServiceForm service={service} />
         <ToggleServiceActiveForm service={service} />
+        <ArchiveServiceForm service={service} />
       </section>
     </div>
   );

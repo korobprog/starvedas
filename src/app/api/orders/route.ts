@@ -22,10 +22,7 @@ import {
   getPriceUnitQuantity,
   normalizeOptional
 } from "@/server/order-validation";
-import {
-  formatChildRecordLines,
-  getChildUnitsTotal
-} from "@/lib/shraddha";
+import { formatChildRecordLines, getChildUnitsTotal } from "@/lib/shraddha";
 import { upsertClientProfileForFunnel } from "@/server/client-profiles";
 import { createProdamusPaymentUrl } from "@/server/payform";
 import {
@@ -104,6 +101,13 @@ function createResultUrl(baseUrl: string, path: string, publicToken: string) {
   url.searchParams.set("order", publicToken);
 
   return url.toString();
+}
+
+function createClientOrderUrl(baseUrl: string, publicToken: string) {
+  return new URL(
+    `/client/orders/${encodeURIComponent(publicToken)}`,
+    baseUrl
+  ).toString();
 }
 
 async function findFirstStoredReferralSlug({
@@ -333,28 +337,29 @@ export async function POST(request: Request) {
         );
       }
 
-      const selectedOptions: SelectedOptionRow[] = selectedServiceOptionIds.length
-        ? await prisma.serviceOption.findMany({
-            orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-            select: {
-              description: true,
-              id: true,
-              priceRub: true,
-              priceUnit: true,
-              sortOrder: true,
-              title: true
-            },
-            where: {
-              active: true,
-              id: { in: selectedServiceOptionIds },
-              OR: [
-                { eventStartsAt: null },
-                { eventStartsAt: { gt: new Date() } }
-              ],
-              serviceId: service.id
-            }
-          })
-        : [];
+      const selectedOptions: SelectedOptionRow[] =
+        selectedServiceOptionIds.length
+          ? await prisma.serviceOption.findMany({
+              orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+              select: {
+                description: true,
+                id: true,
+                priceRub: true,
+                priceUnit: true,
+                sortOrder: true,
+                title: true
+              },
+              where: {
+                active: true,
+                id: { in: selectedServiceOptionIds },
+                OR: [
+                  { eventStartsAt: null },
+                  { eventStartsAt: { gt: new Date() } }
+                ],
+                serviceId: service.id
+              }
+            })
+          : [];
 
       if (selectedOptions.length !== selectedServiceOptionIds.length) {
         return NextResponse.json(
@@ -366,7 +371,7 @@ export async function POST(request: Request) {
       // Записи о нерожденных/умерших детях учитываются только для услуг с
       // включённым режимом Шраддха; иначе игнорируются.
       const childRecords = service.shraddhaModeEnabled
-        ? input.childRecords ?? []
+        ? (input.childRecords ?? [])
         : [];
       const childUnits = getChildUnitsTotal(childRecords);
       const childRecordLines = formatChildRecordLines(childRecords, {
@@ -661,6 +666,13 @@ export async function POST(request: Request) {
             vatTaxType: primaryService.vatTaxType
           }))
         : undefined;
+    const clientOrderUrl = createClientOrderUrl(
+      resultBaseUrl,
+      order.publicToken
+    );
+    const successUrl = currentClient?.telegramId
+      ? clientOrderUrl
+      : createResultUrl(resultBaseUrl, "/payment/success", order.publicToken);
     const paymentUrl = isCustomPayment
       ? undefined
       : createProviderPaymentUrl({
@@ -680,13 +692,8 @@ export async function POST(request: Request) {
           products: prodamusProducts,
           provider: paymentProvider.code,
           receiptName:
-            primaryService.receiptName?.trim() ||
-            primaryService.localizedTitle,
-          successUrl: createResultUrl(
-            resultBaseUrl,
-            "/payment/success",
-            order.publicToken
-          ),
+            primaryService.receiptName?.trim() || primaryService.localizedTitle,
+          successUrl,
           vatTaxType: primaryService.vatTaxType
         });
 
@@ -744,6 +751,8 @@ export async function POST(request: Request) {
       amountRub: order.amountRub,
       currency,
       curatorName: curator.name,
+      clientOrderPath: `/client/orders/${order.publicToken}`,
+      clientOrderUrl,
       isCustomPayment,
       orderNumber: order.orderNumber,
       paymentInstructions: paymentProvider.instructions,

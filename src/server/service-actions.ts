@@ -145,6 +145,14 @@ const toggleServiceSchema = z.object({
   id: z.string().trim().min(1)
 });
 
+const serviceIdSchema = z.object({
+  id: z.string().trim().min(1)
+});
+
+const serviceIdsSchema = z.object({
+  ids: z.array(z.string().trim().min(1)).min(1)
+});
+
 const serviceOptionFormSchema = z.object({
   active: z.boolean(),
   delete: z.boolean(),
@@ -653,6 +661,7 @@ async function saveServiceOptions(
 function revalidateServicePages() {
   revalidatePath("/");
   revalidatePath("/admin/products");
+  revalidatePath("/admin/products/archive");
   revalidatePath("/cabinet");
 }
 
@@ -798,4 +807,140 @@ export async function toggleServiceActive(formData: FormData) {
 
   revalidateServicePages();
   redirect(`/admin/products/${parsed.data.id}?saved=1`);
+}
+
+export async function archiveService(formData: FormData) {
+  await requireServiceManager();
+
+  const parsed = serviceIdSchema.safeParse({
+    id: formData.get("id")
+  });
+
+  if (!parsed.success) {
+    throw new Error("Некорректные данные продукта");
+  }
+
+  await prisma.service.update({
+    where: { id: parsed.data.id },
+    data: {
+      active: false,
+      archivedAt: new Date()
+    }
+  });
+
+  revalidateServicePages();
+  redirect("/admin/products?archived=1");
+}
+
+async function deleteArchivedServices(ids?: string[]) {
+  const archivedServices = await prisma.service.findMany({
+    where: {
+      archivedAt: {
+        not: null
+      },
+      ...(ids
+        ? {
+            id: {
+              in: ids
+            }
+          }
+        : {})
+    },
+    select: {
+      _count: {
+        select: {
+          orderItems: true,
+          orders: true
+        }
+      },
+      id: true
+    }
+  });
+
+  const deletableIds = archivedServices
+    .filter(
+      (service) =>
+        service._count.orders === 0 && service._count.orderItems === 0
+    )
+    .map((service) => service.id);
+
+  if (deletableIds.length === 0) {
+    return {
+      deleted: 0,
+      skipped: archivedServices.length
+    };
+  }
+
+  const result = await prisma.service.deleteMany({
+    where: {
+      archivedAt: {
+        not: null
+      },
+      id: {
+        in: deletableIds
+      },
+      orderItems: {
+        none: {}
+      },
+      orders: {
+        none: {}
+      }
+    }
+  });
+
+  return {
+    deleted: result.count,
+    skipped: archivedServices.length - result.count
+  };
+}
+
+export async function permanentlyDeleteArchivedService(formData: FormData) {
+  await requireServiceManager();
+
+  const parsed = serviceIdSchema.safeParse({
+    id: formData.get("id")
+  });
+
+  if (!parsed.success) {
+    throw new Error("Некорректные данные продукта");
+  }
+
+  const result = await deleteArchivedServices([parsed.data.id]);
+
+  revalidateServicePages();
+  redirect(
+    `/admin/products/archive?deleted=${result.deleted}&skipped=${result.skipped}`
+  );
+}
+
+export async function permanentlyDeleteSelectedArchivedServices(
+  formData: FormData
+) {
+  await requireServiceManager();
+
+  const parsed = serviceIdsSchema.safeParse({
+    ids: formData.getAll("serviceId")
+  });
+
+  if (!parsed.success) {
+    redirect("/admin/products/archive?error=empty-selection");
+  }
+
+  const result = await deleteArchivedServices(parsed.data.ids);
+
+  revalidateServicePages();
+  redirect(
+    `/admin/products/archive?deleted=${result.deleted}&skipped=${result.skipped}`
+  );
+}
+
+export async function permanentlyDeleteAllArchivedServices() {
+  await requireServiceManager();
+
+  const result = await deleteArchivedServices();
+
+  revalidateServicePages();
+  redirect(
+    `/admin/products/archive?deleted=${result.deleted}&skipped=${result.skipped}`
+  );
 }

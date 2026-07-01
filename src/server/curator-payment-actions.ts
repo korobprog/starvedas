@@ -5,8 +5,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/server/auth";
+import { getCabinetCuratorIdForSessionUser } from "@/server/cabinet-curator";
 import { getCuratorPaymentProviderSettings } from "@/server/payment-providers";
-import { ensureSystemCurator } from "@/server/referrals";
 
 const optionalPaymentText = z
   .string()
@@ -32,8 +32,11 @@ const paymentOptionSettingsSchema = z.object({
 });
 
 export async function saveCabinetPaymentSettings(formData: FormData) {
-  await requireUser([UserRole.ADMIN, UserRole.SUPER_ADMIN], "/cabinet");
-  const curatorId = (await ensureSystemCurator()).id;
+  const user = await requireUser(
+    [UserRole.ADMIN, UserRole.SUPER_ADMIN],
+    "/cabinet"
+  );
+  const curatorId = await getCabinetCuratorIdForSessionUser(user);
 
   if (!curatorId) {
     throw new Error("Профиль куратора не найден");

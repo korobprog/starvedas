@@ -21,6 +21,7 @@ import {
   canManageServices as getServiceManagementAccess,
   requireUser
 } from "@/server/auth";
+import { getCabinetCuratorIdForSessionUser } from "@/server/cabinet-curator";
 import { logoutAction } from "@/server/auth-actions";
 import {
   createCabinetReferralLinkAction,
@@ -41,7 +42,6 @@ import {
 import {
   buildReferralPath,
   buildReferralUrl,
-  ensureSystemCurator,
   getReferralPublicOrigin
 } from "@/server/referrals";
 import {
@@ -201,10 +201,9 @@ async function getCabinetCurator(
     return { ...curator, orders };
   }
 
-  await ensureSystemCurator();
-
+  const curatorId = await getCabinetCuratorIdForSessionUser(user);
   const curator = await prisma.curator.findUnique({
-    where: { slug: "administrator" },
+    where: { id: curatorId ?? "" },
     select: cabinetCuratorSelect
   });
 

@@ -85,6 +85,7 @@ const managedServiceSelect = {
     }
   },
   active: true,
+  archivedAt: true,
   description: true,
   descriptionEn: true,
   descriptionHi: true,
@@ -439,7 +440,8 @@ export async function getPublicServices(
   try {
     const services = await prisma.service.findMany({
       where: {
-        active: true
+        active: true,
+        archivedAt: null
       },
       orderBy: [
         {
@@ -462,9 +464,20 @@ export async function getPublicServices(
   return [];
 }
 
-export async function getManagedServices(): Promise<ManagedService[]> {
+export async function getManagedServices({
+  archived = false
+}: {
+  archived?: boolean;
+} = {}): Promise<ManagedService[]> {
   return prisma.service.findMany({
     orderBy: [
+      ...(archived
+        ? [
+            {
+              archivedAt: "desc" as const
+            }
+          ]
+        : []),
       {
         sortOrder: "asc"
       },
@@ -472,6 +485,7 @@ export async function getManagedServices(): Promise<ManagedService[]> {
         title: "asc"
       }
     ],
+    where: archived ? { archivedAt: { not: null } } : { archivedAt: null },
     select: managedServiceSelect
   });
 }
@@ -479,8 +493,8 @@ export async function getManagedServices(): Promise<ManagedService[]> {
 export async function getManagedService(
   id: string
 ): Promise<ManagedService | null> {
-  return prisma.service.findUnique({
-    where: { id },
+  return prisma.service.findFirst({
+    where: { archivedAt: null, id },
     select: managedServiceSelect
   });
 }
@@ -498,6 +512,7 @@ export async function getServiceForOrder(
   const service = await prisma.service.findFirst({
     where: {
       active: true,
+      archivedAt: null,
       slug: normalizedSlug
     },
     select: orderServiceSelect
