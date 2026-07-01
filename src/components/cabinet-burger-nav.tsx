@@ -1,12 +1,32 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode
+} from "react";
 
 export function CabinetBurgerNav({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => setIsOpen(false), []);
+
+  const handleMenuClick = useCallback(
+    (event: ReactMouseEvent<HTMLElement>) => {
+      const target = event.target;
+
+      if (!(target instanceof Element) || !target.closest("a")) {
+        return;
+      }
+
+      window.setTimeout(close, 0);
+    },
+    [close]
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -42,7 +62,7 @@ export function CabinetBurgerNav({ children }: { children: ReactNode }) {
         </span>
       </button>
       {isOpen && (
-        <nav className="cabinet-burger-nav__menu" onClick={close}>
+        <nav className="cabinet-burger-nav__menu" onClick={handleMenuClick}>
           {children}
         </nav>
       )}
