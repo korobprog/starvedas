@@ -16,11 +16,16 @@ import { getCurrentClientProfile } from "@/server/client-auth";
 import {
   calculateOrderAmount,
   calculateSelectedOptionsAmount,
+  type ChildRecordInputParsed,
   createOrderSchema,
   getParticipantNames,
   getPriceUnitQuantity,
   normalizeOptional
 } from "@/server/order-validation";
+import {
+  formatChildRecordLines,
+  getChildUnitsTotal
+} from "@/lib/shraddha";
 import { upsertClientProfileForFunnel } from "@/server/client-profiles";
 import { createProdamusPaymentUrl } from "@/server/payform";
 import {
@@ -168,6 +173,9 @@ type SelectedOptionRow = {
 
 type ResolvedLine = {
   amountRub: number;
+  childRecords: ChildRecordInputParsed[];
+  childRecordLines: string[];
+  childUnits: number;
   names: string[];
   participantCount: number;
   participantsText: string;
@@ -200,7 +208,8 @@ export async function POST(request: Request) {
           serviceSlug: data.serviceSlug ?? "",
           selectedServiceOptionIds: data.selectedServiceOptionIds,
           participantCount: data.participantCount ?? 0,
-          participantsText: data.participantsText ?? ""
+          participantsText: data.participantsText ?? "",
+          childRecords: data.childRecords
         }
       ];
 
@@ -354,13 +363,25 @@ export async function POST(request: Request) {
         );
       }
 
+      // Записи о нерожденных/умерших детях учитываются только для услуг с
+      // включённым режимом Шраддха; иначе игнорируются.
+      const childRecords = service.shraddhaModeEnabled
+        ? input.childRecords ?? []
+        : [];
+      const childUnits = getChildUnitsTotal(childRecords);
+      const childRecordLines = formatChildRecordLines(childRecords, {
+        unbornLabel: service.shraddhaUnbornLabel ?? undefined,
+        deceasedChildLabel: service.shraddhaDeceasedChildLabel ?? undefined
+      });
+
       const requiresParticipants =
         service.priceUnit !== PriceUnit.PER_ORDER ||
         selectedOptions.some(
           (option) => option.priceUnit !== PriceUnit.PER_ORDER
         );
 
-      if (requiresParticipants && lineNames.length === 0) {
+      // Для Шраддха-режима достаточно указать детей, даже без списка усопших.
+      if (requiresParticipants && lineNames.length === 0 && childUnits === 0) {
         return NextResponse.json(
           {
             message: `Добавьте участников для услуги: ${service.localizedTitle}`
@@ -371,11 +392,13 @@ export async function POST(request: Request) {
 
       const amountRub = selectedOptions.length
         ? calculateSelectedOptionsAmount({
+            childUnits,
             options: selectedOptions,
             participantCount: lineNames.length,
             participantNames: lineNames
           })
         : calculateOrderAmount({
+            childUnits,
             participantCount: lineNames.length,
             participantNames: lineNames,
             priceRub: service.localizedPrice,
@@ -384,6 +407,9 @@ export async function POST(request: Request) {
 
       lines.push({
         amountRub,
+        childRecords,
+        childRecordLines,
+        childUnits,
         names: lineNames,
         participantCount: lineNames.length,
         participantsText: lineNames.join("\n"),
@@ -397,6 +423,9 @@ export async function POST(request: Request) {
     const aggregateNames = lines.flatMap((line) => line.names);
     const aggregateParticipantsText = aggregateNames.join("\n");
     const aggregateParticipantCount = aggregateNames.length;
+    const aggregateChildRecordLines = lines.flatMap(
+      (line) => line.childRecordLines
+    );
     const totalAmountRub = lines.reduce((sum, line) => sum + line.amountRub, 0);
     const paymentDescription = isMultiItem
       ? lines.map((line) => line.service.localizedTitle).join(", ")
@@ -489,6 +518,7 @@ export async function POST(request: Request) {
 
       let participantSortOffset = 0;
       let optionSortOffset = 0;
+      let childRecordSortOffset = 0;
 
       for (const [index, line] of lines.entries()) {
         const orderItemId = isMultiItem
@@ -534,10 +564,25 @@ export async function POST(request: Request) {
           participantSortOffset += line.names.length;
         }
 
+        if (line.childRecords.length) {
+          await tx.orderChildRecord.createMany({
+            data: line.childRecords.map((record, recordIndex) => ({
+              type: record.type,
+              parentName: record.parentName,
+              childCount: record.childCount,
+              orderId: order.id,
+              orderItemId,
+              sortOrder: childRecordSortOffset + recordIndex + 1
+            }))
+          });
+          childRecordSortOffset += line.childRecords.length;
+        }
+
         if (line.selectedOptions.length) {
           await tx.orderServiceOption.createMany({
             data: line.selectedOptions.map((option, optionIndex) => {
               const quantity = getPriceUnitQuantity({
+                childUnits: line.childUnits,
                 participantCount: line.participantCount,
                 participantNames: line.names,
                 priceUnit: option.priceUnit
@@ -582,6 +627,7 @@ export async function POST(request: Request) {
                 name: `${line.service.localizedTitle}: ${option.title}`,
                 priceRub: option.priceRub,
                 quantity: getPriceUnitQuantity({
+                  childUnits: line.childUnits,
                   participantCount: line.participantCount,
                   participantNames: line.names,
                   priceUnit: option.priceUnit
@@ -593,6 +639,7 @@ export async function POST(request: Request) {
                   name: line.service.localizedTitle,
                   priceRub: line.service.localizedPrice,
                   quantity: getPriceUnitQuantity({
+                    childUnits: line.childUnits,
                     participantCount: line.participantCount,
                     participantNames: line.names,
                     priceUnit: line.service.priceUnit
@@ -606,6 +653,7 @@ export async function POST(request: Request) {
             name: option.title,
             priceRub: option.priceRub,
             quantity: getPriceUnitQuantity({
+              childUnits: lines[0].childUnits,
               participantCount: lines[0].participantCount,
               participantNames: lines[0].names,
               priceUnit: option.priceUnit
@@ -656,6 +704,7 @@ export async function POST(request: Request) {
     try {
       await sendOrderCreatedTelegramNotification({
         amountRub: order.amountRub,
+        childRecordLines: aggregateChildRecordLines,
         curatorName: curator.name,
         customerEmail,
         customerName: data.customerName,

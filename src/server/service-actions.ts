@@ -114,6 +114,11 @@ const serviceCoreSchema = z.object({
   vedicGiftDescription: optionalDetailsText,
   vedicGiftEnabled: z.boolean(),
   vedicGiftTitle: optionalText,
+  shraddhaModeEnabled: z.boolean(),
+  shraddhaWarningText: optionalText,
+  shraddhaUnbornLabel: optionalText,
+  shraddhaDeceasedChildLabel: optionalText,
+  shraddhaChildHelpText: optionalText,
   vatTaxType: z.coerce
     .number()
     .int()
@@ -229,6 +234,12 @@ function parseServiceFormData(formData: FormData) {
     vedicGiftDescription: formData.get("vedicGiftDescription") ?? "",
     vedicGiftEnabled: formData.get("vedicGiftEnabled") === "on",
     vedicGiftTitle: formData.get("vedicGiftTitle") ?? "",
+    shraddhaModeEnabled: formData.get("shraddhaModeEnabled") === "on",
+    shraddhaWarningText: formData.get("shraddhaWarningText") ?? "",
+    shraddhaUnbornLabel: formData.get("shraddhaUnbornLabel") ?? "",
+    shraddhaDeceasedChildLabel:
+      formData.get("shraddhaDeceasedChildLabel") ?? "",
+    shraddhaChildHelpText: formData.get("shraddhaChildHelpText") ?? "",
     priceInr: formData.get("priceInr") || null,
     priceRub: formData.get("priceRub") ?? 0,
     priceUsd: formData.get("priceUsd") || null,
@@ -288,6 +299,12 @@ function parseServiceUpdateFormData(formData: FormData) {
     vedicGiftDescription: formData.get("vedicGiftDescription") ?? "",
     vedicGiftEnabled: formData.get("vedicGiftEnabled") === "on",
     vedicGiftTitle: formData.get("vedicGiftTitle") ?? "",
+    shraddhaModeEnabled: formData.get("shraddhaModeEnabled") === "on",
+    shraddhaWarningText: formData.get("shraddhaWarningText") ?? "",
+    shraddhaUnbornLabel: formData.get("shraddhaUnbornLabel") ?? "",
+    shraddhaDeceasedChildLabel:
+      formData.get("shraddhaDeceasedChildLabel") ?? "",
+    shraddhaChildHelpText: formData.get("shraddhaChildHelpText") ?? "",
     priceInr: formData.get("priceInr") || null,
     priceRub: formData.get("priceRub") ?? 0,
     priceUsd: formData.get("priceUsd") || null,
@@ -741,6 +758,11 @@ export async function updateService(formData: FormData) {
           vedicGiftDescription: data.vedicGiftDescription,
           vedicGiftEnabled: data.vedicGiftEnabled,
           vedicGiftTitle: data.vedicGiftTitle,
+          shraddhaModeEnabled: data.shraddhaModeEnabled,
+          shraddhaWarningText: data.shraddhaWarningText,
+          shraddhaUnbornLabel: data.shraddhaUnbornLabel,
+          shraddhaDeceasedChildLabel: data.shraddhaDeceasedChildLabel,
+          shraddhaChildHelpText: data.shraddhaChildHelpText,
           vatTaxType: data.vatTaxType
         }
       });

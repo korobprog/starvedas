@@ -17,6 +17,7 @@ type TelegramResponse = {
 
 type OrderCreatedNotificationInput = {
   amountRub: number;
+  childRecordLines?: string[];
   curatorName: string;
   customerEmail: string | null;
   customerName: string;
@@ -38,6 +39,8 @@ type OrderCreatedNotificationInput = {
 type PaymentSucceededNotificationInput = OrderCreatedNotificationInput & {
   paidAt?: Date | null;
   paymentProviderName: string;
+  receiptLabel?: string | null;
+  receiptUrl?: string | null;
 };
 
 type ParticipantListNotificationInput = {
@@ -80,6 +83,14 @@ export async function sendOrderCreatedTelegramNotification(
   return sendTelegramMessage(formatOrderCreatedMessage(input));
 }
 
+function formatChildRecordsSection(input: OrderCreatedNotificationInput) {
+  if (!input.childRecordLines?.length) {
+    return [];
+  }
+
+  return ["", "Дети:", ...input.childRecordLines];
+}
+
 export async function sendPaymentSucceededTelegramNotification(
   input: PaymentSucceededNotificationInput
 ) {
@@ -106,7 +117,9 @@ function getAllowedTelegramUserIds() {
     .filter(Boolean);
 }
 
-function formatOrderCreatedMessage(input: OrderCreatedNotificationInput) {
+export function formatOrderCreatedMessage(
+  input: OrderCreatedNotificationInput
+) {
   const localizedAmount = formatLocalizedPrice(input.amountRub, input.locale);
 
   return [
@@ -120,6 +133,7 @@ function formatOrderCreatedMessage(input: OrderCreatedNotificationInput) {
     `Участников: ${input.participantCount}`,
     "Список участников:",
     input.participantNames.join("\n"),
+    ...formatChildRecordsSection(input),
     ...formatSelectedOptions(input),
     "",
     `Заказчик: ${input.customerName}`,
@@ -149,7 +163,9 @@ function formatPaymentSucceededMessage(
     `Участников: ${input.participantCount}`,
     "Список участников:",
     input.participantNames.join("\n"),
+    ...formatChildRecordsSection(input),
     ...formatSelectedOptions(input),
+    ...formatReceipt(input),
     "",
     `Заказчик: ${input.customerName}`,
     `Telegram: ${formatOptional(input.customerTelegram)}`,
@@ -172,6 +188,17 @@ function formatSelectedOptions(input: OrderCreatedNotificationInput) {
       (option) =>
         `- ${option.title}: ${formatLocalizedPrice(option.priceRub, input.locale)}`
     )
+  ];
+}
+
+function formatReceipt(input: PaymentSucceededNotificationInput) {
+  if (!input.receiptUrl) {
+    return [];
+  }
+
+  return [
+    "",
+    `${input.receiptLabel?.trim() || "Чек об оплате"}: ${input.receiptUrl}`
   ];
 }
 

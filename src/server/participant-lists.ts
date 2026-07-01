@@ -99,7 +99,21 @@ export const participantListSelect =
             statisticianComment: true
           }
         },
-        service: { select: { title: true } },
+        childRecords: {
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+          select: {
+            childCount: true,
+            parentName: true,
+            type: true
+          }
+        },
+        service: {
+          select: {
+            title: true,
+            shraddhaUnbornLabel: true,
+            shraddhaDeceasedChildLabel: true
+          }
+        },
         serviceOptions: {
           orderBy: { sortOrder: "asc" },
           select: {

@@ -356,6 +356,185 @@ function multiServiceNeedsParticipants(
   );
 }
 
+type ChildRecordKind = "unborn" | "deceased";
+type ChildRow = { parentName: string; childCount: string };
+type ChildRowsState = { unborn: ChildRow[]; deceased: ChildRow[] };
+type ChildRecordPayload = {
+  type: "UNBORN" | "DECEASED";
+  parentName: string;
+  childCount: number;
+};
+
+const CHILD_COUNT_MIN = 1;
+const CHILD_COUNT_MAX = 99;
+
+function emptyChildRows(): ChildRowsState {
+  return { unborn: [], deceased: [] };
+}
+
+function createChildRow(): ChildRow {
+  return { parentName: "", childCount: "1" };
+}
+
+const childKindToType: Record<ChildRecordKind, "UNBORN" | "DECEASED"> = {
+  unborn: "UNBORN",
+  deceased: "DECEASED"
+};
+
+function childRowsToPayload(rows: ChildRowsState): ChildRecordPayload[] {
+  const build = (list: ChildRow[], kind: ChildRecordKind) =>
+    list
+      .map((row) => ({
+        type: childKindToType[kind],
+        parentName: normalizeParticipantName(row.parentName),
+        childCount: Number.parseInt(row.childCount, 10)
+      }))
+      .filter(
+        (row) =>
+          row.parentName.length > 0 &&
+          Number.isInteger(row.childCount) &&
+          row.childCount >= CHILD_COUNT_MIN &&
+          row.childCount <= CHILD_COUNT_MAX
+      );
+
+  return [...build(rows.unborn, "unborn"), ...build(rows.deceased, "deceased")];
+}
+
+function getChildUnitsFromRows(rows: ChildRowsState) {
+  return childRowsToPayload(rows).reduce((sum, row) => sum + row.childCount, 0);
+}
+
+function isChildRowInvalid(row: ChildRow) {
+  const name = normalizeParticipantName(row.parentName);
+
+  if (!name) {
+    return false;
+  }
+
+  const count = Number.parseInt(row.childCount, 10);
+
+  return (
+    !isParticipantNameValid(name) ||
+    !Number.isInteger(count) ||
+    count < CHILD_COUNT_MIN ||
+    count > CHILD_COUNT_MAX
+  );
+}
+
+function childRowsHaveIssues(rows: ChildRowsState) {
+  return (
+    rows.unborn.some(isChildRowInvalid) || rows.deceased.some(isChildRowInvalid)
+  );
+}
+
+function ChildRecordsBlock({
+  deceasedChildLabel,
+  helpText,
+  onChange,
+  rows,
+  unbornLabel,
+  warningText
+}: Readonly<{
+  deceasedChildLabel: string;
+  helpText: string;
+  onChange: (rows: ChildRowsState) => void;
+  rows: ChildRowsState;
+  unbornLabel: string;
+  warningText: string;
+}>) {
+  const sections: Array<{ key: ChildRecordKind; label: string }> = [
+    { key: "unborn", label: unbornLabel },
+    { key: "deceased", label: deceasedChildLabel }
+  ];
+
+  function updateRow(
+    key: ChildRecordKind,
+    index: number,
+    patch: Partial<ChildRow>
+  ) {
+    onChange({
+      ...rows,
+      [key]: rows[key].map((row, rowIndex) =>
+        rowIndex === index ? { ...row, ...patch } : row
+      )
+    });
+  }
+
+  function addRow(key: ChildRecordKind) {
+    onChange({ ...rows, [key]: [...rows[key], createChildRow()] });
+  }
+
+  function removeRow(key: ChildRecordKind, index: number) {
+    onChange({
+      ...rows,
+      [key]: rows[key].filter((_, rowIndex) => rowIndex !== index)
+    });
+  }
+
+  return (
+    <div className="shraddha-children">
+      {warningText && (
+        <p className="form-warning shraddha-children__warning">{warningText}</p>
+      )}
+      {helpText && <p className="form-note">{helpText}</p>}
+      {sections.map((section) => (
+        <div className="shraddha-children__section" key={section.key}>
+          <strong>{section.label}</strong>
+          {rows[section.key].map((row, index) => (
+            <div className="shraddha-children__row" key={index}>
+              <input
+                aria-invalid={isChildRowInvalid(row)}
+                aria-label={`${section.label}: ФИО родителя`}
+                onChange={(event) =>
+                  updateRow(section.key, index, {
+                    parentName: event.target.value
+                  })
+                }
+                placeholder="Имя и фамилия родителя"
+                type="text"
+                value={row.parentName}
+              />
+              <input
+                aria-label={`${section.label}: количество детей`}
+                max={CHILD_COUNT_MAX}
+                min={CHILD_COUNT_MIN}
+                onChange={(event) =>
+                  updateRow(section.key, index, {
+                    childCount: event.target.value
+                  })
+                }
+                type="number"
+                value={row.childCount}
+              />
+              <button
+                aria-label="Удалить строку"
+                className="icon-button"
+                onClick={() => removeRow(section.key, index)}
+                type="button"
+              >
+                ×
+              </button>
+              {isChildRowInvalid(row) && (
+                <small className="field-error">
+                  Укажите имя и фамилию родителя и число от {CHILD_COUNT_MIN} до{" "}
+                  {CHILD_COUNT_MAX}
+                </small>
+              )}
+            </div>
+          ))}
+          <button
+            className="button button--small"
+            onClick={() => addRow(section.key)}
+            type="button"
+          >
+            + Добавить
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function getFormScrollBehavior(): ScrollBehavior {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches
     ? "auto"
@@ -564,7 +743,14 @@ export function SignupForm({
   const [step, setStep] = useState(0);
   const [mode, setMode] = useState<"wizard" | "multi">("wizard");
   const [multiSelections, setMultiSelections] = useState<
-    Record<string, { optionIds: string[]; participantsInput: string }>
+    Record<
+      string,
+      {
+        optionIds: string[];
+        participantsInput: string;
+        childRows: ChildRowsState;
+      }
+    >
   >({});
   const [serviceSlug, setServiceSlug] = useState(initialAvailableServiceSlug);
   const [selectedServiceOptionIds, setSelectedServiceOptionIds] = useState<
@@ -574,6 +760,7 @@ export function SignupForm({
     paymentProviders[0]?.code ?? "prodamus"
   );
   const [participantsInput, setParticipantsInput] = useState("");
+  const [childRows, setChildRows] = useState<ChildRowsState>(emptyChildRows());
   const [savedParticipants, setSavedParticipants] = useState<
     SavedParticipantOption[]
   >([]);
@@ -651,6 +838,11 @@ export function SignupForm({
   );
   const hasInvalidParticipants =
     invalidParticipantLines.length > 0 || participantCount > 200;
+  const isShraddhaService = Boolean(selectedService?.shraddhaModeEnabled);
+  const wizardChildUnits = isShraddhaService
+    ? getChildUnitsFromRows(childRows)
+    : 0;
+  const wizardChildHasIssues = isShraddhaService && childRowsHaveIssues(childRows);
   const phoneCountryOptions = useMemo(
     () => getPhoneCountryOptions(locale),
     [locale]
@@ -670,12 +862,14 @@ export function SignupForm({
       return 0;
     }
 
+    const billableCount = participantCount + wizardChildUnits;
+
     if (selectedServiceOptions.length > 0) {
       return selectedServiceOptions.reduce(
         (sum, option) =>
           sum +
           option.priceAmount *
-            getOptionQuantity(option.priceUnit, participantCount),
+            getOptionQuantity(option.priceUnit, billableCount),
         0
       );
     }
@@ -684,12 +878,13 @@ export function SignupForm({
       return selectedService.priceAmount;
     }
 
-    if (selectedService.priceUnit === "PER_NAME") {
-      return selectedService.priceAmount * participantCount;
-    }
-
-    return selectedService.priceAmount * participantCount;
-  }, [participantCount, selectedService, selectedServiceOptions]);
+    return selectedService.priceAmount * billableCount;
+  }, [
+    participantCount,
+    selectedService,
+    selectedServiceOptions,
+    wizardChildUnits
+  ]);
 
   const multiLines = useMemo(() => {
     return services
@@ -704,6 +899,13 @@ export function SignupForm({
         const invalidLines = getInvalidParticipantLines(
           selection.participantsInput
         );
+        const isShraddha = service.shraddhaModeEnabled;
+        const childUnits = isShraddha
+          ? getChildUnitsFromRows(selection.childRows)
+          : 0;
+        const childHasIssues =
+          isShraddha && childRowsHaveIssues(selection.childRows);
+        const billableCount = names.length + childUnits;
         const needsParticipants = multiServiceNeedsParticipants(
           service,
           optionIds
@@ -716,21 +918,23 @@ export function SignupForm({
               (sum, option) =>
                 sum +
                 option.priceAmount *
-                  getOptionQuantity(option.priceUnit, names.length),
+                  getOptionQuantity(option.priceUnit, billableCount),
               0
             )
           : service.priceUnit === "PER_ORDER"
             ? service.priceAmount
-            : service.priceAmount * names.length;
+            : service.priceAmount * billableCount;
         const optionsOk = !mustSelectOptions || options.length > 0;
         const participantsOk =
           !needsParticipants ||
-          (names.length > 0 &&
+          ((names.length > 0 || childUnits > 0) &&
             invalidLines.length === 0 &&
             names.length <= 200);
 
         return {
           amount,
+          childHasIssues,
+          childUnits,
           invalidLines,
           mustSelectOptions,
           names,
@@ -739,7 +943,7 @@ export function SignupForm({
           options,
           selection,
           service,
-          valid: optionsOk && participantsOk
+          valid: optionsOk && participantsOk && !childHasIssues
         };
       });
   }, [multiSelections, services]);
@@ -766,7 +970,11 @@ export function SignupForm({
 
       return {
         ...current,
-        [slug]: { optionIds: [], participantsInput: "" }
+        [slug]: {
+          optionIds: [],
+          participantsInput: "",
+          childRows: emptyChildRows()
+        }
       };
     });
   }
@@ -775,7 +983,8 @@ export function SignupForm({
     setMultiSelections((current) => {
       const selection = current[slug] ?? {
         optionIds: [],
-        participantsInput: ""
+        participantsInput: "",
+        childRows: emptyChildRows()
       };
       const optionIds = selection.optionIds.includes(optionId)
         ? selection.optionIds.filter((id) => id !== optionId)
@@ -789,12 +998,28 @@ export function SignupForm({
     setMultiSelections((current) => {
       const selection = current[slug] ?? {
         optionIds: [],
-        participantsInput: ""
+        participantsInput: "",
+        childRows: emptyChildRows()
       };
 
       return {
         ...current,
         [slug]: { ...selection, participantsInput: value }
+      };
+    });
+  }
+
+  function setMultiChildRows(slug: string, value: ChildRowsState) {
+    setMultiSelections((current) => {
+      const selection = current[slug] ?? {
+        optionIds: [],
+        participantsInput: "",
+        childRows: emptyChildRows()
+      };
+
+      return {
+        ...current,
+        [slug]: { ...selection, childRows: value }
       };
     });
   }
@@ -814,7 +1039,10 @@ export function SignupForm({
         (step === 0 &&
           mustSelectServiceOptions &&
           selectedServiceOptions.length < 1) ||
-        (step === 1 && (hasInvalidParticipants || participantCount < 1)) ||
+        (step === 1 &&
+          (hasInvalidParticipants ||
+            wizardChildHasIssues ||
+            (participantCount < 1 && wizardChildUnits < 1))) ||
         (step === 2 && (!hasContact || !isCustomerPhoneValid)) ||
         (step === 4 && paymentProviders.length === 0);
   const submitButtonLabel =
@@ -1185,6 +1413,7 @@ export function SignupForm({
   function selectService(slug: string) {
     setServiceSlug(slug);
     setSelectedServiceOptionIds([]);
+    setChildRows(emptyChildRows());
   }
 
   function openServiceDetails(service: SiteService, button: HTMLButtonElement) {
@@ -1242,6 +1471,9 @@ export function SignupForm({
             items: multiLines.map((line) => ({
               participantCount: line.names.length,
               participantsText: line.names.join("\n"),
+              childRecords: line.service.shraddhaModeEnabled
+                ? childRowsToPayload(line.selection.childRows)
+                : [],
               selectedServiceOptionIds: line.service.isSubscription
                 ? []
                 : line.optionIds,
@@ -1252,6 +1484,9 @@ export function SignupForm({
             ...sharedPayload,
             participantCount,
             participantsText,
+            childRecords: isShraddhaService
+              ? childRowsToPayload(childRows)
+              : [],
             selectedServiceOptionIds: selectedService!.isSubscription
               ? []
               : selectedServiceOptionIds,
@@ -1403,7 +1638,10 @@ export function SignupForm({
           />
         )}
         {submitState.paymentUrl && (
-          <a className="button button--primary" href={submitState.paymentUrl}>
+          <a
+            className="button button--primary form-result__payment-button"
+            href={submitState.paymentUrl}
+          >
             Перейти к оплате
           </a>
         )}
@@ -1701,6 +1939,18 @@ export function SignupForm({
                       )}
                     </label>
                   )}
+                  {isSelected && service.shraddhaModeEnabled && (
+                    <ChildRecordsBlock
+                      deceasedChildLabel={service.shraddhaDeceasedChildLabel}
+                      helpText={service.shraddhaChildHelpText}
+                      onChange={(rows) =>
+                        setMultiChildRows(service.slug, rows)
+                      }
+                      rows={selection?.childRows ?? emptyChildRows()}
+                      unbornLabel={service.shraddhaUnbornLabel}
+                      warningText={service.shraddhaWarningText}
+                    />
+                  )}
                 </div>
               );
             })}
@@ -1768,15 +2018,35 @@ export function SignupForm({
                     }
                   }}
                 >
-                  <label className="choice-card__select" htmlFor={inputId}>
+                  <label
+                    className={
+                      showVedicGift
+                        ? "choice-card__select choice-card__select--gift"
+                        : "choice-card__select"
+                    }
+                    htmlFor={inputId}
+                  >
                     <input
                       checked={activeServiceSlug === service.slug}
+                      className={showVedicGift ? "choice-card__radio--hidden" : undefined}
                       id={inputId}
                       name="service"
                       onChange={() => selectService(service.slug)}
                       type="radio"
                       value={service.slug}
                     />
+                    {showVedicGift && (
+                      <span
+                        className="choice-card__gift-badge"
+                        title={
+                          service.vedicGiftDescription
+                            ? `${service.vedicGiftTitle}\n${service.vedicGiftDescription}`
+                            : service.vedicGiftTitle
+                        }
+                      >
+                        🎁 Подарок
+                      </span>
+                    )}
                     <span className="choice-card__label-content">
                       <span className="choice-card__title">
                         {service.title}
@@ -1786,17 +2056,6 @@ export function SignupForm({
                       </small>
                     </span>
                   </label>
-                  {showVedicGift && (
-                    <p className="service-gift-note service-gift-note--compact">
-                      {service.vedicGiftTitle}
-                      {service.vedicGiftDescription && (
-                        <>
-                          <br />
-                          <span>{service.vedicGiftDescription}</span>
-                        </>
-                      )}
-                    </p>
-                  )}
                   {service.description && (
                     <p className="choice-card__note">{service.description}</p>
                   )}
@@ -1878,6 +2137,11 @@ export function SignupForm({
       {mode === "wizard" && step === 1 && (
         <fieldset className="form-step">
           <legend>{copy.legend.participants}</legend>
+          {isShraddhaService && selectedService?.shraddhaWarningText && (
+            <p className="form-warning shraddha-children__warning">
+              {selectedService.shraddhaWarningText}
+            </p>
+          )}
           <p className="form-note">{copy.placeholders.participants}</p>
           {!isClientCabinetActive && (
             <div className="registration-nudge registration-nudge--soft">
@@ -1955,10 +2219,20 @@ export function SignupForm({
           {participantCount > 200 && (
             <p className="form-warning">{copy.warnings.tooManyParticipants}</p>
           )}
-          {participantCount < 1 && (
+          {participantCount < 1 && !(isShraddhaService && wizardChildUnits > 0) && (
             <p className="form-warning">
               {copy.warnings.incompleteParticipants.replace("{{count}}", "0")}
             </p>
+          )}
+          {isShraddhaService && selectedService && (
+            <ChildRecordsBlock
+              deceasedChildLabel={selectedService.shraddhaDeceasedChildLabel}
+              helpText={selectedService.shraddhaChildHelpText}
+              onChange={setChildRows}
+              rows={childRows}
+              unbornLabel={selectedService.shraddhaUnbornLabel}
+              warningText=""
+            />
           )}
         </fieldset>
       )}
@@ -2290,3 +2564,5 @@ export function SignupForm({
     </form>
   );
 }
+
+

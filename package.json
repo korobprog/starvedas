@@ -10,6 +10,7 @@
     "format": "prettier . --check",
     "format:write": "prettier . --write",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
@@ -41,6 +42,7 @@
     "prettier": "latest",
     "prisma": "^6.19.3",
     "tsx": "^4.22.4",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vitest": "^4.1.9"
   }
 }

@@ -1,4 +1,5 @@
 ﻿import { ParticipantListStatus, ParticipantRowStatus } from "@prisma/client";
+import { formatChildRecordLines } from "@/lib/shraddha";
 import { formatStatus } from "@/lib/status-labels";
 import {
   sendParticipantListMessageAction,
@@ -213,12 +214,19 @@ function ParticipantRows({
   list: ParticipantListRow;
   mode: "curator" | "statistician";
 }) {
-  if (!list.order.participants.length) {
+  const childRecordLines = formatChildRecordLines(list.order.childRecords, {
+    unbornLabel: list.order.service.shraddhaUnbornLabel ?? undefined,
+    deceasedChildLabel: list.order.service.shraddhaDeceasedChildLabel ?? undefined
+  });
+
+  if (!list.order.participants.length && childRecordLines.length === 0) {
     return <p className="admin-muted">Участников в списке нет.</p>;
   }
 
   return (
-    <div className="table-wrap">
+    <>
+      {list.order.participants.length > 0 && (
+        <div className="table-wrap">
       <table className="admin-table">
         <thead>
           <tr>
@@ -285,7 +293,19 @@ function ParticipantRows({
           ))}
         </tbody>
       </table>
-    </div>
+        </div>
+      )}
+      {childRecordLines.length > 0 && (
+        <div className="participant-list-children">
+          <strong>Дети:</strong>
+          <ul>
+            {childRecordLines.map((line, index) => (
+              <li key={index}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
   );
 }
 

@@ -5,10 +5,37 @@ import {
   isPhoneCountryCode,
   isValidPhoneNumberForCountry
 } from "@/lib/phone-validation";
+import {
+  CHILD_RECORD_MAX_COUNT,
+  CHILD_RECORD_MIN_COUNT,
+  CHILD_RECORDS_MAX_ROWS
+} from "@/lib/shraddha";
 import { paymentProviderCodes } from "@/server/payment-providers";
 
 const participantNamePattern =
   /^[\p{L}\p{M}][\p{L}\p{M}'’`.-]*\s+[\p{L}\p{M}][\p{L}\p{M}'’`.-]*$/u;
+
+export const childRecordSchema = z.object({
+  type: z.enum(["UNBORN", "DECEASED"]),
+  parentName: z
+    .string()
+    .trim()
+    .max(120)
+    .refine((value) => isParticipantNameValid(value), {
+      message:
+        "ФИО родителя должно содержать имя и фамилию, без цифр и лишних символов"
+    }),
+  childCount: z
+    .number()
+    .int()
+    .min(CHILD_RECORD_MIN_COUNT)
+    .max(CHILD_RECORD_MAX_COUNT)
+});
+
+const childRecordsSchema = z
+  .array(childRecordSchema)
+  .max(CHILD_RECORDS_MAX_ROWS)
+  .default([]);
 
 const phoneCountrySchema = z
   .string()
@@ -28,10 +55,12 @@ export const orderItemSchema = z.object({
     .max(100)
     .default([]),
   participantCount: z.number().int().min(0).max(200),
-  participantsText: z.string().trim().max(5000).default("")
+  participantsText: z.string().trim().max(5000).default(""),
+  childRecords: childRecordsSchema
 });
 
 export type OrderItemInput = z.infer<typeof orderItemSchema>;
+export type ChildRecordInputParsed = z.infer<typeof childRecordSchema>;
 
 export const createOrderSchema = z
   .object({
@@ -42,6 +71,7 @@ export const createOrderSchema = z
       .default([]),
     participantCount: z.number().int().min(1).max(200).optional(),
     participantsText: z.string().trim().max(5000).optional(),
+    childRecords: childRecordsSchema,
     items: z.array(orderItemSchema).min(1).max(50).optional(),
     customerName: z.string().trim().min(2).max(120),
     customerTelegram: z.string().trim().max(120).optional(),
@@ -182,32 +212,36 @@ export function isParticipantNameValid(value: string) {
 }
 
 export function calculateOrderAmount({
+  childUnits = 0,
   participantCount,
   participantNames,
   priceRub,
   priceUnit
 }: {
+  childUnits?: number;
   participantCount: number;
   participantNames: string[];
   priceRub: number;
   priceUnit: PriceUnit;
 }) {
-  if (priceUnit === PriceUnit.PER_ORDER) {
-    return priceRub;
-  }
-
-  if (priceUnit === PriceUnit.PER_NAME) {
-    return priceRub * participantNames.length;
-  }
-
-  return priceRub * participantCount;
+  return (
+    priceRub *
+    getPriceUnitQuantity({
+      childUnits,
+      participantCount,
+      participantNames,
+      priceUnit
+    })
+  );
 }
 
 export function getPriceUnitQuantity({
+  childUnits = 0,
   participantCount,
   participantNames,
   priceUnit
 }: {
+  childUnits?: number;
   participantCount: number;
   participantNames: string[];
   priceUnit: PriceUnit;
@@ -216,18 +250,21 @@ export function getPriceUnitQuantity({
     return 1;
   }
 
+  // Дети — дополнительные оплачиваемые единицы наравне с участниками.
   if (priceUnit === PriceUnit.PER_NAME) {
-    return participantNames.length;
+    return participantNames.length + childUnits;
   }
 
-  return participantCount;
+  return participantCount + childUnits;
 }
 
 export function calculateSelectedOptionsAmount({
+  childUnits = 0,
   options,
   participantCount,
   participantNames
 }: {
+  childUnits?: number;
   options: Array<{
     priceRub: number;
     priceUnit: PriceUnit;
@@ -240,6 +277,7 @@ export function calculateSelectedOptionsAmount({
       sum +
       option.priceRub *
         getPriceUnitQuantity({
+          childUnits,
           participantCount,
           participantNames,
           priceUnit: option.priceUnit

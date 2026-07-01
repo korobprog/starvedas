@@ -46,6 +46,11 @@ export type SiteService = {
   vedicGiftDescription: string;
   vedicGiftEnabled: boolean;
   vedicGiftTitle: string;
+  shraddhaModeEnabled: boolean;
+  shraddhaWarningText: string;
+  shraddhaUnbornLabel: string;
+  shraddhaDeceasedChildLabel: string;
+  shraddhaChildHelpText: string;
 };
 
 export type SiteServiceList = [SiteService, ...SiteService[]];
@@ -64,6 +69,14 @@ const noVedicGift = {
   vedicGiftTitle: ""
 } as const;
 
+const noShraddhaMode = {
+  shraddhaModeEnabled: false,
+  shraddhaWarningText: "",
+  shraddhaUnbornLabel: "",
+  shraddhaDeceasedChildLabel: "",
+  shraddhaChildHelpText: ""
+} as const;
+
 export const services = [
   {
     title: "Абонемент на месяц",
@@ -71,6 +84,7 @@ export const services = [
     description: "Регулярное участие в онлайн-церемониях в течение месяца.",
     detailsContent: "",
     ...noSubscriptionPeriod,
+    ...noShraddhaMode,
     isSubscription: true,
     options: [],
     priceRub: 6000,
@@ -88,6 +102,7 @@ export const services = [
     description: "Участие в марафоне практик по базовому тарифу.",
     detailsContent: "",
     ...noSubscriptionPeriod,
+    ...noShraddhaMode,
     options: [],
     priceRub: 2500,
     currency: "RUB",
@@ -102,6 +117,7 @@ export const services = [
     description: "Участие в марафоне практик по стандартному тарифу.",
     detailsContent: "",
     ...noSubscriptionPeriod,
+    ...noShraddhaMode,
     options: [],
     priceRub: 3500,
     currency: "RUB",
@@ -116,6 +132,7 @@ export const services = [
     description: "Участие в марафоне практик по расширенному тарифу.",
     detailsContent: "",
     ...noSubscriptionPeriod,
+    ...noShraddhaMode,
     options: [],
     priceRub: 4500,
     currency: "RUB",
@@ -130,6 +147,7 @@ export const services = [
     description: "Разовое участие в выбранной онлайн-церемонии.",
     detailsContent: "",
     ...noSubscriptionPeriod,
+    ...noShraddhaMode,
     options: [],
     priceRub: 1200,
     currency: "RUB",
@@ -144,6 +162,7 @@ export const services = [
     description: "Участие в абхишеке с указанием списка участников.",
     detailsContent: "",
     ...noSubscriptionPeriod,
+    ...noShraddhaMode,
     options: [],
     priceRub: 1000,
     currency: "RUB",
@@ -159,6 +178,7 @@ export const services = [
       "Участие в шраддха ягьи, стоимость рассчитывается за каждого участника.",
     detailsContent: "",
     ...noSubscriptionPeriod,
+    ...noShraddhaMode,
     options: [],
     priceRub: 250,
     currency: "RUB",

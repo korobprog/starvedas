@@ -1,6 +1,7 @@
 import { LeadStatus, OrderStatus, PaymentStatus, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { formatChildRecordLines } from "@/lib/shraddha";
 import { markOrderClientBought } from "@/server/client-profiles";
 import { sendPaymentStatusEmail } from "@/server/email/order-emails";
 import {
@@ -56,11 +57,19 @@ function getSafeReceiptUrl(payload: Record<string, unknown>) {
   const value = getString(payload, [
     "receipt_url",
     "receiptUrl",
+    "receiptLink",
+    "receipt_link",
     "check_url",
+    "checkUrl",
+    "fiscal_check_url",
     "fiscal_receipt_url",
+    "fiscalReceiptUrl",
     "ofd_url",
-    "receipt",
-    "receipt_link"
+    "ofd_receipt_url",
+    "ofdReceiptUrl",
+    "payment_receipt_url",
+    "paymentReceiptUrl",
+    "receipt"
   ]);
 
   if (!value?.startsWith("https://") && !value?.startsWith("http://")) {
@@ -237,13 +246,27 @@ export async function handlePaymentWebhook({
           fullName: true
         }
       },
+      childRecords: {
+        orderBy: {
+          sortOrder: "asc"
+        },
+        select: {
+          childCount: true,
+          parentName: true,
+          type: true
+        }
+      },
       payment: {
         select: {
+          receiptLabel: true,
+          receiptUrl: true,
           status: true
         }
       },
       service: {
         select: {
+          shraddhaDeceasedChildLabel: true,
+          shraddhaUnbornLabel: true,
           title: true
         }
       },
@@ -266,6 +289,20 @@ export async function handlePaymentWebhook({
   }
 
   if (order.payment?.status === paymentStatus) {
+    if (receiptUrl && order.payment.receiptUrl !== receiptUrl) {
+      await prisma.payment.update({
+        where: {
+          orderId: order.id
+        },
+        data: {
+          rawPayload: payload as Prisma.InputJsonObject,
+          receiptLabel,
+          receiptUploadedAt: new Date(),
+          receiptUrl
+        }
+      });
+    }
+
     return NextResponse.json({ duplicate: true, ok: true });
   }
 
@@ -321,6 +358,11 @@ export async function handlePaymentWebhook({
     try {
       await sendPaymentSucceededTelegramNotification({
         amountRub: order.amountRub,
+        childRecordLines: formatChildRecordLines(order.childRecords, {
+          unbornLabel: order.service.shraddhaUnbornLabel ?? undefined,
+          deceasedChildLabel:
+            order.service.shraddhaDeceasedChildLabel ?? undefined
+        }),
         curatorName: order.curator.name,
         customerEmail: order.customerEmail,
         customerName: order.customerName,
@@ -333,6 +375,8 @@ export async function handlePaymentWebhook({
           (participant) => participant.fullName
         ),
         paymentProviderName: providerName,
+        receiptLabel,
+        receiptUrl,
         selectedOptions: order.serviceOptions.map((option) => ({
           priceRub: option.totalRubSnapshot,
           title: option.titleSnapshot

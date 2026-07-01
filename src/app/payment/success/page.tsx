@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
+import { PaymentReceiptLink } from "@/components/payment-receipt-link";
 import { SupportCta } from "@/components/support-cta";
 import { VedicGiftForm } from "@/components/vedic-gift-form";
 import { getPaymentResultCopy } from "@/i18n/payment-result-copy";
@@ -56,6 +57,12 @@ async function getOrderPostPurchase(publicToken?: string) {
         customerName: true,
         customerPhone: true,
         customerTelegram: true,
+        payment: {
+          select: {
+            receiptLabel: true,
+            receiptUrl: true
+          }
+        },
         vedicGiftData: {
           select: {
             id: true
@@ -115,6 +122,12 @@ export default async function PaymentSuccessPage({
             )}
             {order.curator.postPurchaseText && (
               <p>{order.curator.postPurchaseText}</p>
+            )}
+            {order.payment?.receiptUrl && (
+              <PaymentReceiptLink
+                label={order.payment.receiptLabel}
+                url={order.payment.receiptUrl}
+              />
             )}
             {order.curator.postPurchaseUrl && (
               <a

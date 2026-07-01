@@ -7,6 +7,12 @@ import {
   type Currency
 } from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
+import {
+  DEFAULT_SHRADDHA_CHILD_HELP_TEXT,
+  DEFAULT_SHRADDHA_DECEASED_CHILD_LABEL,
+  DEFAULT_SHRADDHA_UNBORN_LABEL,
+  DEFAULT_SHRADDHA_WARNING_TEXT
+} from "@/lib/shraddha";
 import { type SiteService } from "@/lib/site-data";
 
 const publicServiceSelect = {
@@ -32,6 +38,11 @@ const publicServiceSelect = {
   vedicGiftDescription: true,
   vedicGiftEnabled: true,
   vedicGiftTitle: true,
+  shraddhaModeEnabled: true,
+  shraddhaWarningText: true,
+  shraddhaUnbornLabel: true,
+  shraddhaDeceasedChildLabel: true,
+  shraddhaChildHelpText: true,
   options: {
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     select: {
@@ -99,6 +110,11 @@ const managedServiceSelect = {
   vedicGiftDescription: true,
   vedicGiftEnabled: true,
   vedicGiftTitle: true,
+  shraddhaModeEnabled: true,
+  shraddhaWarningText: true,
+  shraddhaUnbornLabel: true,
+  shraddhaDeceasedChildLabel: true,
+  shraddhaChildHelpText: true,
   options: {
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     select: {
@@ -342,7 +358,17 @@ function toSiteService(
     vedicGiftEnabled: service.vedicGiftEnabled,
     vedicGiftTitle:
       service.vedicGiftTitle?.trim() ||
-      "🎁 Подарок: ведический астрологический разбор"
+      "🎁 Подарок: ведический астрологический разбор",
+    shraddhaModeEnabled: service.shraddhaModeEnabled,
+    shraddhaWarningText:
+      service.shraddhaWarningText?.trim() || DEFAULT_SHRADDHA_WARNING_TEXT,
+    shraddhaUnbornLabel:
+      service.shraddhaUnbornLabel?.trim() || DEFAULT_SHRADDHA_UNBORN_LABEL,
+    shraddhaDeceasedChildLabel:
+      service.shraddhaDeceasedChildLabel?.trim() ||
+      DEFAULT_SHRADDHA_DECEASED_CHILD_LABEL,
+    shraddhaChildHelpText:
+      service.shraddhaChildHelpText?.trim() || DEFAULT_SHRADDHA_CHILD_HELP_TEXT
   };
 }
 

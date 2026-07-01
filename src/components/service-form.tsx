@@ -7,6 +7,12 @@ import { ProductSubscriptionAndRitesFields } from "@/components/product-subscrip
 import { ServiceTitleSlugFields } from "@/components/service-title-slug-fields";
 import { ValidatedForm } from "@/components/validated-form";
 import {
+  DEFAULT_SHRADDHA_CHILD_HELP_TEXT,
+  DEFAULT_SHRADDHA_DECEASED_CHILD_LABEL,
+  DEFAULT_SHRADDHA_UNBORN_LABEL,
+  DEFAULT_SHRADDHA_WARNING_TEXT
+} from "@/lib/shraddha";
+import {
   createService,
   toggleServiceActive,
   updateService
@@ -323,6 +329,59 @@ export function ServiceFields({
             name="vedicGiftDescription"
             placeholder="Например: Разбор по ведической астрологии входит в абонемент."
             rows={3}
+          />
+        </label>
+      </div>
+
+      <div className="admin-card admin-card--nested">
+        <label className="checkbox-field">
+          <input
+            defaultChecked={service?.shraddhaModeEnabled ?? false}
+            name="shraddhaModeEnabled"
+            type="checkbox"
+          />
+          <span>Режим Шраддха-ягьи (только для усопших)</span>
+        </label>
+        <p className="form-note">
+          Показывает предупреждение и блоки «Нерожденные дети» / «Умершие дети»
+          на форме заказа. Дети учитываются в стоимости наравне с участниками.
+        </p>
+        <label className="field">
+          <span>Текст предупреждения</span>
+          <textarea
+            defaultValue={service?.shraddhaWarningText ?? ""}
+            name="shraddhaWarningText"
+            placeholder={DEFAULT_SHRADDHA_WARNING_TEXT}
+            rows={2}
+          />
+        </label>
+        <div className="field-grid">
+          <label className="field">
+            <span>Подпись для нерожденных детей</span>
+            <input
+              defaultValue={service?.shraddhaUnbornLabel ?? ""}
+              name="shraddhaUnbornLabel"
+              placeholder={DEFAULT_SHRADDHA_UNBORN_LABEL}
+              type="text"
+            />
+          </label>
+          <label className="field">
+            <span>Подпись для умерших детей</span>
+            <input
+              defaultValue={service?.shraddhaDeceasedChildLabel ?? ""}
+              name="shraddhaDeceasedChildLabel"
+              placeholder={DEFAULT_SHRADDHA_DECEASED_CHILD_LABEL}
+              type="text"
+            />
+          </label>
+        </div>
+        <label className="field">
+          <span>Подсказка для клиента</span>
+          <textarea
+            defaultValue={service?.shraddhaChildHelpText ?? ""}
+            name="shraddhaChildHelpText"
+            placeholder={DEFAULT_SHRADDHA_CHILD_HELP_TEXT}
+            rows={2}
           />
         </label>
       </div>
