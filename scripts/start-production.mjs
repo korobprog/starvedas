@@ -99,6 +99,7 @@ process.once("SIGINT", () => shutdown(0));
 
 try {
   await run("node", ["scripts/repair-accounting-migration.mjs"]);
+  await run("node", ["scripts/repair-service-archive-migration.mjs"]);
   await run("npx", ["prisma", "migrate", "deploy"]);
   if (isProductionSeedEnabled()) {
     await run("npx", ["prisma", "db", "seed"]);
