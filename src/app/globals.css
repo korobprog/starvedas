@@ -4962,8 +4962,11 @@ a.button[aria-disabled="true"] {
   margin-top: 1rem;
 }
 
-.shraddha-children__warning {
-  font-weight: 600;
+.form-warning.shraddha-children__warning {
+  border-color: #b42318;
+  background: #b42318;
+  color: #fff;
+  font-weight: 800;
   text-transform: uppercase;
 }
 
