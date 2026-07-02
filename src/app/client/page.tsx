@@ -370,6 +370,9 @@ export default async function ClientCabinetPage() {
           <Link className="button" href="/client/profile">
             Профиль
           </Link>
+          <Link className="button" href="/client/materials">
+            Видео материалы
+          </Link>
           <form action={clientLogoutAction}>
             <button className="button" type="submit">
               Выйти
