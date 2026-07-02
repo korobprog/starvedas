@@ -16,6 +16,19 @@ const baseOrder = {
 };
 
 describe("createOrderSchema childRecords", () => {
+  it("accepts a child-only order without participant list rows", () => {
+    const result = createOrderSchema.safeParse({
+      ...baseOrder,
+      participantCount: 0,
+      participantsText: "",
+      childRecords: [
+        { type: "UNBORN", parentName: "Лидия Лутенко", childCount: 1 }
+      ]
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it("accepts valid parent name + count rows", () => {
     const result = createOrderSchema.safeParse({
       ...baseOrder,

@@ -69,7 +69,7 @@ export const createOrderSchema = z
       .array(z.string().trim().min(1))
       .max(100)
       .default([]),
-    participantCount: z.number().int().min(1).max(200).optional(),
+    participantCount: z.number().int().min(0).max(200).optional(),
     participantsText: z.string().trim().max(5000).optional(),
     childRecords: childRecordsSchema,
     items: z.array(orderItemSchema).min(1).max(50).optional(),
@@ -159,11 +159,11 @@ export const createOrderSchema = z
       return;
     }
 
-    if (
-      typeof data.participantsText !== "string" ||
-      data.participantsText.trim().length < 2 ||
-      typeof data.participantCount !== "number"
-    ) {
+    const participantNames = getParticipantNames(data.participantsText ?? "");
+    const childRecordsCount = data.childRecords.length;
+    const participantCount = data.participantCount ?? 0;
+
+    if (participantNames.length === 0 && childRecordsCount === 0) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Добавьте список участников",
@@ -172,9 +172,7 @@ export const createOrderSchema = z
       return;
     }
 
-    const participantNames = getParticipantNames(data.participantsText);
-
-    if (participantNames.length !== data.participantCount) {
+    if (participantNames.length !== participantCount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Количество участников не совпадает со списком",

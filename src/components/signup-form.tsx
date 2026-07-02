@@ -873,6 +873,7 @@ export function SignupForm({
   const wizardChildUnits = wizardUnbornUnits + wizardDeceasedUnits;
   const wizardChildHasIssues =
     isShraddhaService && childRowsHaveIssues(childRows);
+  const hasWizardBillableEntry = participantCount > 0 || wizardChildUnits > 0;
   const phoneCountryOptions = useMemo(
     () => getPhoneCountryOptions(locale),
     [locale]
@@ -1080,7 +1081,7 @@ export function SignupForm({
         (step === 1 &&
           (hasInvalidParticipants ||
             wizardChildHasIssues ||
-            (participantCount < 1 && wizardChildUnits < 1))) ||
+            !hasWizardBillableEntry)) ||
         (step === 2 && (!hasContact || !isCustomerPhoneValid)) ||
         (step === 4 && paymentProviders.length === 0);
   const submitButtonLabel =
@@ -2251,7 +2252,7 @@ export function SignupForm({
               className="participant-textarea"
               onChange={(event) => setParticipantsInput(event.target.value)}
               placeholder={"Иван Иванов\nМария Петрова\nАлексей Смирнов"}
-              required
+              required={!hasWizardBillableEntry}
               rows={6}
               value={participantsInput}
             />
@@ -2272,12 +2273,11 @@ export function SignupForm({
           {participantCount > 200 && (
             <p className="form-warning">{copy.warnings.tooManyParticipants}</p>
           )}
-          {participantCount < 1 &&
-            !(isShraddhaService && wizardChildUnits > 0) && (
-              <p className="form-warning">
-                {copy.warnings.incompleteParticipants.replace("{{count}}", "0")}
-              </p>
-            )}
+          {!hasWizardBillableEntry && (
+            <p className="form-warning">
+              {copy.warnings.incompleteParticipants.replace("{{count}}", "0")}
+            </p>
+          )}
           {isShraddhaService && selectedService && (
             <ChildRecordsBlock
               deceasedChildLabel={selectedService.shraddhaDeceasedChildLabel}
