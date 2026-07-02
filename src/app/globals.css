@@ -4915,11 +4915,35 @@ a.button[aria-disabled="true"] {
 }
 
 .shraddha-children__row input[type="text"] {
-  flex: 1 1 12rem;
+  flex: 1 1 6rem;
+  min-width: 0;
 }
 
-.shraddha-children__row input[type="number"] {
-  width: 5rem;
+.shraddha-children__row-label {
+  font-size: 0.85rem;
+  color: var(--muted, #7a6a55);
+  white-space: nowrap;
+}
+
+.shraddha-children__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.shraddha-children__add {
+  display: flex;
+}
+
+.shraddha-children__add .icon-button {
+  width: 100%;
+  border-radius: 999px;
 }
 
 .shraddha-children__row .field-error {

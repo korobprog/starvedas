@@ -359,7 +359,7 @@ function multiServiceNeedsParticipants(
 }
 
 type ChildRecordKind = "unborn" | "deceased";
-type ChildRow = { parentName: string; childCount: string };
+type ChildRow = { parentName: string };
 type ChildRowsState = { unborn: ChildRow[]; deceased: ChildRow[] };
 type ChildRecordPayload = {
   type: "UNBORN" | "DECEASED";
@@ -367,15 +367,14 @@ type ChildRecordPayload = {
   childCount: number;
 };
 
-const CHILD_COUNT_MIN = 1;
-const CHILD_COUNT_MAX = 99;
+const CHILD_ROWS_MAX = 100;
 
 function emptyChildRows(): ChildRowsState {
   return { unborn: [], deceased: [] };
 }
 
-function createChildRow(): ChildRow {
-  return { parentName: "", childCount: "1" };
+function createChildRow(parentName = ""): ChildRow {
+  return { parentName };
 }
 
 const childKindToType: Record<ChildRecordKind, "UNBORN" | "DECEASED"> = {
@@ -383,21 +382,51 @@ const childKindToType: Record<ChildRecordKind, "UNBORN" | "DECEASED"> = {
   deceased: "DECEASED"
 };
 
+// Номер строки — счётчик детей этой матери среди строк 0..index.
+function getChildRowNumber(list: ChildRow[], index: number) {
+  const name = normalizeParticipantName(list[index].parentName);
+  let number = 0;
+
+  for (let rowIndex = 0; rowIndex <= index; rowIndex += 1) {
+    if (normalizeParticipantName(list[rowIndex].parentName) === name) {
+      number += 1;
+    }
+  }
+
+  return number;
+}
+
+// Каждая строка — один ребёнок; строки одной матери схлопываются
+// в одну запись с childCount = числу её строк.
 function childRowsToPayload(rows: ChildRowsState): ChildRecordPayload[] {
-  const build = (list: ChildRow[], kind: ChildRecordKind) =>
-    list
-      .map((row) => ({
-        type: childKindToType[kind],
-        parentName: normalizeParticipantName(row.parentName),
-        childCount: Number.parseInt(row.childCount, 10)
-      }))
-      .filter(
-        (row) =>
-          row.parentName.length > 0 &&
-          Number.isInteger(row.childCount) &&
-          row.childCount >= CHILD_COUNT_MIN &&
-          row.childCount <= CHILD_COUNT_MAX
-      );
+  const build = (list: ChildRow[], kind: ChildRecordKind) => {
+    const records: ChildRecordPayload[] = [];
+    const byName = new Map<string, ChildRecordPayload>();
+
+    for (const row of list) {
+      const parentName = normalizeParticipantName(row.parentName);
+
+      if (!parentName) {
+        continue;
+      }
+
+      const existing = byName.get(parentName);
+
+      if (existing) {
+        existing.childCount += 1;
+      } else {
+        const record = {
+          type: childKindToType[kind],
+          parentName,
+          childCount: 1
+        };
+        byName.set(parentName, record);
+        records.push(record);
+      }
+    }
+
+    return records;
+  };
 
   return [...build(rows.unborn, "unborn"), ...build(rows.deceased, "deceased")];
 }
@@ -413,14 +442,7 @@ function isChildRowInvalid(row: ChildRow) {
     return false;
   }
 
-  const count = Number.parseInt(row.childCount, 10);
-
-  return (
-    !isParticipantNameValid(name) ||
-    !Number.isInteger(count) ||
-    count < CHILD_COUNT_MIN ||
-    count > CHILD_COUNT_MAX
-  );
+  return !isParticipantNameValid(name);
 }
 
 function childRowsHaveIssues(rows: ChildRowsState) {
@@ -448,6 +470,7 @@ function ChildRecordsBlock({
     { key: "unborn", label: unbornLabel },
     { key: "deceased", label: deceasedChildLabel }
   ];
+  const totalRows = rows.unborn.length + rows.deceased.length;
 
   function updateRow(
     key: ChildRecordKind,
@@ -463,7 +486,14 @@ function ChildRecordsBlock({
   }
 
   function addRow(key: ChildRecordKind) {
-    onChange({ ...rows, [key]: [...rows[key], createChildRow()] });
+    if (totalRows >= CHILD_ROWS_MAX) {
+      return;
+    }
+
+    const list = rows[key];
+    const lastName = list.length > 0 ? list[list.length - 1].parentName : "";
+
+    onChange({ ...rows, [key]: [...list, createChildRow(lastName)] });
   }
 
   function removeRow(key: ChildRecordKind, index: number) {
@@ -484,6 +514,9 @@ function ChildRecordsBlock({
           <strong>{section.label}</strong>
           {rows[section.key].map((row, index) => (
             <div className="shraddha-children__row" key={index}>
+              <span className="shraddha-children__row-label">
+                {section.label}
+              </span>
               <input
                 aria-invalid={isChildRowInvalid(row)}
                 aria-label={`${section.label}: ФИО родителя`}
@@ -496,41 +529,38 @@ function ChildRecordsBlock({
                 type="text"
                 value={row.parentName}
               />
-              <input
-                aria-label={`${section.label}: количество детей`}
-                max={CHILD_COUNT_MAX}
-                min={CHILD_COUNT_MIN}
-                onChange={(event) =>
-                  updateRow(section.key, index, {
-                    childCount: event.target.value
-                  })
-                }
-                type="number"
-                value={row.childCount}
-              />
+              <span
+                aria-label={`${section.label}: номер ребёнка`}
+                className="shraddha-children__number"
+              >
+                {getChildRowNumber(rows[section.key], index)}
+              </span>
               <button
                 aria-label="Удалить строку"
                 className="icon-button"
                 onClick={() => removeRow(section.key, index)}
                 type="button"
               >
-                ×
+                −
               </button>
               {isChildRowInvalid(row) && (
                 <small className="field-error">
-                  Укажите имя и фамилию родителя и число от {CHILD_COUNT_MIN} до{" "}
-                  {CHILD_COUNT_MAX}
+                  Укажите имя и фамилию родителя
                 </small>
               )}
             </div>
           ))}
-          <button
-            className="button button--small"
-            onClick={() => addRow(section.key)}
-            type="button"
-          >
-            + Добавить
-          </button>
+          <div className="shraddha-children__add">
+            <button
+              aria-label={`${section.label}: добавить`}
+              className="icon-button"
+              disabled={totalRows >= CHILD_ROWS_MAX}
+              onClick={() => addRow(section.key)}
+              type="button"
+            >
+              +
+            </button>
+          </div>
         </div>
       ))}
     </div>
