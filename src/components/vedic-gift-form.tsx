@@ -19,7 +19,7 @@ type VedicGiftFormProps = {
   initialName?: string;
   initialPhone?: string;
   initialTelegram?: string;
-  orderId: string;
+  orderToken: string;
   title?: string;
   description?: string;
 };
@@ -41,7 +41,7 @@ export function VedicGiftForm({
   initialName,
   initialPhone,
   initialTelegram,
-  orderId,
+  orderToken,
   title = "🎁 Подарок: ведический астрологический разбор",
   description = "Пожалуйста, укажите данные для составления разбора по ведической астрологии (Джйотиш)."
 }: VedicGiftFormProps) {
@@ -101,7 +101,7 @@ export function VedicGiftForm({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...formData,
-            orderId
+            orderToken
           })
         });
 
@@ -117,7 +117,7 @@ export function VedicGiftForm({
         setIsSubmitting(false);
       }
     },
-    [formData, orderId]
+    [formData, orderToken]
   );
 
   if (alreadySubmitted || submitted) {

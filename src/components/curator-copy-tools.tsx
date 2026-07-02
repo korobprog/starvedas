@@ -131,7 +131,7 @@ export function CuratorCopyTools({
     }
 
     const baseOrigin = getBaseOrigin(origin);
-    const loginUrl = `${baseOrigin}/login?next=%2Fcabinet`;
+    const loginUrl = `${baseOrigin}/admin/login?next=%2Fcabinet`;
     const cabinetUrl = `${baseOrigin}/cabinet`;
     const botUrl = getCuratorTelegramBotUrl();
     const copyText = [

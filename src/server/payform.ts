@@ -224,14 +224,19 @@ export function verifyPayformSignature(
   }
 
   const normalizedSignature = signature.trim();
-  const hexSignature = signPayformPayload(payload, secret);
-  const base64Signature = crypto
-    .createHmac("sha256", secret)
-    .update(payload)
-    .digest("base64");
-  const dataSignature = data ? signPayformData(data, secret) : undefined;
+  const rawPayloadSignatures = payload
+    ? [
+        signPayformPayload(payload, secret),
+        crypto.createHmac("sha256", secret).update(payload).digest("base64")
+      ]
+    : [];
+  const dataSignatures = data
+    ? [data, removeOptionalWebhookFileFields(data)].map((candidate) =>
+        signPayformData(candidate, secret)
+      )
+    : [];
 
-  return [dataSignature, hexSignature, base64Signature].some((candidate) => {
+  return [...dataSignatures, ...rawPayloadSignatures].some((candidate) => {
     if (!candidate) {
       return false;
     }
@@ -246,11 +251,18 @@ export function verifyPayformSignature(
   });
 }
 
+function removeOptionalWebhookFileFields(data: PayformData): PayformData {
+  const rest = { ...data };
+
+  delete rest.products;
+  return rest;
+}
+
 function removeSignature(data: PayformData): PayformData {
   return Object.fromEntries(
     Object.entries(data).filter(
       ([key, value]) =>
-        !["sign", "signature"].includes(key.toLowerCase()) &&
+        !["sign", "sign_2", "signature"].includes(key.toLowerCase()) &&
         value !== undefined &&
         value !== ""
     )

@@ -1,3 +1,4 @@
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -11,7 +12,7 @@ const vedicGiftSchema = z.object({
   email: z.string().trim().email(),
   firstName: z.string().trim().min(1).max(120),
   lastName: z.string().trim().min(1).max(120),
-  orderId: z.string().trim().min(1),
+  orderToken: z.string().trim().min(10),
   phone: z.string().trim().optional().nullable(),
   telegram: z.string().trim().optional().nullable()
 });
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
       email,
       firstName,
       lastName,
-      orderId,
+      orderToken,
       phone,
       telegram
     } = parsed.data;
@@ -58,7 +59,14 @@ export async function POST(request: Request) {
     }
 
     const order = await prisma.order.findFirst({
-      where: { deletedAt: null, id: orderId },
+      where: {
+        deletedAt: null,
+        payment: {
+          status: PaymentStatus.SUCCEEDED
+        },
+        publicToken: orderToken,
+        status: OrderStatus.PAID
+      },
       select: {
         id: true,
         service: { select: { vedicGiftEnabled: true } }

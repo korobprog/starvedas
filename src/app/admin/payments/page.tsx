@@ -4,7 +4,8 @@ import { localeCookieName } from "@/i18n/config";
 import { requireSuperAdminUser } from "@/server/auth";
 import {
   saveCuratorPaymentOptionSettings,
-  savePaymentProviderSettings
+  savePaymentProviderSettings,
+  savePostPaymentPageSettings
 } from "@/server/payment-provider-actions";
 import {
   getCuratorPaymentProviderSettings,
@@ -13,6 +14,7 @@ import {
 } from "@/server/payment-providers";
 import { ensureSystemCurator } from "@/server/referrals";
 import { prisma } from "@/lib/prisma";
+import { getAdminOrigin } from "@/server/admin-curators";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +26,13 @@ async function getCuratorsWithPaymentSettings() {
     select: {
       id: true,
       isSystem: true,
-      name: true
+      name: true,
+      postPurchaseText: true,
+      postPurchaseTitle: true,
+      postPurchaseUrl: true,
+      supportButtonLabel: true,
+      supportEnabled: true,
+      supportUrl: true
     }
   });
 
@@ -41,10 +49,17 @@ export default async function AdminPaymentsPage() {
 
   const cookieStore = await cookies();
   const copy = getAdminCopy(cookieStore.get(localeCookieName)?.value);
-  const [providers, curatorPaymentSettings] = await Promise.all([
+  const [providers, curatorPaymentSettings, origin] = await Promise.all([
     getPaymentProviders(),
-    getCuratorsWithPaymentSettings()
+    getCuratorsWithPaymentSettings(),
+    getAdminOrigin()
   ]);
+  const successReturnUrl = origin
+    ? `${origin}/payment/success?order=<publicToken>`
+    : "/payment/success?order=<publicToken>";
+  const failReturnUrl = origin
+    ? `${origin}/payment/fail?order=<publicToken>`
+    : "/payment/fail?order=<publicToken>";
 
   return (
     <div className="admin-grid">
@@ -120,6 +135,162 @@ export default async function AdminPaymentsPage() {
               </button>
             </form>
           ))}
+        </div>
+      </section>
+
+      <section className="admin-card admin-card--wide">
+        <div className="admin-card__header">
+          <div>
+            <p className="eyebrow">Возврат клиента после оплаты</p>
+            <h2>Страница после оплаты</h2>
+            <p className="admin-muted">
+              Эти тексты клиент видит на странице успешной оплаты после возврата
+              из платежного шлюза. Для каждого заказа в шлюз передается
+              персональная ссылка с токеном заказа.
+            </p>
+          </div>
+        </div>
+
+        <div className="admin-list-item">
+          <p className="admin-muted">URL успешной оплаты:</p>
+          <code>{successReturnUrl}</code>
+          <p className="admin-muted">URL ошибки / отмены оплаты:</p>
+          <code>{failReturnUrl}</code>
+          <p className="form-note">
+            Если клиент вернулся раньше webhook-подтверждения, страница покажет
+            состояние «Проверяем оплату». Полный блок ниже появляется только
+            когда платеж подтвержден.
+          </p>
+        </div>
+
+        <div className="admin-list">
+          {curatorPaymentSettings.map((curator) => {
+            const title =
+              curator.postPurchaseTitle?.trim() || "Оплата прошла успешно";
+            const text =
+              curator.postPurchaseText?.trim() ||
+              "Спасибо за оплату. Администратор свяжется с клиентом и передаст дальнейшую информацию.";
+            const supportLabel =
+              curator.supportButtonLabel?.trim() || "Связаться с куратором";
+
+            return (
+              <article className="admin-list-item" key={curator.id}>
+                <div className="admin-list-item__header">
+                  <div>
+                    <h3>{curator.name}</h3>
+                    <p className="admin-muted">
+                      {curator.isSystem
+                        ? "Основной сайт"
+                        : "Персональная ссылка куратора"}
+                    </p>
+                  </div>
+                </div>
+
+                <form
+                  action={savePostPaymentPageSettings}
+                  className="admin-form"
+                >
+                  <input name="curatorId" type="hidden" value={curator.id} />
+                  <label className="field">
+                    <span>Заголовок после оплаты</span>
+                    <input
+                      defaultValue={curator.postPurchaseTitle ?? ""}
+                      name="postPurchaseTitle"
+                      placeholder="Например: Оплата получена"
+                      type="text"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Текст для клиента после оплаты</span>
+                    <textarea
+                      defaultValue={curator.postPurchaseText ?? ""}
+                      name="postPurchaseText"
+                      placeholder="Что клиент должен сделать дальше"
+                      rows={4}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Ссылка после оплаты</span>
+                    <input
+                      defaultValue={curator.postPurchaseUrl ?? ""}
+                      name="postPurchaseUrl"
+                      placeholder="https://t.me/..."
+                      type="url"
+                    />
+                  </label>
+                  <div className="field-grid">
+                    <label className="field">
+                      <span>Текст кнопки поддержки</span>
+                      <input
+                        defaultValue={curator.supportButtonLabel ?? ""}
+                        name="supportButtonLabel"
+                        placeholder="Написать вопрос"
+                        type="text"
+                      />
+                    </label>
+                    <label className="field">
+                      <span>Адрес поддержки</span>
+                      <input
+                        defaultValue={curator.supportUrl ?? ""}
+                        name="supportUrl"
+                        placeholder="https://t.me/..., @username, email или телефон"
+                        type="text"
+                      />
+                    </label>
+                  </div>
+                  <label className="checkbox-field">
+                    <input
+                      defaultChecked={curator.supportEnabled}
+                      name="supportEnabled"
+                      type="checkbox"
+                    />
+                    <span>Показывать кнопку поддержки после оплаты</span>
+                  </label>
+                  <button className="button button--primary" type="submit">
+                    Сохранить страницу после оплаты
+                  </button>
+                </form>
+
+                <div className="post-purchase-box">
+                  <p className="eyebrow">Предпросмотр для клиента</p>
+                  <h2>{title}</h2>
+                  <p>
+                    Заказ #12345, куратор: <strong>{curator.name}</strong>
+                  </p>
+                  <p>{text}</p>
+                  {curator.postPurchaseUrl ? (
+                    <a
+                      className="button"
+                      href={curator.postPurchaseUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Открыть ссылку куратора
+                    </a>
+                  ) : (
+                    <p className="form-note">
+                      Ссылка после оплаты не задана — кнопка ссылки не появится.
+                    </p>
+                  )}
+                  {curator.supportEnabled && curator.supportUrl ? (
+                    <a
+                      className="button button--primary"
+                      href={curator.supportUrl}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      {supportLabel}
+                    </a>
+                  ) : (
+                    <p className="form-note">
+                      Кнопка поддержки сейчас скрыта или адрес поддержки не
+                      задан.
+                    </p>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 

@@ -11,16 +11,129 @@ import {
 import { type PayformData, verifyPayformSignature } from "@/server/payform";
 import { sendPaymentSucceededTelegramNotification } from "@/server/telegram-notifications";
 
-function parseFormBody(body: string) {
-  return Object.fromEntries(new URLSearchParams(body));
-}
+type ParsedPaymentPayload = {
+  rawBody: string;
+  payload: Record<string, unknown>;
+};
 
-function parsePayload(body: string, contentType: string | null) {
-  if (contentType?.includes("application/json")) {
-    return JSON.parse(body) as Record<string, unknown>;
+function parseMaybeJson(value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed || (!trimmed.startsWith("{") && !trimmed.startsWith("["))) {
+    return value;
   }
 
-  return parseFormBody(body);
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return value;
+  }
+}
+
+function parseFormKey(key: string) {
+  const [root] = key.split("[");
+  const path = root ? [root] : [];
+  const matcher = /\[([^\]]*)\]/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = matcher.exec(key))) {
+    path.push(match[1] ?? "");
+  }
+
+  return path.length ? path : [key];
+}
+
+function assignPayloadValue(
+  payload: Record<string, unknown>,
+  key: string,
+  value: unknown
+) {
+  const path = parseFormKey(key);
+  let current: Record<string, unknown> | unknown[] = payload;
+
+  for (const [index, rawPart] of path.entries()) {
+    const isLast = index === path.length - 1;
+    const nextPart = path[index + 1];
+    const part =
+      rawPart || (Array.isArray(current) ? String(current.length) : rawPart);
+
+    if (isLast) {
+      const existing = current[part as keyof typeof current];
+
+      if (existing === undefined) {
+        current[part as keyof typeof current] = value as never;
+      } else if (Array.isArray(existing)) {
+        existing.push(value);
+      } else {
+        current[part as keyof typeof current] = [existing, value] as never;
+      }
+      return;
+    }
+
+    const existing = current[part as keyof typeof current];
+
+    if (!existing || typeof existing !== "object") {
+      current[part as keyof typeof current] = /^\d+$/.test(nextPart ?? "")
+        ? ([] as never)
+        : ({} as never);
+    }
+
+    current = current[part as keyof typeof current] as
+      | Record<string, unknown>
+      | unknown[];
+  }
+}
+
+function parseUrlEncodedPayload(body: string) {
+  const payload: Record<string, unknown> = {};
+
+  for (const [key, value] of new URLSearchParams(body).entries()) {
+    assignPayloadValue(payload, key, parseMaybeJson(value));
+  }
+
+  return payload;
+}
+
+async function parseFormDataPayload(formData: FormData) {
+  const payload: Record<string, unknown> = {};
+
+  for (const [key, value] of formData.entries()) {
+    if (typeof value === "string") {
+      assignPayloadValue(payload, key, parseMaybeJson(value));
+      continue;
+    }
+
+    assignPayloadValue(payload, key, parseMaybeJson(await value.text()));
+  }
+
+  return payload;
+}
+
+async function parsePaymentPayload(
+  request: Request
+): Promise<ParsedPaymentPayload> {
+  const contentType = request.headers.get("content-type");
+
+  if (contentType?.includes("multipart/form-data")) {
+    return {
+      rawBody: "",
+      payload: await parseFormDataPayload(await request.formData())
+    };
+  }
+
+  const body = await request.text();
+
+  if (contentType?.includes("application/json")) {
+    return {
+      rawBody: body,
+      payload: JSON.parse(body) as Record<string, unknown>
+    };
+  }
+
+  return {
+    rawBody: body,
+    payload: parseUrlEncodedPayload(body)
+  };
 }
 
 function getString(payload: Record<string, unknown>, keys: string[]) {
@@ -41,9 +154,10 @@ function getString(payload: Record<string, unknown>, keys: string[]) {
 
 function getOrderNumber(payload: Record<string, unknown>) {
   const value = getString(payload, [
-    "order_id",
+    "order_num",
     "orderNumber",
     "order_number",
+    "order_id",
     "invoice_id",
     "providerPaymentId"
   ]);
@@ -93,11 +207,19 @@ function getPaymentStatus(payload: Record<string, unknown>) {
     return PaymentStatus.SUCCEEDED;
   }
 
-  if (status && ["fail", "failed", "error", "declined"].includes(status)) {
+  if (
+    status &&
+    ["fail", "failed", "error", "declined", "denied", "order_denied"].includes(
+      status
+    )
+  ) {
     return PaymentStatus.FAILED;
   }
 
-  if (status && ["cancel", "cancelled", "canceled"].includes(status)) {
+  if (
+    status &&
+    ["cancel", "cancelled", "canceled", "order_canceled"].includes(status)
+  ) {
     return PaymentStatus.CANCELLED;
   }
 
@@ -118,6 +240,33 @@ function getPaymentStatus(payload: Record<string, unknown>) {
   }
 
   return PaymentStatus.PENDING;
+}
+
+function parseWebhookAmountKopeks(payload: Record<string, unknown>) {
+  const value = getString(payload, ["sum", "amount", "amountRub"]);
+
+  if (!value) {
+    return undefined;
+  }
+
+  const normalizedValue = value.replace(/\s+/g, "").replace(",", ".");
+  const amount = Number(normalizedValue);
+
+  return Number.isFinite(amount) ? Math.round(amount * 100) : undefined;
+}
+
+function canIgnoreStatusChange({
+  currentStatus,
+  nextStatus
+}: {
+  currentStatus: PaymentStatus | undefined;
+  nextStatus: PaymentStatus;
+}) {
+  return (
+    currentStatus === PaymentStatus.SUCCEEDED &&
+    nextStatus !== PaymentStatus.SUCCEEDED &&
+    nextStatus !== PaymentStatus.REFUNDED
+  );
 }
 
 function toOrderStatus(status: PaymentStatus) {
@@ -173,14 +322,15 @@ export async function handlePaymentWebhook({
   request: Request;
   secret: string | undefined;
 }) {
-  const body = await request.text();
-  let payload: Record<string, unknown>;
+  let parsedPayload: ParsedPaymentPayload;
 
   try {
-    payload = parsePayload(body, request.headers.get("content-type"));
+    parsedPayload = await parsePaymentPayload(request);
   } catch {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
   }
+
+  const { payload, rawBody } = parsedPayload;
 
   const signature =
     request.headers.get("sign") ??
@@ -192,7 +342,7 @@ export async function handlePaymentWebhook({
 
   if (
     !secret ||
-    !verifyPayformSignature(body, signature, secret, payload as PayformData)
+    !verifyPayformSignature(rawBody, signature, secret, payload as PayformData)
   ) {
     return NextResponse.json({ message: "Invalid signature" }, { status: 401 });
   }
@@ -208,6 +358,7 @@ export async function handlePaymentWebhook({
   const leadStatus = toLeadStatus(paymentStatus);
   const paidAt = paymentStatus === PaymentStatus.SUCCEEDED ? new Date() : null;
   const providerPaymentId = getString(payload, [
+    "order_id",
     "payment_id",
     "transaction_id",
     "id"
@@ -286,6 +437,33 @@ export async function handlePaymentWebhook({
 
   if (!order) {
     return NextResponse.json({ message: "Order not found" }, { status: 404 });
+  }
+
+  const webhookAmountKopeks = parseWebhookAmountKopeks(payload);
+  const expectedAmountKopeks = order.amountRub * 100;
+
+  if (webhookAmountKopeks === undefined) {
+    return NextResponse.json({ message: "Invalid amount" }, { status: 400 });
+  }
+
+  if (webhookAmountKopeks !== expectedAmountKopeks) {
+    console.error("Payment webhook amount mismatch", {
+      expectedAmountRub: order.amountRub,
+      orderNumber,
+      providerName,
+      webhookAmountRub: webhookAmountKopeks / 100
+    });
+
+    return NextResponse.json({ message: "Amount mismatch" }, { status: 409 });
+  }
+
+  if (
+    canIgnoreStatusChange({
+      currentStatus: order.payment?.status,
+      nextStatus: paymentStatus
+    })
+  ) {
+    return NextResponse.json({ ignored: true, ok: true });
   }
 
   if (order.payment?.status === paymentStatus) {

@@ -45,6 +45,20 @@ function isProductionSeedEnabled() {
   return trimEnv("RUN_PRODUCTION_SEED") === "1";
 }
 
+function assertRequiredProductionSecrets() {
+  if (
+    trimEnv("AUTH_SECRET") ||
+    trimEnv("SESSION_SECRET") ||
+    trimEnv("NEXTAUTH_SECRET")
+  ) {
+    return;
+  }
+
+  throw new Error(
+    "AUTH_SECRET is required in production. Set AUTH_SECRET to a long random value before starting the server."
+  );
+}
+
 function start(command, args, label, options = {}) {
   const restart = options.restart ?? false;
   const restartDelayMs = options.restartDelayMs ?? 5000;
@@ -98,6 +112,7 @@ process.once("SIGTERM", () => shutdown(0));
 process.once("SIGINT", () => shutdown(0));
 
 try {
+  assertRequiredProductionSecrets();
   await run("node", ["scripts/repair-accounting-migration.mjs"]);
   await run("node", ["scripts/repair-service-archive-migration.mjs"]);
   await run("npx", ["prisma", "migrate", "deploy"]);

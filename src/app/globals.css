@@ -2480,7 +2480,7 @@ select {
   box-shadow: var(--shadow);
 }
 
-@media (max-width: 1360px) {
+@media (max-width: 1680px) {
   .language-switcher {
     position: static;
     width: fit-content;

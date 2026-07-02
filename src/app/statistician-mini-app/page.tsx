@@ -100,7 +100,11 @@ export default async function StatisticianMiniAppPage({
         >
           <StatisticianMiniAppLogin nextPath={nextPath} />
         </div>
-        <Link className="button" href="/login" style={miniAppButtonStyle}>
+        <Link
+          className="button"
+          href="/admin/login?next=%2Fstatistician"
+          style={miniAppButtonStyle}
+        >
           Войти по email и паролю
         </Link>
       </section>

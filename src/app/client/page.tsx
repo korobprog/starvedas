@@ -231,7 +231,7 @@ export default async function ClientCabinetPage() {
           <div className="form-actions client-cabinet-actions client-login-actions">
             <Link
               className="button button--primary"
-              href="/login?next=%2Fclient"
+              href="/client/login?next=%2Fclient"
             >
               Войти по email
             </Link>

@@ -5,7 +5,15 @@ import { loginAction, type LoginActionState } from "@/server/auth-actions";
 
 const initialState: LoginActionState = {};
 
-export function LoginForm({ next }: { next?: string }) {
+export function LoginForm({
+  next,
+  scope = "staff",
+  submitLabel = "Войти"
+}: {
+  next?: string;
+  scope?: "staff" | "client";
+  submitLabel?: string;
+}) {
   const [state, formAction, pending] = useActionState(
     loginAction,
     initialState
@@ -14,6 +22,7 @@ export function LoginForm({ next }: { next?: string }) {
   return (
     <form action={formAction} className="admin-form">
       <input name="next" type="hidden" value={next ?? ""} />
+      <input name="scope" type="hidden" value={scope} />
       <label className="field">
         <span>Email</span>
         <input autoComplete="email" name="email" required type="email" />
@@ -33,7 +42,7 @@ export function LoginForm({ next }: { next?: string }) {
         disabled={pending}
         type="submit"
       >
-        {pending ? "Входим..." : "Войти"}
+        {pending ? "Входим..." : submitLabel}
       </button>
     </form>
   );

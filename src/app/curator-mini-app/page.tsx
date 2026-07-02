@@ -31,7 +31,7 @@ export default async function CuratorMiniAppPage({
         <div className="telegram-auth-card">
           <CuratorMiniAppLogin nextPath={nextPath} />
         </div>
-        <Link className="button" href="/login">
+        <Link className="button" href="/admin/login?next=%2Fcabinet">
           Войти по email и паролю
         </Link>
       </section>

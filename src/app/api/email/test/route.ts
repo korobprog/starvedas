@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3000"
     ).replace(/\/+$/, "");
     const template = buildRegistrationEmail({
-      loginUrl: `${siteUrl}/login`,
+      loginUrl: `${siteUrl}/admin/login`,
       name: user.name
     });
     const result = await sendEmail({

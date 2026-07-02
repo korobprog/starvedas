@@ -16,7 +16,7 @@ export function ClientAuthRequired({
     nextPath.startsWith("/") && !nextPath.startsWith("//")
       ? nextPath
       : "/client";
-  const loginHref = `/login?next=${encodeURIComponent(safeNextPath)}`;
+  const loginHref = `/client/login?next=${encodeURIComponent(safeNextPath)}`;
 
   return (
     <main className="page-shell client-cabinet-shell">

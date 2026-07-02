@@ -27,7 +27,7 @@ export async function sendClientRegistrationEmail({
   }
 
   const template = buildRegistrationEmail({
-    loginUrl: `${getSiteUrlForSourceDomain(sourceDomain)}/login`,
+    loginUrl: `${getSiteUrlForSourceDomain(sourceDomain)}/client/login`,
     name
   });
 

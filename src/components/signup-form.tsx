@@ -1067,7 +1067,7 @@ export function SignupForm({
   const clientRegisterHref = referralSlug
     ? `/client/register?ref=${encodeURIComponent(referralSlug)}`
     : "/client/register";
-  const clientLoginHref = "/login?next=%2Fclient";
+  const clientLoginHref = "/client/login?next=%2Fclient";
   const isClientCabinetActive =
     isClientSessionActive ||
     telegramAuthState.status === "authenticated" ||

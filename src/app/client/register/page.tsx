@@ -60,7 +60,8 @@ export default async function ClientRegisterPage({
         </div>
         <ClientRegistrationForm referralSlug={referralSlug || curator.slug} />
         <p className="form-note">
-          Уже есть аккаунт? <Link href="/login?next=%2Fclient">Войти</Link>
+          Уже есть аккаунт?{" "}
+          <Link href="/client/login?next=%2Fclient">Войти</Link>
         </p>
       </section>
     </main>

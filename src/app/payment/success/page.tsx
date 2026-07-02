@@ -35,7 +35,6 @@ async function getOrderPostPurchase(publicToken?: string) {
             supportUrl: true
           }
         },
-        id: true,
         orderNumber: true,
         publicToken: true,
         status: true,
@@ -195,7 +194,7 @@ export default async function PaymentSuccessPage({
         showVedicGift &&
         order?.service &&
         order?.curator &&
-        order?.id && (
+        order?.publicToken && (
           <section className="simple-card">
             <VedicGiftForm
               alreadySubmitted={Boolean(order.vedicGiftData)}
@@ -207,7 +206,7 @@ export default async function PaymentSuccessPage({
               initialName={initialContactName}
               initialPhone={initialContactPhone}
               initialTelegram={initialContactTelegram}
-              orderId={order.id}
+              orderToken={order.publicToken}
               title={
                 order.service.vedicGiftTitle?.trim() ||
                 "🎁 Подарок: ведический астрологический разбор"

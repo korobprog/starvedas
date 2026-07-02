@@ -158,7 +158,7 @@ export async function requireUser(
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+    redirect(`/admin/login?next=${encodeURIComponent(nextPath)}`);
   }
 
   if (!roles.includes(user.role)) {
@@ -188,7 +188,7 @@ export async function requireServiceManager(nextPath = "/cabinet") {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+    redirect(`/admin/login?next=${encodeURIComponent(nextPath)}`);
   }
 
   const access = await canManageServices();

@@ -157,7 +157,7 @@ export function CuratorCreatedAccessNotice({
       `Имя и фамилия: ${curatorName}`,
       "",
       "Краткая инструкция входа в кабинет куратора:",
-      `1. Откройте страницу входа: ${baseOrigin}/login?next=%2Fcabinet`,
+      `1. Откройте страницу входа: ${baseOrigin}/admin/login?next=%2Fcabinet`,
       "2. Введите логин и пароль из этого сообщения.",
       `3. После входа перейдите в кабинет: ${baseOrigin}/cabinet`,
       ...getTelegramMiniAppInstructions(botUrl)

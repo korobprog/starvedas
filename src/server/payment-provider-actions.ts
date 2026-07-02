@@ -10,6 +10,10 @@ import {
   paymentProviderCodes,
   serializeSupportedLocales
 } from "@/server/payment-providers";
+import {
+  isSafeSupportUrl,
+  normalizeSupportUrlInput
+} from "@/server/support-links";
 
 const paymentProviderSchema = z.object({
   active: z.boolean(),
@@ -21,6 +25,47 @@ const curatorPaymentOptionSchema = z.object({
   allowed: z.boolean(),
   code: z.enum(paymentProviderCodes),
   curatorId: z.string().trim().min(1)
+});
+
+const optionalText = z
+  .string()
+  .trim()
+  .max(5000)
+  .transform((value) => value || null);
+
+const optionalUrl = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine((value) => !value || /^https?:\/\//i.test(value), {
+    message: "Ссылка должна начинаться с http:// или https://"
+  })
+  .transform((value) => value || null);
+
+const optionalSupportUrl = z
+  .string()
+  .trim()
+  .max(2000)
+  .transform(normalizeSupportUrlInput)
+  .refine(isSafeSupportUrl, {
+    message:
+      "Укажите http(s)-ссылку, email, телефон, mailto:, tel: или Telegram @username"
+  });
+
+const optionalButtonLabel = z
+  .string()
+  .trim()
+  .max(80)
+  .transform((value) => value || null);
+
+const postPaymentPageSchema = z.object({
+  curatorId: z.string().trim().min(1),
+  postPurchaseText: optionalText,
+  postPurchaseTitle: optionalText,
+  postPurchaseUrl: optionalUrl,
+  supportButtonLabel: optionalButtonLabel,
+  supportEnabled: z.boolean(),
+  supportUrl: optionalSupportUrl
 });
 
 export async function savePaymentProviderSettings(formData: FormData) {
@@ -143,4 +188,42 @@ export async function saveCuratorPaymentOptionSettings(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/admin/payments");
   revalidatePath("/cabinet");
+}
+
+export async function savePostPaymentPageSettings(formData: FormData) {
+  await requireSuperAdminUser("/admin/payments");
+
+  const parsed = postPaymentPageSchema.safeParse({
+    curatorId: formData.get("curatorId"),
+    postPurchaseText: formData.get("postPurchaseText") ?? "",
+    postPurchaseTitle: formData.get("postPurchaseTitle") ?? "",
+    postPurchaseUrl: formData.get("postPurchaseUrl") ?? "",
+    supportButtonLabel: formData.get("supportButtonLabel") ?? "",
+    supportEnabled: formData.get("supportEnabled") === "on",
+    supportUrl: formData.get("supportUrl") ?? ""
+  });
+
+  if (!parsed.success) {
+    throw new Error("Некорректные настройки страницы после оплаты");
+  }
+
+  await prisma.curator.update({
+    where: {
+      id: parsed.data.curatorId
+    },
+    data: {
+      postPurchaseText: parsed.data.postPurchaseText,
+      postPurchaseTitle: parsed.data.postPurchaseTitle,
+      postPurchaseUrl: parsed.data.postPurchaseUrl,
+      supportButtonLabel: parsed.data.supportButtonLabel,
+      supportEnabled: parsed.data.supportEnabled,
+      supportUrl: parsed.data.supportUrl
+    }
+  });
+
+  revalidatePath("/admin/payments");
+  revalidatePath("/admin/curators");
+  revalidatePath("/cabinet");
+  revalidatePath("/payment/success");
+  revalidatePath("/payment/fail");
 }
