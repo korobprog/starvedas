@@ -48,6 +48,7 @@ function createProviderPaymentUrl({
   description,
   failUrl,
   orderNumber,
+  paidContent,
   products,
   provider,
   receiptName,
@@ -63,6 +64,7 @@ function createProviderPaymentUrl({
   description: string;
   failUrl?: string;
   orderNumber: number;
+  paidContent?: string;
   products?: Array<{
     name: string;
     priceRub: number;
@@ -84,6 +86,7 @@ function createProviderPaymentUrl({
     description,
     failUrl,
     orderNumber,
+    paidContent,
     products,
     receiptName,
     successUrl,
@@ -108,6 +111,45 @@ function createClientOrderUrl(baseUrl: string, publicToken: string) {
     `/client/orders/${encodeURIComponent(publicToken)}`,
     baseUrl
   ).toString();
+}
+
+function formatPaidContent({
+  amountRub,
+  clientOrderUrl,
+  orderNumber,
+  products,
+  receiptName
+}: {
+  amountRub: number;
+  clientOrderUrl: string;
+  orderNumber: number;
+  products?: Array<{
+    name: string;
+    priceRub: number;
+    quantity: number;
+  }>;
+  receiptName: string;
+}) {
+  const items = products?.length
+    ? products
+    : [
+        {
+          name: receiptName,
+          priceRub: amountRub,
+          quantity: 1
+        }
+      ];
+  const itemText = items
+    .map(
+      (item) =>
+        `${item.name} — ${item.priceRub.toLocaleString("ru-RU")} ₽ × ${
+          item.quantity
+        }`
+    )
+    .join("; ");
+  const text = `Спасибо за оплату заказа №${orderNumber}. Доступ к материалам и инструкциям по заказу: ${clientOrderUrl}. Состав заказа: ${itemText}.`;
+
+  return text.slice(0, 4096);
 }
 
 async function findFirstStoredReferralSlug({
@@ -689,6 +731,15 @@ export async function POST(request: Request) {
             order.publicToken
           ),
           orderNumber: order.orderNumber,
+          paidContent: formatPaidContent({
+            amountRub: order.amountRub,
+            clientOrderUrl,
+            orderNumber: order.orderNumber,
+            products: prodamusProducts,
+            receiptName:
+              primaryService.receiptName?.trim() ||
+              primaryService.localizedTitle
+          }),
           products: prodamusProducts,
           provider: paymentProvider.code,
           receiptName:

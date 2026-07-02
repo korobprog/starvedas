@@ -18,6 +18,7 @@ type PaymentUrlInput = {
   customer: PaymentCustomer;
   description: string;
   failUrl?: string;
+  paidContent?: string;
   products?: PaymentProduct[];
   receiptName: string;
   orderNumber: number;
@@ -111,6 +112,7 @@ export function createProdamusPaymentUrl(input: PaymentUrlInput) {
   appendIfDefined(params, "do", "pay");
   appendIfDefined(params, "order_id", input.orderNumber);
   appendIfDefined(params, "customer_extra", input.description);
+  appendIfDefined(params, "paid_content", clean(input.paidContent));
   appendIfDefined(params, "customer_email", customerEmail);
   appendIfDefined(params, "customer_phone", customerPhone);
   appendIfDefined(params, "customer_name", input.customer.name);
@@ -151,6 +153,12 @@ export function createProdamusPaymentUrl(input: PaymentUrlInput) {
 
   if (customerPhone) {
     data.customer_phone = customerPhone;
+  }
+
+  const paidContent = clean(input.paidContent);
+
+  if (paidContent) {
+    data.paid_content = paidContent;
   }
 
   const successUrl = input.successUrl ?? process.env.PRODAMUS_SUCCESS_URL;
