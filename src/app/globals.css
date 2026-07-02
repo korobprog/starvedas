@@ -2043,6 +2043,12 @@ select {
   line-height: 1.5;
 }
 
+.form-warning--danger {
+  border-color: #b42318;
+  background: #b42318;
+  color: #fff;
+}
+
 .form-note {
   margin: 0;
   color: var(--muted);
@@ -2272,6 +2278,38 @@ select {
   padding-inline: 16px;
   box-shadow: none;
   white-space: nowrap;
+}
+
+.live-estimate {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 28rem;
+  margin-top: 1rem;
+  margin-left: auto;
+  border: 1px solid rgb(216 154 43 / 24%);
+  border-radius: 18px;
+  padding: 0.9rem 1rem;
+  background: linear-gradient(135deg, rgb(255 247 230 / 92%), #fff);
+  box-shadow: 0 10px 24px rgb(86 48 13 / 8%);
+}
+
+.live-estimate__label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.live-estimate__amount {
+  color: var(--primary-dark);
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+.live-estimate__hint {
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .signup-auth-links a:not(.button) {
@@ -4163,7 +4201,7 @@ a.button[aria-disabled="true"] {
 
   .signup-auth-links {
     width: 100%;
-    border-radius: 22px;
+    border-radius: 16px;
     padding: 8px;
   }
 
@@ -4181,6 +4219,34 @@ a.button[aria-disabled="true"] {
 
   .signup-auth-links .signup-auth-links__button {
     width: 100%;
+  }
+
+  .live-estimate {
+    max-width: none;
+    margin-left: 0;
+  }
+
+  .shraddha-children__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+  }
+
+  .shraddha-children__row-label,
+  .shraddha-children__row .field-error {
+    grid-column: 1 / -1;
+  }
+
+  .shraddha-children__row input[type="text"] {
+    grid-column: 1 / 2;
+  }
+
+  .shraddha-children__number {
+    grid-column: 2 / 3;
+  }
+
+  .shraddha-children__row .icon-button {
+    grid-column: 3 / 4;
   }
 
   .form-progress {
