@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { normalizeVedicGiftThresholdRub } from "@/lib/vedic-gift";
 import { requireSuperAdminUser } from "@/server/auth";
 import { organizationSettingsId } from "@/server/organization-settings";
 import { offerDocumentSlug } from "@/server/legal-documents";
@@ -33,6 +34,10 @@ const organizationSettingsSchema = z.object({
 
 const offerMarkdownSchema = z.object({
   content: z.string().max(100_000)
+});
+
+const vedicGiftThresholdSchema = z.object({
+  thresholdRub: z.coerce.number().int().min(1).max(10_000_000)
 });
 
 export async function saveOrganizationSettings(formData: FormData) {
@@ -100,6 +105,37 @@ export async function setCuratorServicePermission(formData: FormData) {
 
   revalidatePath("/admin/organization");
   revalidatePath("/cabinet");
+}
+
+export async function saveVedicGiftThreshold(formData: FormData) {
+  await requireSuperAdminUser("/admin/organization");
+
+  const parsed = vedicGiftThresholdSchema.safeParse({
+    thresholdRub: formData.get("vedicGiftThresholdRub") ?? 6000
+  });
+
+  if (!parsed.success) {
+    throw new Error("Некорректный порог подарка");
+  }
+
+  const vedicGiftThresholdRub = normalizeVedicGiftThresholdRub(
+    parsed.data.thresholdRub
+  );
+
+  await prisma.organizationSettings.upsert({
+    where: { id: organizationSettingsId },
+    create: {
+      id: organizationSettingsId,
+      vedicGiftThresholdRub
+    },
+    update: {
+      vedicGiftThresholdRub
+    }
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/organization");
+  revalidatePath("/payment/success");
 }
 
 export async function saveOfferMarkdown(formData: FormData) {

@@ -7,6 +7,7 @@ import {
   sellerTypeOptions
 } from "@/server/organization-settings";
 import {
+  saveVedicGiftThreshold,
   saveOrganizationSettings,
   saveOfferMarkdown,
   setCuratorServicePermission
@@ -258,6 +259,30 @@ export default async function AdminOrganizationPage() {
           </p>
           <button className="button button--primary" type="submit">
             Сохранить правила
+          </button>
+        </form>
+      </section>
+
+      <section className="admin-card">
+        <h2>Подарок за сумму корзины</h2>
+        <p className="admin-muted">
+          Если итоговая сумма заказа достигает этого порога в рублях или
+          эквивалента в USD/INR по текущему курсу сайта, клиенту откроется
+          подарок — ведический астрологический разбор.
+        </p>
+        <form action={saveVedicGiftThreshold} className="admin-form">
+          <label className="field">
+            <span>Порог подарка, ₽</span>
+            <input
+              defaultValue={settings?.vedicGiftThresholdRub ?? 6000}
+              min={1}
+              name="vedicGiftThresholdRub"
+              step={1}
+              type="number"
+            />
+          </label>
+          <button className="button button--primary" type="submit">
+            Сохранить порог
           </button>
         </form>
       </section>

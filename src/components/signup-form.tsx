@@ -13,6 +13,11 @@ import {
 import { MarkdownContent } from "@/components/markdown-content";
 import { SupportCta } from "@/components/support-cta";
 import { formatMoney } from "@/i18n/pricing";
+import {
+  defaultVedicGiftThresholdRub,
+  formatVedicGiftThreshold,
+  isVedicGiftEligible
+} from "@/lib/vedic-gift";
 import { getSignupCopy } from "@/i18n/signup-copy";
 import {
   formatPhoneNumberInput,
@@ -746,7 +751,8 @@ export function SignupForm({
   locale,
   paymentProviders,
   referralSlug,
-  services
+  services,
+  vedicGiftThresholdRub = defaultVedicGiftThresholdRub
 }: {
   assignedCurator: AssignedCurator;
   brandName: string;
@@ -755,6 +761,7 @@ export function SignupForm({
   paymentProviders: PaymentProviderOption[];
   referralSlug?: string | null;
   services: SiteService[];
+  vedicGiftThresholdRub?: number;
 }) {
   const copy = getSignupCopy(locale, brandName);
   const showMailingConsentCheckbox = Boolean(
@@ -923,6 +930,14 @@ export function SignupForm({
       ? selectedService.priceLabel
       : `В расчёте: ${participantCount + wizardChildUnits} ${liveEstimateUnitLabel} · ${selectedService.priceLabel}`
     : "";
+  const wizardVedicGiftEligible = selectedService
+    ? isVedicGiftEligible({
+        amount: estimatedAmount,
+        currency: selectedService.currency,
+        serviceVedicGiftEnabled: selectedService.vedicGiftEnabled,
+        thresholdRub: vedicGiftThresholdRub
+      })
+    : false;
 
   const multiLines = useMemo(() => {
     return services
@@ -987,6 +1002,20 @@ export function SignupForm({
   }, [multiSelections, services]);
   const multiCurrency = services[0]?.currency ?? "RUB";
   const multiTotal = multiLines.reduce((sum, line) => sum + line.amount, 0);
+  const multiVedicGiftEligible =
+    multiLines.length > 0 &&
+    isVedicGiftEligible({
+      amount: multiTotal,
+      currency: multiCurrency,
+      serviceVedicGiftEnabled: multiLines.some(
+        (line) => line.service.vedicGiftEnabled
+      ),
+      thresholdRub: vedicGiftThresholdRub
+    });
+  const multiVedicGiftThreshold = formatVedicGiftThreshold(
+    vedicGiftThresholdRub,
+    multiCurrency
+  );
   const multiTotalNames = multiLines.reduce(
     (sum, line) => sum + line.names.length,
     0
@@ -1804,10 +1833,7 @@ export function SignupForm({
         </ol>
       )}
 
-      <div
-        className="signup-auth-links"
-        aria-label="Личный кабинет клиента"
-      >
+      <div className="signup-auth-links" aria-label="Личный кабинет клиента">
         {isClientCabinetActive ? (
           <>
             <span className="signup-auth-links__label">
@@ -1823,9 +1849,7 @@ export function SignupForm({
           </>
         ) : (
           <>
-            <span className="signup-auth-links__label">
-              Уже записывались?
-            </span>
+            <span className="signup-auth-links__label">Уже записывались?</span>
             <span className="signup-auth-links__actions">
               <a
                 className="button button--small signup-auth-links__button"
@@ -2020,6 +2044,11 @@ export function SignupForm({
                   <strong>
                     Итого: {formatMoney(multiTotal, multiCurrency)}
                   </strong>
+                </p>
+                <p className="service-gift-note service-gift-note--compact">
+                  {multiVedicGiftEligible
+                    ? "🎁 Подарок: ведический астрологический разбор включён в заказ."
+                    : `🎁 Подарок откроется при сумме от ${multiVedicGiftThreshold}.`}
                 </p>
               </>
             ) : (
@@ -2290,11 +2319,27 @@ export function SignupForm({
           )}
           {selectedService && (
             <div aria-live="polite" className="live-estimate">
-              <span className="live-estimate__label">Предварительная сумма</span>
+              <span className="live-estimate__label">
+                Предварительная сумма
+              </span>
               <strong className="live-estimate__amount">
                 {formatMoney(estimatedAmount, selectedService.currency)}
               </strong>
               <small className="live-estimate__hint">{liveEstimateHint}</small>
+              {wizardVedicGiftEligible ? (
+                <small className="service-gift-note service-gift-note--compact">
+                  🎁 Подарок: ведический астрологический разбор включён в заказ.
+                </small>
+              ) : (
+                <small className="service-gift-note service-gift-note--compact">
+                  🎁 Подарок откроется при сумме от{" "}
+                  {formatVedicGiftThreshold(
+                    vedicGiftThresholdRub,
+                    selectedService.currency
+                  )}
+                  .
+                </small>
+              )}
             </div>
           )}
         </fieldset>
@@ -2534,6 +2579,17 @@ export function SignupForm({
             <div>
               <dt>{copy.review.amount}</dt>
               <dd>{formatMoney(estimatedAmount, selectedService!.currency)}</dd>
+            </div>
+            <div>
+              <dt>Подарок</dt>
+              <dd>
+                {wizardVedicGiftEligible
+                  ? "Ведический астрологический разбор включён в заказ."
+                  : `Откроется при сумме от ${formatVedicGiftThreshold(
+                      vedicGiftThresholdRub,
+                      selectedService!.currency
+                    )}.`}
+              </dd>
             </div>
           </dl>
           {!isClientCabinetActive && (

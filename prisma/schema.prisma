@@ -135,7 +135,7 @@ model User {
   changedStatuses             LeadStatusHistory[]
   changedParticipants         ParticipantChangeHistory[]
   createdOrderRevisions       OrderRevision[]
-  deletedOrders               Order[]                    @relation("OrderDeletedBy")
+  deletedOrders               Order[]                     @relation("OrderDeletedBy")
   reviewedPartnerApplications CuratorPartnerApplication[]
   participantListChanges      ParticipantListChange[]
   participantListMessages     ParticipantListMessage[]
@@ -438,14 +438,15 @@ model Order {
   subscriptionStartsAtSnapshot DateTime?
   subscriptionEndsAtSnapshot   DateTime?
   isMultiItem                  Boolean     @default(false)
+  vedicGiftEligible            Boolean     @default(false)
   createdAt                    DateTime    @default(now())
   deletedAt                    DateTime?
   deleteReason                 String?
   updatedAt                    DateTime    @updatedAt
 
-  curatorId String
-  serviceId String
-  clientId  String?
+  curatorId   String
+  serviceId   String
+  clientId    String?
   deletedById String?
 
   curator         Curator              @relation(fields: [curatorId], references: [id], onDelete: Restrict)
@@ -504,12 +505,12 @@ enum ChildRecordType {
 }
 
 model OrderChildRecord {
-  id          String          @id @default(cuid())
-  type        ChildRecordType
-  parentName  String
-  childCount  Int
-  sortOrder   Int             @default(0)
-  createdAt   DateTime        @default(now())
+  id         String          @id @default(cuid())
+  type       ChildRecordType
+  parentName String
+  childCount Int
+  sortOrder  Int             @default(0)
+  createdAt  DateTime        @default(now())
 
   orderId     String
   orderItemId String?
@@ -522,16 +523,16 @@ model OrderChildRecord {
 }
 
 model OrderServiceOption {
-  id                  String    @id @default(cuid())
-  titleSnapshot       String
+  id                   String    @id @default(cuid())
+  titleSnapshot        String
   serviceTitleSnapshot String?
-  descriptionSnapshot String?
-  priceRubSnapshot    Int
-  priceUnitSnapshot   PriceUnit @default(PER_PARTICIPANT)
-  quantitySnapshot    Int       @default(1)
-  totalRubSnapshot    Int
-  sortOrder           Int       @default(0)
-  createdAt           DateTime  @default(now())
+  descriptionSnapshot  String?
+  priceRubSnapshot     Int
+  priceUnitSnapshot    PriceUnit @default(PER_PARTICIPANT)
+  quantitySnapshot     Int       @default(1)
+  totalRubSnapshot     Int
+  sortOrder            Int       @default(0)
+  createdAt            DateTime  @default(now())
 
   orderId     String
   orderItemId String?
@@ -649,8 +650,8 @@ model OrderRevision {
   sourceRevisionId String?
   createdAt        DateTime @default(now())
 
-  orderId      String
-  actorUserId  String?
+  orderId     String
+  actorUserId String?
 
   order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
@@ -716,6 +717,7 @@ model OrganizationSettings {
   cashboxDetails                    String?
   allowCuratorManageServices        Boolean    @default(false)
   hideChintamaniAdminSupportButtons Boolean    @default(false)
+  vedicGiftThresholdRub             Int        @default(6000)
   partnerProgramAgreementText       String?
   createdAt                         DateTime   @default(now())
   updatedAt                         DateTime   @updatedAt

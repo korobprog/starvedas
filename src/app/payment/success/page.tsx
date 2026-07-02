@@ -7,7 +7,15 @@ import { VedicGiftForm } from "@/components/vedic-gift-form";
 import { getPaymentResultCopy } from "@/i18n/payment-result-copy";
 import { localeCookieName } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
-import { shouldHideAdminSupportButtonsOnSourceDomain } from "@/server/organization-settings";
+import {
+  defaultVedicGiftDescription,
+  defaultVedicGiftTitle,
+  isVedicGiftEligible
+} from "@/lib/vedic-gift";
+import {
+  getPublicOrganizationSettings,
+  shouldHideAdminSupportButtonsOnSourceDomain
+} from "@/server/organization-settings";
 import { getAssignedCuratorFromCookie } from "@/server/referrals";
 import { getSourceDomainFromHeaders } from "@/server/source-domain";
 
@@ -23,6 +31,7 @@ async function getOrderPostPurchase(publicToken?: string) {
         publicToken
       },
       select: {
+        amountRub: true,
         curator: {
           select: {
             name: true,
@@ -37,7 +46,9 @@ async function getOrderPostPurchase(publicToken?: string) {
         },
         orderNumber: true,
         publicToken: true,
+        currency: true,
         status: true,
+        vedicGiftEligible: true,
         service: {
           select: {
             slug: true,
@@ -87,6 +98,7 @@ export default async function PaymentSuccessPage({
   const params = await searchParams;
   const copy = getPaymentResultCopy(cookieStore.get(localeCookieName)?.value);
   const order = await getOrderPostPurchase(params.order);
+  const { settings } = await getPublicOrganizationSettings();
   const sourceDomain =
     order?.sourceDomain ?? getSourceDomainFromHeaders(await headers());
   const supportCurator =
@@ -99,7 +111,16 @@ export default async function PaymentSuccessPage({
       })
     : false;
 
-  const showVedicGift = Boolean(order?.service?.vedicGiftEnabled);
+  const showVedicGift = Boolean(
+    order?.vedicGiftEligible ||
+    (order &&
+      isVedicGiftEligible({
+        amount: order.amountRub,
+        currency: order.currency,
+        serviceVedicGiftEnabled: order.service?.vedicGiftEnabled,
+        thresholdRub: settings?.vedicGiftThresholdRub
+      }))
+  );
   const isPaymentConfirmed = Boolean(
     order?.status === OrderStatus.PAID &&
     order.payment?.status === PaymentStatus.SUCCEEDED
@@ -200,7 +221,7 @@ export default async function PaymentSuccessPage({
               alreadySubmitted={Boolean(order.vedicGiftData)}
               description={
                 order.service.vedicGiftDescription?.trim() ||
-                "Пожалуйста, укажите данные для составления разбора по ведической астрологии (Джйотиш)."
+                defaultVedicGiftDescription
               }
               initialEmail={initialContactEmail}
               initialName={initialContactName}
@@ -208,8 +229,7 @@ export default async function PaymentSuccessPage({
               initialTelegram={initialContactTelegram}
               orderToken={order.publicToken}
               title={
-                order.service.vedicGiftTitle?.trim() ||
-                "🎁 Подарок: ведический астрологический разбор"
+                order.service.vedicGiftTitle?.trim() || defaultVedicGiftTitle
               }
             />
           </section>

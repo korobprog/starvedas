@@ -98,13 +98,17 @@ export default async function Home({
   const locale = cookieStore.get(localeCookieName)?.value;
   const brand = await getRequestSiteBrand();
   const copy = applySiteBrandToCopy(getHomeCopy(locale), brand.name);
-  const [activeSchedule, { contact }, availableServices, featuredArticles] =
-    await Promise.all([
-      getActiveSchedule(),
-      getPublicOrganizationSettings(),
-      getPublicServices(locale),
-      getFeaturedPublicArticles(locale)
-    ]);
+  const [
+    activeSchedule,
+    { contact, settings },
+    availableServices,
+    featuredArticles
+  ] = await Promise.all([
+    getActiveSchedule(),
+    getPublicOrganizationSettings(),
+    getPublicServices(locale),
+    getFeaturedPublicArticles(locale)
+  ]);
   const assignedCurator = await getAssignedCurator(
     referralSlug,
     brand.sourceDomain
@@ -190,6 +194,7 @@ export default async function Home({
               paymentProviders={paymentProviders}
               referralSlug={referralSlug ?? assignedCurator.slug}
               services={availableServices}
+              vedicGiftThresholdRub={settings?.vedicGiftThresholdRub ?? 6000}
             />
           </div>
         </div>

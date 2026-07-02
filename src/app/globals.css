@@ -1237,7 +1237,7 @@ select {
 
 .schedule-box p,
 .signup-box p {
-  color: var(--muted);
+  color: #fbfbfb;
   line-height: 1.7;
 }
 
@@ -2045,7 +2045,7 @@ select {
 
 .form-warning--danger {
   border-color: #b42318;
-  background: #b42318;
+  background: #fd1200;
   color: #fff;
 }
 

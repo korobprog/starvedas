@@ -3,13 +3,20 @@ import { OrderStatus, PaymentStatus } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClientAuthRequired } from "@/components/client-auth-required";
+import { VedicGiftForm } from "@/components/vedic-gift-form";
 import { formatMoney } from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
+import {
+  defaultVedicGiftDescription,
+  defaultVedicGiftTitle,
+  isVedicGiftEligible
+} from "@/lib/vedic-gift";
 import { normalizeProdamusPaymentUrl } from "@/server/payform";
 import { applySiteBrandToText } from "@/lib/site-branding";
 import { formatStatus } from "@/lib/status-labels";
 import { canClientEditOrderStatus } from "@/server/client-order-permissions";
 import { getCurrentClientProfile } from "@/server/client-auth";
+import { getPublicOrganizationSettings } from "@/server/organization-settings";
 import { getRequestSiteBrand } from "@/server/site-branding";
 
 export const dynamic = "force-dynamic";
@@ -194,7 +201,10 @@ export default async function ClientOrderDetailPage({
       referralSlug: true,
       service: {
         select: {
-          title: true
+          title: true,
+          vedicGiftDescription: true,
+          vedicGiftEnabled: true,
+          vedicGiftTitle: true
         }
       },
       serviceOptions: {
@@ -209,6 +219,12 @@ export default async function ClientOrderDetailPage({
       status: true,
       subscriptionEndsAtSnapshot: true,
       subscriptionStartsAtSnapshot: true,
+      vedicGiftData: {
+        select: {
+          id: true
+        }
+      },
+      vedicGiftEligible: true,
       statusHistory: {
         orderBy: { createdAt: "desc" },
         select: {
@@ -225,6 +241,7 @@ export default async function ClientOrderDetailPage({
     notFound();
   }
 
+  const { settings } = await getPublicOrganizationSettings();
   const paymentUrl = normalizeProdamusPaymentUrl(order.payment?.paymentUrl);
   const optionTitles = order.serviceOptions.map(
     (option) => option.titleSnapshot
@@ -233,6 +250,15 @@ export default async function ClientOrderDetailPage({
   const isPaymentConfirmed =
     order.status === OrderStatus.PAID &&
     order.payment?.status === PaymentStatus.SUCCEEDED;
+  const showVedicGift = Boolean(
+    order.vedicGiftEligible ||
+    isVedicGiftEligible({
+      amount: order.amountRub,
+      currency: order.currency,
+      serviceVedicGiftEnabled: order.service.vedicGiftEnabled,
+      thresholdRub: settings?.vedicGiftThresholdRub
+    })
+  );
   const hasPostPurchaseContent = Boolean(
     order.curator.postPurchaseTitle ||
     order.curator.postPurchaseText ||
@@ -402,6 +428,26 @@ export default async function ClientOrderDetailPage({
                 Открыть ссылку куратора
               </a>
             )}
+          </article>
+        )}
+
+        {isPaymentConfirmed && showVedicGift && (
+          <article className="client-order-card client-order-card--highlight">
+            <VedicGiftForm
+              alreadySubmitted={Boolean(order.vedicGiftData)}
+              description={
+                order.service.vedicGiftDescription?.trim() ||
+                defaultVedicGiftDescription
+              }
+              initialEmail={order.customerEmail ?? undefined}
+              initialName={order.customerName}
+              initialPhone={order.customerPhone ?? undefined}
+              initialTelegram={order.customerTelegram ?? undefined}
+              orderToken={order.publicToken}
+              title={
+                order.service.vedicGiftTitle?.trim() || defaultVedicGiftTitle
+              }
+            />
           </article>
         )}
 

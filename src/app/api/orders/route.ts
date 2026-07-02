@@ -23,6 +23,7 @@ import {
   normalizeOptional
 } from "@/server/order-validation";
 import { formatChildRecordLines, getChildUnitsTotal } from "@/lib/shraddha";
+import { isVedicGiftEligible } from "@/lib/vedic-gift";
 import { upsertClientProfileForFunnel } from "@/server/client-profiles";
 import { createProdamusPaymentUrl } from "@/server/payform";
 import {
@@ -474,6 +475,18 @@ export async function POST(request: Request) {
       (line) => line.childRecordLines
     );
     const totalAmountRub = lines.reduce((sum, line) => sum + line.amountRub, 0);
+    const giftSettings = await prisma.organizationSettings.findFirst({
+      orderBy: { updatedAt: "desc" },
+      select: { vedicGiftThresholdRub: true }
+    });
+    const vedicGiftEligible = isVedicGiftEligible({
+      amount: totalAmountRub,
+      currency,
+      serviceVedicGiftEnabled: lines.some(
+        (line) => line.service.vedicGiftEnabled
+      ),
+      thresholdRub: giftSettings?.vedicGiftThresholdRub
+    });
     const paymentDescription = isMultiItem
       ? lines.map((line) => line.service.localizedTitle).join(", ")
       : lines[0].selectedOptions.length
@@ -534,6 +547,7 @@ export async function POST(request: Request) {
             !isMultiItem && primaryService.isSubscription
               ? primaryService.subscriptionStartsAt
               : null,
+          vedicGiftEligible,
           curator: { connect: { id: curator.id } },
           service: { connect: { id: primaryService.id } },
           client: { connect: { id: client.id } },
