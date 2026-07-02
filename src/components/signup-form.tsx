@@ -71,36 +71,6 @@ type SavedParticipantsResponse = {
   participants?: SavedParticipantOption[];
 };
 
-const signupAuthLinksInlineStyle: CSSProperties = {
-  alignItems: "center",
-  background: "rgba(255, 247, 230, 0.86)",
-  border: "1px solid rgba(216, 154, 43, 0.28)",
-  borderRadius: "999px",
-  boxShadow: "0 14px 34px rgba(86, 48, 13, 0.11)",
-  color: "var(--muted)",
-  display: "inline-flex",
-  flexWrap: "wrap",
-  fontSize: "0.95rem",
-  gap: "10px",
-  marginTop: "-2px",
-  maxWidth: "100%",
-  padding: "6px",
-  width: "fit-content"
-};
-
-const signupAuthLinksLabelInlineStyle: CSSProperties = {
-  color: "var(--text)",
-  fontWeight: 700,
-  paddingInline: "8px 2px",
-  whiteSpace: "nowrap"
-};
-
-const signupAuthLinksActionsInlineStyle: CSSProperties = {
-  display: "inline-flex",
-  flexWrap: "wrap",
-  gap: "6px"
-};
-
 const signupAuthButtonInlineStyle: CSSProperties = {
   alignItems: "center",
   borderRadius: "999px",
@@ -340,6 +310,21 @@ function getOptionQuantity(
   return participantCount;
 }
 
+function getEstimateUnitLabel(
+  priceUnit: "PER_ORDER" | "PER_PARTICIPANT" | "PER_NAME",
+  isShraddhaService: boolean
+) {
+  if (priceUnit === "PER_ORDER") {
+    return "фиксированная стоимость";
+  }
+
+  if (isShraddhaService || priceUnit === "PER_NAME") {
+    return "записей";
+  }
+
+  return "участников";
+}
+
 function multiServiceNeedsParticipants(
   service: SiteService,
   optionIds: string[]
@@ -506,7 +491,9 @@ function ChildRecordsBlock({
   return (
     <div className="shraddha-children">
       {warningText && (
-        <p className="form-warning shraddha-children__warning">{warningText}</p>
+        <p className="form-warning form-warning--danger shraddha-children__warning">
+          {warningText}
+        </p>
       )}
       {helpText && <p className="form-note">{helpText}</p>}
       {sections.map((section) => (
@@ -928,6 +915,14 @@ export function SignupForm({
     selectedServiceOptions,
     wizardChildUnits
   ]);
+  const liveEstimateUnitLabel = selectedService
+    ? getEstimateUnitLabel(selectedService.priceUnit, isShraddhaService)
+    : "";
+  const liveEstimateHint = selectedService
+    ? selectedService.priceUnit === "PER_ORDER"
+      ? selectedService.priceLabel
+      : `В расчёте: ${participantCount + wizardChildUnits} ${liveEstimateUnitLabel} · ${selectedService.priceLabel}`
+    : "";
 
   const multiLines = useMemo(() => {
     return services
@@ -1812,14 +1807,10 @@ export function SignupForm({
       <div
         className="signup-auth-links"
         aria-label="Личный кабинет клиента"
-        style={signupAuthLinksInlineStyle}
       >
         {isClientCabinetActive ? (
           <>
-            <span
-              className="signup-auth-links__label"
-              style={signupAuthLinksLabelInlineStyle}
-            >
+            <span className="signup-auth-links__label">
               Личный кабинет подключён
             </span>
             <a
@@ -1832,16 +1823,10 @@ export function SignupForm({
           </>
         ) : (
           <>
-            <span
-              className="signup-auth-links__label"
-              style={signupAuthLinksLabelInlineStyle}
-            >
+            <span className="signup-auth-links__label">
               Уже записывались?
             </span>
-            <span
-              className="signup-auth-links__actions"
-              style={signupAuthLinksActionsInlineStyle}
-            >
+            <span className="signup-auth-links__actions">
               <a
                 className="button button--small signup-auth-links__button"
                 href={clientLoginHref}
@@ -2206,7 +2191,7 @@ export function SignupForm({
         <fieldset className="form-step">
           <legend>{copy.legend.participants}</legend>
           {isShraddhaService && selectedService?.shraddhaWarningText && (
-            <p className="form-warning shraddha-children__warning">
+            <p className="form-warning form-warning--danger shraddha-children__warning">
               {selectedService.shraddhaWarningText}
             </p>
           )}
@@ -2302,6 +2287,15 @@ export function SignupForm({
               unbornLabel={selectedService.shraddhaUnbornLabel}
               warningText=""
             />
+          )}
+          {selectedService && (
+            <div aria-live="polite" className="live-estimate">
+              <span className="live-estimate__label">Предварительная сумма</span>
+              <strong className="live-estimate__amount">
+                {formatMoney(estimatedAmount, selectedService.currency)}
+              </strong>
+              <small className="live-estimate__hint">{liveEstimateHint}</small>
+            </div>
           )}
         </fieldset>
       )}

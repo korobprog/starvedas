@@ -19,7 +19,7 @@ export const DEFAULT_SHRADDHA_UNBORN_LABEL = "Нерожденный ребен�
 export const DEFAULT_SHRADDHA_DECEASED_CHILD_LABEL = "Умерший ребенок";
 
 export const DEFAULT_SHRADDHA_CHILD_HELP_TEXT =
-  "Ниже указываем только имя и фамилию родителя, количество нерожденных, умерших детей";
+  "Ниже указываем только имя и фамилию родителя в родительном падеже - пример: Ивановой Иры";
 
 export const CHILD_RECORD_MIN_COUNT = 1;
 export const CHILD_RECORD_MAX_COUNT = 99;
