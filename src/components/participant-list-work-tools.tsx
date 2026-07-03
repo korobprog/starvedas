@@ -3,10 +3,12 @@
 import { useActionState, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { ChangeEvent, FormEvent } from "react";
-import {
-  bulkProcessParticipantsAction,
-  type ParticipantBulkProcessState
-} from "@/server/participant-lists";
+import { bulkProcessParticipantsAction } from "@/server/participant-list-actions";
+
+type ParticipantBulkProcessState = {
+  error?: string;
+  message?: string;
+};
 
 type ParticipantWorkRow = {
   fullName: string;
@@ -179,7 +181,9 @@ export function ParticipantListWorkTools({
       params.set("participantIds", selectedIds.join(","));
     }
 
-    window.location.assign(`/api/participant-lists/export?${params.toString()}`);
+    window.location.assign(
+      `/api/participant-lists/export?${params.toString()}`
+    );
     setClientMessage(
       `${format.toUpperCase()} готовится к скачиванию, имён: ${
         scope === "selected" ? selectedRows.length : participants.length
@@ -209,16 +213,32 @@ export function ParticipantListWorkTools({
       </div>
 
       <div className="participant-tools__actions">
-        <button className="button button--small" onClick={copySelected} type="button">
+        <button
+          className="button button--small"
+          onClick={copySelected}
+          type="button"
+        >
           Скопировать выбранные
         </button>
-        <button className="button button--small" onClick={copyAll} type="button">
+        <button
+          className="button button--small"
+          onClick={copyAll}
+          type="button"
+        >
           Скопировать все
         </button>
-        <button className="button button--small" onClick={downloadSelected} type="button">
+        <button
+          className="button button--small"
+          onClick={downloadSelected}
+          type="button"
+        >
           TXT выбранные
         </button>
-        <button className="button button--small" onClick={downloadAll} type="button">
+        <button
+          className="button button--small"
+          onClick={downloadAll}
+          type="button"
+        >
           TXT все
         </button>
         <button
@@ -249,13 +269,25 @@ export function ParticipantListWorkTools({
         >
           PDF все
         </button>
-        <button className="button button--small" onClick={selectUnprocessed} type="button">
+        <button
+          className="button button--small"
+          onClick={selectUnprocessed}
+          type="button"
+        >
           Выбрать необработанные
         </button>
-        <button className="button button--small" onClick={selectAll} type="button">
+        <button
+          className="button button--small"
+          onClick={selectAll}
+          type="button"
+        >
           Выбрать все
         </button>
-        <button className="button button--small" onClick={clearSelection} type="button">
+        <button
+          className="button button--small"
+          onClick={clearSelection}
+          type="button"
+        >
           Снять выбор
         </button>
       </div>
@@ -283,7 +315,9 @@ export function ParticipantListWorkTools({
           <SubmitButton intent="selected">
             Отметить выбранные обработанными
           </SubmitButton>
-          <SubmitButton intent="all">Отметить весь список обработанным</SubmitButton>
+          <SubmitButton intent="all">
+            Отметить весь список обработанным
+          </SubmitButton>
         </div>
       </form>
 
