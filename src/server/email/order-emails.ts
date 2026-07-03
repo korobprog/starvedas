@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/server/email/mailer";
 import {
   buildOrderCreatedEmail,
+  buildParticipantNamesProcessedEmail,
   buildPaymentFailedEmail,
   buildPaymentSucceededEmail,
   buildReceiptEmail,
@@ -130,6 +131,10 @@ export async function sendOrderCreatedEmail(orderId: string) {
 
 export async function sendPaymentSucceededEmail(orderId: string) {
   return sendOrderEmail(orderId, buildPaymentSucceededEmail);
+}
+
+export async function sendParticipantNamesProcessedEmail(orderId: string) {
+  return sendOrderEmail(orderId, buildParticipantNamesProcessedEmail);
 }
 
 export async function sendPaymentFailedEmail(orderId: string) {

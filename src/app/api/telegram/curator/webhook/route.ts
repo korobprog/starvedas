@@ -5,6 +5,7 @@ import { OrderStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { formatMoney } from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
+import { markOrderParticipantListProcessedByTelegram } from "@/server/participant-lists";
 import { buildReferralPath, buildReferralUrl } from "@/server/referrals";
 import {
   getCuratorTelegramBotUsername,
@@ -347,9 +348,17 @@ async function removeReplyKeyboard(chatId: number) {
   });
 }
 
-async function answerCallbackQuery(callbackQueryId: string) {
+async function answerCallbackQuery(
+  callbackQueryId: string,
+  options?: {
+    showAlert?: boolean;
+    text?: string;
+  }
+) {
   await callTelegramMethod("answerCallbackQuery", {
-    callback_query_id: callbackQueryId
+    callback_query_id: callbackQueryId,
+    show_alert: options?.showAlert,
+    text: options?.text
   });
 }
 
@@ -554,6 +563,39 @@ async function handleTelegramUpdate(request: Request, update: TelegramUpdate) {
     if (update.callback_query) {
       const callback = update.callback_query;
       const chatId = callback.message?.chat.id;
+      const data = callback.data ?? "";
+
+      if (data.startsWith("stat_done:")) {
+        const orderId = data.slice("stat_done:".length);
+        const result = await markOrderParticipantListProcessedByTelegram({
+          orderId,
+          telegramId: callback.from.id
+        });
+
+        await answerCallbackQuery(callback.id, {
+          showAlert: !result.ok,
+          text: result.ok
+            ? result.alreadyProcessed
+              ? "Имена уже были обработаны."
+              : `Имена обработаны: ${result.count}`
+            : result.reason
+        }).catch((error) => {
+          console.error("Statistician Telegram callback answer failed", error);
+        });
+
+        if (chatId) {
+          await sendMessage(
+            chatId,
+            result.ok
+              ? result.alreadyProcessed
+                ? `Заказ #${result.orderNumber}: имена уже были обработаны.`
+                : `Заказ #${result.orderNumber}: имена отмечены как обработанные. Обработано: ${result.count}.`
+              : result.reason
+          );
+        }
+
+        return;
+      }
 
       await answerCallbackQuery(callback.id).catch((error) => {
         console.error("Curator Telegram callback answer failed", error);

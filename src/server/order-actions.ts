@@ -21,6 +21,7 @@ import {
   orderRevisionEventTypes
 } from "@/server/order-revisions";
 import { isCustomPaymentProviderCode } from "@/server/payment-providers";
+import { sendStatisticianParticipantWorkTelegramNotification } from "@/server/telegram-notifications";
 
 const orderIdSchema = z.object({
   orderId: z.string().trim().min(1)
@@ -231,6 +232,14 @@ export async function confirmCustomPaymentAction(formData: FormData) {
     await sendPaymentSucceededEmail(order.id);
   } catch {
     console.error("Manual payment confirmation email failed");
+  }
+
+  try {
+    await sendStatisticianParticipantWorkTelegramNotification({
+      orderId: order.id
+    });
+  } catch {
+    console.error("Manual payment statistician Telegram notification failed");
   }
 
   revalidateOrderWorkspaces();

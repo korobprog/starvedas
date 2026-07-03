@@ -1,4 +1,5 @@
 ﻿import { ParticipantListStatus, ParticipantRowStatus } from "@prisma/client";
+import { ParticipantListWorkTools } from "@/components/participant-list-work-tools";
 import { formatChildRecordLines } from "@/lib/shraddha";
 import { formatStatus } from "@/lib/status-labels";
 import {
@@ -144,6 +145,12 @@ function ListMeta({ list }: { list: ParticipantListRow }) {
         <strong>Дата начала:</strong> {formatDate(eventDate)} ·{" "}
         <strong>Участников:</strong> {list.order.participants.length}
       </p>
+      {list.order.customerComment?.trim() ? (
+        <p>
+          <strong>Пожелания / просьбы клиента:</strong>{" "}
+          {list.order.customerComment}
+        </p>
+      ) : null}
       {problems.length ? (
         <p>
           <strong>Проверить:</strong> {problems.join(", ")}
@@ -218,8 +225,14 @@ function ParticipantRows({
     unbornLabel: list.order.service.shraddhaUnbornLabel ?? undefined,
     deceasedChildLabel: list.order.service.shraddhaDeceasedChildLabel ?? undefined
   });
+  const participantNames = new Set(
+    list.order.participants.map((participant) => participant.fullName)
+  );
+  const visibleChildRecordLines = childRecordLines.filter(
+    (line) => !participantNames.has(line)
+  );
 
-  if (!list.order.participants.length && childRecordLines.length === 0) {
+  if (!list.order.participants.length && visibleChildRecordLines.length === 0) {
     return <p className="admin-muted">Участников в списке нет.</p>;
   }
 
@@ -295,11 +308,11 @@ function ParticipantRows({
       </table>
         </div>
       )}
-      {childRecordLines.length > 0 && (
+      {visibleChildRecordLines.length > 0 && (
         <div className="participant-list-children">
           <strong>Дети:</strong>
           <ul>
-            {childRecordLines.map((line, index) => (
+            {visibleChildRecordLines.map((line, index) => (
               <li key={index}>{line}</li>
             ))}
           </ul>
@@ -325,7 +338,11 @@ export function ParticipantListsPanel({
   return (
     <div className="admin-grid">
       {lists.map((list) => (
-        <section className="admin-card admin-card--wide" key={list.id}>
+        <section
+          className="admin-card admin-card--wide"
+          id={`participant-list-${list.order.orderNumber}`}
+          key={list.id}
+        >
           <div className="section-heading section-heading--compact">
             <p className="eyebrow">
               {list.bookmarked ? "★ " : ""}Список #{list.order.orderNumber} ·{" "}
@@ -345,6 +362,13 @@ export function ParticipantListsPanel({
           ) : null}
 
           <h3>Участники</h3>
+          {mode === "statistician" && list.order.participants.length > 0 ? (
+            <ParticipantListWorkTools
+              listId={list.id}
+              orderNumber={list.order.orderNumber}
+              participants={list.order.participants}
+            />
+          ) : null}
           <ParticipantRows list={list} mode={mode} />
 
           <h3>Переписка по списку</h3>

@@ -227,6 +227,8 @@ type ResolvedLine = {
   participantsText: string;
   selectedOptions: SelectedOptionRow[];
   service: OrderService;
+  workNames: string[];
+  workParticipantCount: number;
 };
 
 export async function POST(request: Request) {
@@ -420,6 +422,7 @@ export async function POST(request: Request) {
         unbornLabel: service.shraddhaUnbornLabel ?? undefined,
         deceasedChildLabel: service.shraddhaDeceasedChildLabel ?? undefined
       });
+      const workNames = [...lineNames, ...childRecordLines];
 
       const requiresParticipants =
         service.priceUnit !== PriceUnit.PER_ORDER ||
@@ -461,15 +464,18 @@ export async function POST(request: Request) {
         participantCount: lineNames.length,
         participantsText: lineNames.join("\n"),
         selectedOptions,
-        service
+        service,
+        workNames,
+        workParticipantCount: workNames.length
       });
     }
 
     const primaryService = lines[0].service;
     const currency = primaryService.currency;
     const aggregateNames = lines.flatMap((line) => line.names);
-    const aggregateParticipantsText = aggregateNames.join("\n");
-    const aggregateParticipantCount = aggregateNames.length;
+    const aggregateWorkNames = lines.flatMap((line) => line.workNames);
+    const aggregateParticipantsText = aggregateWorkNames.join("\n");
+    const aggregateParticipantCount = aggregateWorkNames.length;
     const aggregateChildRecordLines = lines.flatMap(
       (line) => line.childRecordLines
     );
@@ -512,6 +518,7 @@ export async function POST(request: Request) {
           currency,
           consentPersonalData: true,
           customerEmail,
+          customerComment: data.customerComment || null,
           customerName: data.customerName,
           customerPhone,
           customerTelegram,
@@ -576,8 +583,8 @@ export async function POST(request: Request) {
                   currencySnapshot: line.service.currency,
                   isSubscriptionSnapshot: line.service.isSubscription,
                   order: { connect: { id: order.id } },
-                  participantCount: line.participantCount,
-                  participantsText: line.participantsText,
+                  participantCount: line.workParticipantCount,
+                  participantsText: line.workNames.join("\n"),
                   priceRubSnapshot: line.service.localizedPrice,
                   priceUnitSnapshot: line.service.priceUnit,
                   receiptNameSnapshot:
@@ -599,16 +606,16 @@ export async function POST(request: Request) {
             ).id
           : null;
 
-        if (line.names.length) {
+        if (line.workNames.length) {
           await tx.orderParticipant.createMany({
-            data: line.names.map((name, participantIndex) => ({
+            data: line.workNames.map((name, participantIndex) => ({
               fullName: name,
               orderId: order.id,
               orderItemId,
               sortOrder: participantSortOffset + participantIndex + 1
             }))
           });
-          participantSortOffset += line.names.length;
+          participantSortOffset += line.workNames.length;
         }
 
         if (line.childRecords.length) {
@@ -765,6 +772,7 @@ export async function POST(request: Request) {
         childRecordLines: aggregateChildRecordLines,
         curatorName: curator.name,
         customerEmail,
+        customerComment: data.customerComment || null,
         customerName: data.customerName,
         customerPhone,
         customerTelegram,

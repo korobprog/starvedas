@@ -59,11 +59,12 @@ export function formatChildRecordLines(
   return CHILD_TYPE_ORDER.flatMap((type) =>
     records
       .filter((record) => record.type === type)
-      .map(
-        (record) =>
+      .flatMap((record) =>
+        Array.from({ length: record.childCount }, (_, index) =>
           `${getLabelForType(type, resolvedLabels)} ${record.parentName} ${
-            record.childCount
+            index + 1
           }`
+        )
       )
   );
 }

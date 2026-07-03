@@ -1,6 +1,7 @@
 import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
+import { PaymentProcessingStatus } from "@/components/payment-processing-status";
 import { PaymentReceiptLink } from "@/components/payment-receipt-link";
 import { SupportCta } from "@/components/support-cta";
 import { VedicGiftForm } from "@/components/vedic-gift-form";
@@ -118,12 +119,12 @@ export default async function PaymentSuccessPage({
         <p className="eyebrow">{copy.success.eyebrow}</p>
         <h1>
           {order && !isPaymentConfirmed
-            ? "Проверяем оплату"
+            ? "Оплата обрабатывается"
             : copy.success.title}
         </h1>
         <p>
           {order && !isPaymentConfirmed
-            ? "Платёжная форма вернула вас на сайт. Финальный статус берём из защищённого webhook-подтверждения."
+            ? "Мы получили ответ от платёжной формы. Подтверждение от банка обычно приходит в течение нескольких секунд."
             : copy.success.text}
         </p>
         {order && isPaymentConfirmed && (
@@ -158,21 +159,7 @@ export default async function PaymentSuccessPage({
         )}
         {order && !isPaymentConfirmed && (
           <div className="post-purchase-box">
-            <p>
-              Возврат из платежной формы получен, но мы ещё ждём подтверждение
-              оплаты от платёжной системы.
-            </p>
-            <p className="form-note">
-              Доступ к материалам куратора откроется после webhook-подтверждения
-              оплаты. Обычно это занимает несколько секунд — обновите страницу
-              или откройте покупку в личном кабинете.
-            </p>
-            <Link
-              className="button"
-              href={`/client/orders/${order.publicToken}`}
-            >
-              Открыть покупку
-            </Link>
+            <PaymentProcessingStatus orderToken={order.publicToken} />
           </div>
         )}
         {supportCurator && (
@@ -186,9 +173,18 @@ export default async function PaymentSuccessPage({
             supportUrl={supportCurator.supportUrl}
           />
         )}
-        <Link className="button button--primary" href="/">
-          {copy.success.backHome}
-        </Link>
+        {order ? (
+          <Link
+            className="button button--primary"
+            href={`/client/orders/${order.publicToken}`}
+          >
+            Открыть заказ
+          </Link>
+        ) : (
+          <Link className="button button--primary" href="/">
+            {copy.success.backHome}
+          </Link>
+        )}
       </section>
       {isPaymentConfirmed &&
         showVedicGift &&

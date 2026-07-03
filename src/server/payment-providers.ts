@@ -83,7 +83,9 @@ export const paymentProviderEnvNames: Record<PaymentProviderCode, string[]> = {
     "PRODAMUS_API_URL",
     "PRODAMUS_SUCCESS_URL",
     "PRODAMUS_FAIL_URL",
-    "PRODAMUS_WEBHOOK_SECRET"
+    "PRODAMUS_WEBHOOK_SECRET",
+    "PRODAMUS_SYS",
+    "PRODAMUS_DEMO_MODE"
   ],
   custom_card: [],
   custom_phone: []

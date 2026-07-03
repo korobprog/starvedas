@@ -9,8 +9,10 @@ import {
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { formatChildRecordLines } from "@/lib/shraddha";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole, requireUser, type SessionUser } from "@/server/auth";
+import { notifyClientAfterParticipantNamesProcessed } from "@/server/client-participant-notifications";
 import {
   captureOrderRevision,
   orderRevisionEventTypes
@@ -49,6 +51,17 @@ const messageSchema = z.object({
   listId: z.string().trim().min(1)
 });
 
+const bulkProcessSchema = z.object({
+  intent: z.enum(["selected", "all"]),
+  listId: z.string().trim().min(1),
+  participantIds: z.array(z.string().trim().min(1)).default([])
+});
+
+export type ParticipantBulkProcessState = {
+  error?: string;
+  message?: string;
+};
+
 export const participantListSelect =
   Prisma.validator<Prisma.ParticipantListSelect>()({
     bookmarked: true,
@@ -85,6 +98,7 @@ export const participantListSelect =
         createdAt: true,
         curator: { select: { id: true, name: true, telegramId: true } },
         customerEmail: true,
+        customerComment: true,
         customerName: true,
         customerPhone: true,
         customerTelegram: true,
@@ -267,7 +281,106 @@ async function ensureParticipantLists(where: Prisma.OrderWhereInput) {
   });
 }
 
+async function ensureChildRecordParticipantRows(where: Prisma.OrderWhereInput) {
+  const orders = await prisma.order.findMany({
+    select: {
+      childRecords: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: {
+          childCount: true,
+          parentName: true,
+          type: true
+        }
+      },
+      id: true,
+      participants: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: {
+          fullName: true,
+          sortOrder: true
+        }
+      },
+      service: {
+        select: {
+          shraddhaDeceasedChildLabel: true,
+          shraddhaUnbornLabel: true
+        }
+      }
+    },
+    where: {
+      ...where,
+      deletedAt: null
+    }
+  });
+
+  for (const order of orders) {
+    if (!order.childRecords.length) {
+      continue;
+    }
+
+    const childLines = formatChildRecordLines(order.childRecords, {
+      unbornLabel: order.service.shraddhaUnbornLabel ?? undefined,
+      deceasedChildLabel: order.service.shraddhaDeceasedChildLabel ?? undefined
+    });
+
+    if (!childLines.length) {
+      continue;
+    }
+
+    const existingCounts = new Map<string, number>();
+
+    for (const participant of order.participants) {
+      existingCounts.set(
+        participant.fullName,
+        (existingCounts.get(participant.fullName) ?? 0) + 1
+      );
+    }
+
+    const missing: string[] = [];
+
+    for (const line of childLines) {
+      const currentCount = existingCounts.get(line) ?? 0;
+
+      if (currentCount > 0) {
+        existingCounts.set(line, currentCount - 1);
+      } else {
+        missing.push(line);
+      }
+    }
+
+    if (!missing.length) {
+      continue;
+    }
+
+    const maxSortOrder = order.participants.reduce(
+      (max, participant) => Math.max(max, participant.sortOrder),
+      0
+    );
+
+    await prisma.$transaction([
+      prisma.orderParticipant.createMany({
+        data: missing.map((fullName, index) => ({
+          fullName,
+          orderId: order.id,
+          sortOrder: maxSortOrder + index + 1
+        }))
+      }),
+      prisma.order.update({
+        data: {
+          participantCount: order.participants.length + missing.length,
+          participantsText: [
+            ...order.participants.map((participant) => participant.fullName),
+            ...missing
+          ].join("\n")
+        },
+        where: { id: order.id }
+      })
+    ]);
+  }
+}
+
 export async function ensureAllPaidParticipantLists() {
+  await ensureChildRecordParticipantRows({ status: OrderStatus.PAID });
   await ensureParticipantLists({ status: OrderStatus.PAID });
 }
 
@@ -290,7 +403,285 @@ export async function getStatisticianParticipantLists() {
   });
 }
 
+export async function getStatisticianParticipantListsByFilter(
+  filter: "all" | "processed" | "unprocessed" = "unprocessed"
+) {
+  const lists = await getStatisticianParticipantLists();
+
+  if (filter === "all") {
+    return lists;
+  }
+
+  return lists.filter((list) => {
+    const hasParticipants = list.order.participants.length > 0;
+    const allProcessed =
+      hasParticipants &&
+      list.order.participants.every(
+        (participant) => participant.rowStatus === ParticipantRowStatus.CHECKED
+      );
+
+    return filter === "processed" ? allProcessed : !allProcessed;
+  });
+}
+
+export async function bulkProcessParticipantsAction(
+  _state: ParticipantBulkProcessState,
+  formData: FormData
+): Promise<ParticipantBulkProcessState> {
+  "use server";
+  const user = await requireUser(
+    [UserRole.STATISTICIAN, UserRole.ADMIN, UserRole.SUPER_ADMIN],
+    "/statistician"
+  );
+  requireStatisticianLike(user);
+
+  const parsed = bulkProcessSchema.safeParse({
+    intent: formData.get("intent"),
+    listId: formData.get("listId"),
+    participantIds: formData.getAll("participantIds")
+  });
+
+  if (!parsed.success) {
+    return { error: "Выберите имена для обработки" };
+  }
+
+  await getListAccess(parsed.data.listId, user);
+
+  const list = await prisma.participantList.findUnique({
+    where: { id: parsed.data.listId },
+    select: {
+      id: true,
+      orderId: true,
+      order: {
+        select: {
+          participants: {
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            select: {
+              fullName: true,
+              id: true,
+              rowStatus: true
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if (!list) {
+    return { error: "Список не найден" };
+  }
+
+  const requestedIds =
+    parsed.data.intent === "all"
+      ? list.order.participants.map((participant) => participant.id)
+      : parsed.data.participantIds;
+  const requestedSet = new Set(requestedIds);
+  const participantsToProcess = list.order.participants.filter(
+    (participant) =>
+      requestedSet.has(participant.id) &&
+      participant.rowStatus !== ParticipantRowStatus.CHECKED
+  );
+
+  if (!participantsToProcess.length) {
+    return { error: "Нет необработанных выбранных имён" };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await captureOrderRevision(tx, {
+      actorUserId: user.id,
+      eventType: orderRevisionEventTypes.participantListEdit,
+      note: "Статист отметил имена обработанными",
+      orderId: list.orderId
+    });
+
+    await tx.orderParticipant.updateMany({
+      data: {
+        rowStatus: ParticipantRowStatus.CHECKED
+      },
+      where: {
+        id: { in: participantsToProcess.map((participant) => participant.id) }
+      }
+    });
+
+    await tx.participantListChange.createMany({
+      data: participantsToProcess.map((participant) => ({
+        changedById: user.id,
+        fieldName: `participant:${participant.id}:rowStatus`,
+        fromValue: participant.rowStatus,
+        listId: list.id,
+        toValue: ParticipantRowStatus.CHECKED
+      }))
+    });
+
+    const processedIds = new Set(
+      participantsToProcess.map((participant) => participant.id)
+    );
+    const allProcessed = list.order.participants.every(
+      (participant) =>
+        participant.rowStatus === ParticipantRowStatus.CHECKED ||
+        processedIds.has(participant.id)
+    );
+
+    if (allProcessed) {
+      await tx.participantList.update({
+        data: {
+          status: ParticipantListStatus.CHECKED
+        },
+        where: { id: list.id }
+      });
+    }
+  });
+
+  revalidateParticipantListWorkspaces();
+  await notifyClientAfterParticipantNamesProcessed(list.orderId);
+
+  return {
+    message: `Обработано имён: ${participantsToProcess.length}`
+  };
+}
+
+export async function markOrderParticipantListProcessedByTelegram({
+  orderId,
+  telegramId
+}: {
+  orderId: string;
+  telegramId: number | string;
+}) {
+  const statistician = await prisma.user.findFirst({
+    where: {
+      active: true,
+      role: UserRole.STATISTICIAN,
+      telegramId: String(telegramId)
+    },
+    select: {
+      id: true,
+      name: true
+    }
+  });
+
+  if (!statistician) {
+    return {
+      ok: false as const,
+      reason: "У вас нет доступа к обработке этих имён."
+    };
+  }
+
+  const order = await prisma.order.findFirst({
+    where: {
+      deletedAt: null,
+      id: orderId,
+      status: OrderStatus.PAID
+    },
+    select: {
+      id: true,
+      orderNumber: true,
+      participantList: { select: { id: true } },
+      participants: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: {
+          fullName: true,
+          id: true,
+          rowStatus: true
+        }
+      },
+      serviceOptions: {
+        orderBy: { sortOrder: "asc" },
+        select: {
+          option: { select: { eventStartsAt: true } }
+        }
+      }
+    }
+  });
+
+  if (!order) {
+    return {
+      ok: false as const,
+      reason: "Оплаченный заказ не найден."
+    };
+  }
+
+  if (!order.participants.length) {
+    return {
+      ok: false as const,
+      reason: "В заказе нет имён для обработки."
+    };
+  }
+
+  const participantsToProcess = order.participants.filter(
+    (participant) => participant.rowStatus !== ParticipantRowStatus.CHECKED
+  );
+
+  if (!participantsToProcess.length) {
+    await notifyClientAfterParticipantNamesProcessed(order.id);
+
+    return {
+      ok: true as const,
+      alreadyProcessed: true,
+      count: 0,
+      orderNumber: order.orderNumber,
+      statisticianName: statistician.name
+    };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await captureOrderRevision(tx, {
+      actorUserId: statistician.id,
+      eventType: orderRevisionEventTypes.participantListEdit,
+      note: "Статист отметил все имена обработанными через Telegram",
+      orderId: order.id
+    });
+
+    const participantList = order.participantList
+      ? order.participantList
+      : await tx.participantList.create({
+          data: {
+            eventStartsAt: firstEventDate(order),
+            orderId: order.id
+          },
+          select: { id: true }
+        });
+
+    await tx.orderParticipant.updateMany({
+      data: {
+        rowStatus: ParticipantRowStatus.CHECKED
+      },
+      where: {
+        id: { in: participantsToProcess.map((participant) => participant.id) }
+      }
+    });
+
+    await tx.participantList.update({
+      data: {
+        status: ParticipantListStatus.CHECKED
+      },
+      where: { id: participantList.id }
+    });
+
+    await tx.participantListChange.createMany({
+      data: participantsToProcess.map((participant) => ({
+        changedById: statistician.id,
+        fieldName: `participant:${participant.id}:rowStatus`,
+        fromValue: participant.rowStatus,
+        listId: participantList.id,
+        toValue: ParticipantRowStatus.CHECKED
+      }))
+    });
+  });
+
+  revalidateParticipantListWorkspaces();
+  await notifyClientAfterParticipantNamesProcessed(order.id);
+
+  return {
+    ok: true as const,
+    alreadyProcessed: false,
+    count: participantsToProcess.length,
+    orderNumber: order.orderNumber,
+    statisticianName: statistician.name
+  };
+}
+
 export async function getCuratorParticipantLists(curatorId: string) {
+  await ensureChildRecordParticipantRows({ curatorId, status: OrderStatus.PAID });
   await ensureParticipantLists({ curatorId, status: OrderStatus.PAID });
 
   return prisma.participantList.findMany({
@@ -394,6 +785,7 @@ export async function updateParticipantListAction(formData: FormData) {
   });
 
   revalidateParticipantListWorkspaces();
+  await notifyClientAfterParticipantNamesProcessed(current.orderId);
 }
 
 export async function updateParticipantListRowAction(formData: FormData) {
@@ -521,9 +913,31 @@ export async function updateParticipantListRowAction(formData: FormData) {
     if (listChanges.length) {
       await tx.participantListChange.createMany({ data: listChanges });
     }
+
+    if (changedStatus) {
+      const participants = await tx.orderParticipant.findMany({
+        select: { rowStatus: true },
+        where: { orderId: participant.orderId }
+      });
+      const allProcessed =
+        participants.length > 0 &&
+        participants.every(
+          (item) => item.rowStatus === ParticipantRowStatus.CHECKED
+        );
+
+      if (allProcessed) {
+        await tx.participantList.update({
+          data: {
+            status: ParticipantListStatus.CHECKED
+          },
+          where: { id: parsed.data.listId }
+        });
+      }
+    }
   });
 
   revalidateParticipantListWorkspaces();
+  await notifyClientAfterParticipantNamesProcessed(participant.orderId);
 }
 
 export async function sendParticipantListMessageAction(formData: FormData) {

@@ -273,6 +273,35 @@ export function buildPaymentSucceededEmail(
   };
 }
 
+export function buildParticipantNamesProcessedEmail(
+  order: OrderEmailData
+): EmailTemplate {
+  const title = `Имена по заказу №${order.orderNumber} обработаны`;
+
+  return {
+    html: layout({
+      children: `
+        <p>${escapeHtml(order.customerName)}, имена по вашему заказу обработаны.</p>
+        <p>Статист завершил проверку списка участников. Вы можете открыть заказ в личном кабинете и посмотреть текущий статус.</p>
+        ${details([
+          ["Номер заказа", `№${order.orderNumber}`],
+          ["Услуга", order.serviceTitle],
+          ["Участников", order.participantCount]
+        ])}
+        ${participantsList(order)}
+        ${button(order.orderUrl, "Открыть заказ")}
+      `,
+      preheader: `Имена по заказу №${order.orderNumber} обработаны.`,
+      title
+    }),
+    subject: `${brandName}: имена по заказу №${order.orderNumber} обработаны`,
+    text: orderText(order, [
+      `${order.customerName}, имена по вашему заказу обработаны.`,
+      "Статист завершил проверку списка участников."
+    ])
+  };
+}
+
 export function buildPaymentFailedEmail(order: OrderEmailData): EmailTemplate {
   const title = `Оплата заказа №${order.orderNumber} не прошла`;
 

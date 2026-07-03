@@ -794,6 +794,7 @@ export function SignupForm({
   const [customerPhoneCountry, setCustomerPhoneCountry] =
     useState<PhoneCountryCode>(() => getDefaultPhoneCountry(locale));
   const [customerEmail, setCustomerEmail] = useState("");
+  const [customerComment, setCustomerComment] = useState("");
   const [consentPersonalData, setConsentPersonalData] = useState(true);
   const [consentMailings, setConsentMailings] = useState(false);
   const [submitState, setSubmitState] = useState<SubmitState>({
@@ -1496,6 +1497,7 @@ export function SignupForm({
       consentMailings: showMailingConsentCheckbox ? consentMailings : false,
       consentPersonalData: true as const,
       customerEmail,
+      customerComment,
       customerName,
       customerPhone,
       customerPhoneCountry,
@@ -2434,6 +2436,16 @@ export function SignupForm({
             </label>
           </div>
           {!hasContact && <p className="form-warning">{copy.contactWarning}</p>}
+          <label className="field">
+            <span>Ваши пожелания / просьбы</span>
+            <textarea
+              maxLength={2000}
+              onChange={(event) => setCustomerComment(event.target.value)}
+              placeholder="Напишите здесь ваши пожелания, просьбы или уточнения"
+              rows={4}
+              value={customerComment}
+            />
+          </label>
           <label className="checkbox-field">
             <input
               checked={consentPersonalData}

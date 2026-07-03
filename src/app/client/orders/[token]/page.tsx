@@ -151,6 +151,7 @@ export default async function ClientOrderDetailPage({
       createdAt: true,
       currency: true,
       customerEmail: true,
+      customerComment: true,
       customerName: true,
       customerPhone: true,
       customerTelegram: true,
@@ -226,6 +227,11 @@ export default async function ClientOrderDetailPage({
   }
 
   const paymentUrl = normalizeProdamusPaymentUrl(order.payment?.paymentUrl);
+  const namesProcessed =
+    order.participants.length > 0 &&
+    order.participants.every(
+      (participant) => participant.rowStatus === "CHECKED"
+    );
   const optionTitles = order.serviceOptions.map(
     (option) => option.titleSnapshot
   );
@@ -410,6 +416,17 @@ export default async function ClientOrderDetailPage({
           <p className="form-note">
             Всего участников: {order.participantCount}
           </p>
+          <p className="form-note">
+            Статус имён:{" "}
+            <strong>
+              {namesProcessed ? "имена обработаны" : "ожидают обработки"}
+            </strong>
+          </p>
+          {order.customerComment?.trim() ? (
+            <p className="form-note">
+              Ваши пожелания / просьбы: {order.customerComment}
+            </p>
+          ) : null}
           <ol className="client-participant-list">
             {order.participants.map((participant) => (
               <li key={participant.fullName}>

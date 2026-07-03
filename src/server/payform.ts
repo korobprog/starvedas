@@ -44,6 +44,12 @@ function getProdamusUrl() {
   return process.env.PRODAMUS_API_URL?.trim() || "https://prodamus.ru";
 }
 
+function isProdamusDemoModeEnabled() {
+  const value = process.env.PRODAMUS_DEMO_MODE?.trim().toLowerCase();
+
+  return value === "1" || value === "true" || value === "yes";
+}
+
 export function normalizeProdamusPaymentUrl(
   paymentUrl: string | null | undefined
 ) {
@@ -108,6 +114,8 @@ export function createProdamusPaymentUrl(input: PaymentUrlInput) {
   const customerEmail = clean(input.customer.email);
   const customerPhone = clean(input.customer.phone);
   const merchantId = clean(process.env.PRODAMUS_MERCHANT_ID);
+  const prodamusSys = clean(process.env.PRODAMUS_SYS);
+  const demoMode = isProdamusDemoModeEnabled() ? 1 : undefined;
 
   appendIfDefined(params, "do", "pay");
   appendIfDefined(params, "order_id", input.orderNumber);
@@ -177,6 +185,17 @@ export function createProdamusPaymentUrl(input: PaymentUrlInput) {
 
     appendIfDefined(params, "urlNotification", callbackUrl);
     data.urlNotification = callbackUrl;
+  }
+
+  if (prodamusSys) {
+    appendIfDefined(params, "sys", prodamusSys);
+    data.sys = prodamusSys;
+  }
+
+  appendIfDefined(params, "demo_mode", demoMode);
+
+  if (demoMode) {
+    data.demo_mode = demoMode;
   }
 
   if (merchantId) {

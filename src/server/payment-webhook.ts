@@ -9,7 +9,10 @@ import {
   orderRevisionEventTypes
 } from "@/server/order-revisions";
 import { type PayformData, verifyPayformSignature } from "@/server/payform";
-import { sendPaymentSucceededTelegramNotification } from "@/server/telegram-notifications";
+import {
+  sendPaymentSucceededTelegramNotification,
+  sendStatisticianParticipantWorkTelegramNotification
+} from "@/server/telegram-notifications";
 
 type ParsedPaymentPayload = {
   rawBody: string;
@@ -382,6 +385,7 @@ export async function handlePaymentWebhook({
         }
       },
       customerEmail: true,
+      customerComment: true,
       customerName: true,
       customerPhone: true,
       customerTelegram: true,
@@ -543,6 +547,7 @@ export async function handlePaymentWebhook({
         }),
         curatorName: order.curator.name,
         customerEmail: order.customerEmail,
+        customerComment: order.customerComment,
         customerName: order.customerName,
         customerPhone: order.customerPhone,
         customerTelegram: order.customerTelegram,
@@ -565,6 +570,14 @@ export async function handlePaymentWebhook({
       });
     } catch (error) {
       console.error("Telegram payment notification failed", error);
+    }
+
+    try {
+      await sendStatisticianParticipantWorkTelegramNotification({
+        orderId: order.id
+      });
+    } catch (error) {
+      console.error("Statistician Telegram notification failed", error);
     }
   }
 

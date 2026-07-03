@@ -2635,6 +2635,41 @@ select {
   margin: 0;
 }
 
+.payment-processing {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.payment-processing__spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgb(176 102 33 / 18%);
+  border-top-color: var(--primary);
+  border-radius: 999px;
+  animation: payment-processing-spin 0.85s linear infinite;
+}
+
+.payment-processing__content {
+  display: grid;
+  gap: 10px;
+}
+
+.payment-processing__content strong {
+  color: var(--primary-dark);
+}
+
+.payment-processing__content .button {
+  justify-self: start;
+}
+
+@keyframes payment-processing-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .payment-receipt-link {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -5026,4 +5061,32 @@ a.button[aria-disabled="true"] {
 .participant-list-children ul {
   margin: 0.25rem 0 0;
   padding-left: 1.25rem;
+}
+
+.participant-work-tools {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(255, 250, 241, 0.7);
+}
+
+.participant-tools__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.participant-tools__checks {
+  display: grid;
+  gap: 6px;
+  max-height: 240px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.65);
 }

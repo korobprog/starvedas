@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { formatOrderCreatedMessage } from "@/server/telegram-notifications";
+import {
+  formatClientParticipantNamesProcessedMessage,
+  formatOrderCreatedMessage
+} from "@/server/telegram-notifications";
 
 const baseInput = {
   amountRub: 1500,
@@ -39,5 +42,23 @@ describe("formatOrderCreatedMessage", () => {
     });
 
     expect(message).not.toContain("Дети:");
+  });
+});
+
+describe("formatClientParticipantNamesProcessedMessage", () => {
+  it("includes order details and client cabinet link", () => {
+    const message = formatClientParticipantNamesProcessedMessage({
+      customerName: "Иван Иванов",
+      orderNumber: 42,
+      orderUrl: "https://starvedas.ru/client/orders/token",
+      participantCount: 2,
+      serviceTitle: "Шраддха ягья"
+    });
+
+    expect(message).toContain("Имена обработаны");
+    expect(message).toContain("Иван Иванов");
+    expect(message).toContain("Заказ: #42");
+    expect(message).toContain("Шраддха ягья");
+    expect(message).toContain("https://starvedas.ru/client/orders/token");
   });
 });

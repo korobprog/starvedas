@@ -80,6 +80,7 @@ export const createOrderSchema = z
     customerEmail: z
       .union([z.string().trim().email(), z.literal("")])
       .optional(),
+    customerComment: z.string().trim().max(2000).optional(),
     consentPersonalData: z.literal(true),
     consentMailings: z.boolean().default(false),
     paymentProvider: z.enum(paymentProviderCodes).optional(),

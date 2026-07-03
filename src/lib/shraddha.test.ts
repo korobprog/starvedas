@@ -17,19 +17,42 @@ const records: ChildRecordInput[] = [
 describe("formatChildRecordLines", () => {
   it("builds statist lines grouped unborn-first with default labels", () => {
     expect(formatChildRecordLines(records)).toEqual([
-      "Нерожденный ребенок Лидия Лутенко 5",
-      "Нерожденный ребенок Маруся Дубкова 3",
-      "Умерший ребенок Ираида Иванова 4"
+      ...Array.from(
+        { length: records[1].childCount },
+        (_, index) =>
+          `${DEFAULT_SHRADDHA_UNBORN_LABEL} ${records[1].parentName} ${
+            index + 1
+          }`
+      ),
+      ...Array.from(
+        { length: records[2].childCount },
+        (_, index) =>
+          `${DEFAULT_SHRADDHA_UNBORN_LABEL} ${records[2].parentName} ${
+            index + 1
+          }`
+      ),
+      ...Array.from(
+        { length: records[0].childCount },
+        (_, index) =>
+          `${DEFAULT_SHRADDHA_DECEASED_CHILD_LABEL} ${
+            records[0].parentName
+          } ${index + 1}`
+      )
     ]);
   });
 
   it("honours custom labels", () => {
-    expect(
-      formatChildRecordLines(
-        [{ type: "UNBORN", parentName: "Анна Булгар", childCount: 2 }],
-        { unbornLabel: "Абортированный ребёнок" }
-      )
-    ).toEqual(["Абортированный ребёнок Анна Булгар 2"]);
+    const unbornLabel = "Абортированный ребёнок";
+    const childRecord = {
+      childCount: 2,
+      parentName: "Анна Булгар",
+      type: "UNBORN" as const
+    };
+
+    expect(formatChildRecordLines([childRecord], { unbornLabel })).toEqual([
+      `${unbornLabel} ${childRecord.parentName} 1`,
+      `${unbornLabel} ${childRecord.parentName} 2`
+    ]);
   });
 
   it("returns nothing for an empty list", () => {

@@ -1,7 +1,13 @@
 import http from "node:http";
 import https from "node:https";
 import tls from "node:tls";
-import { PrismaClient, OrderStatus } from "@prisma/client";
+import {
+  PrismaClient,
+  OrderStatus,
+  ParticipantListStatus,
+  ParticipantRowStatus,
+  UserRole
+} from "@prisma/client";
 
 const prisma = new PrismaClient();
 const telegramLongPollingTimeoutSeconds = 50;
@@ -334,9 +340,11 @@ async function sendMessage(chatId, text, replyMarkup) {
   });
 }
 
-async function answerCallbackQuery(callbackQueryId) {
+async function answerCallbackQuery(callbackQueryId, options = {}) {
   return callTelegramMethod("answerCallbackQuery", {
-    callback_query_id: callbackQueryId
+    callback_query_id: callbackQueryId,
+    show_alert: options.showAlert,
+    text: options.text
   });
 }
 
@@ -365,6 +373,81 @@ async function getCuratorByTelegramId(telegramId) {
       slug: true
     }
   });
+}
+
+async function markOrderParticipantListProcessedByTelegram({ orderId, telegramId }) {
+  const statistician = await prisma.user.findFirst({
+    where: {
+      active: true,
+      role: UserRole.STATISTICIAN,
+      telegramId: String(telegramId)
+    },
+    select: { id: true, name: true }
+  });
+
+  if (!statistician) {
+    return { ok: false, reason: "У вас нет доступа к обработке этих имён." };
+  }
+
+  const order = await prisma.order.findFirst({
+    where: { deletedAt: null, id: orderId, status: OrderStatus.PAID },
+    select: {
+      id: true,
+      orderNumber: true,
+      participantList: { select: { id: true } },
+      participants: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: { id: true, rowStatus: true }
+      }
+    }
+  });
+
+  if (!order) {
+    return { ok: false, reason: "Оплаченный заказ не найден." };
+  }
+
+  const participantsToProcess = order.participants.filter(
+    (participant) => participant.rowStatus !== ParticipantRowStatus.CHECKED
+  );
+
+  if (!participantsToProcess.length) {
+    return { ok: true, alreadyProcessed: true, count: 0, orderNumber: order.orderNumber };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const participantList = order.participantList ||
+      (await tx.participantList.create({
+        data: { orderId: order.id },
+        select: { id: true }
+      }));
+
+    await tx.orderParticipant.updateMany({
+      data: { rowStatus: ParticipantRowStatus.CHECKED },
+      where: { id: { in: participantsToProcess.map((participant) => participant.id) } }
+    });
+
+    await tx.participantList.update({
+      data: { status: ParticipantListStatus.CHECKED },
+      where: { id: participantList.id }
+    });
+
+    await tx.participantListChange.createMany({
+      data: participantsToProcess.map((participant) => ({
+        changedById: statistician.id,
+        fieldName: `participant:${participant.id}:rowStatus`,
+        fromValue: participant.rowStatus,
+        listId: participantList.id,
+        toValue: ParticipantRowStatus.CHECKED
+      }))
+    });
+  });
+
+  return {
+    ok: true,
+    alreadyProcessed: false,
+    count: participantsToProcess.length,
+    orderNumber: order.orderNumber
+  };
 }
 
 function getPrimaryReferralSlug(curator) {
@@ -531,6 +614,38 @@ async function handleTelegramUpdate(update) {
   if (update.callback_query) {
     const callback = update.callback_query;
     const chatId = callback.message?.chat.id;
+    const data = callback.data || "";
+
+    if (data.startsWith("stat_done:")) {
+      const result = await markOrderParticipantListProcessedByTelegram({
+        orderId: data.slice("stat_done:".length),
+        telegramId: callback.from.id
+      });
+
+      await answerCallbackQuery(callback.id, {
+        showAlert: !result.ok,
+        text: result.ok
+          ? result.alreadyProcessed
+            ? "Имена уже были обработаны."
+            : `Имена обработаны: ${result.count}`
+          : result.reason
+      }).catch((error) => {
+        console.error("Statistician polling bot callback answer failed", error);
+      });
+
+      if (chatId) {
+        await sendMessage(
+          chatId,
+          result.ok
+            ? result.alreadyProcessed
+              ? `Заказ #${result.orderNumber}: имена уже были обработаны.`
+              : `Заказ #${result.orderNumber}: имена отмечены как обработанные. Обработано: ${result.count}.`
+            : result.reason
+        );
+      }
+
+      return;
+    }
 
     await answerCallbackQuery(callback.id).catch((error) => {
       console.error("Curator polling bot callback answer failed", error);

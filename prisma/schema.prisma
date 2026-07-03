@@ -135,7 +135,7 @@ model User {
   changedStatuses             LeadStatusHistory[]
   changedParticipants         ParticipantChangeHistory[]
   createdOrderRevisions       OrderRevision[]
-  deletedOrders               Order[]                    @relation("OrderDeletedBy")
+  deletedOrders               Order[]                     @relation("OrderDeletedBy")
   reviewedPartnerApplications CuratorPartnerApplication[]
   participantListChanges      ParticipantListChange[]
   participantListMessages     ParticipantListMessage[]
@@ -429,6 +429,7 @@ model Order {
   customerTelegram             String?
   customerPhone                String?
   customerEmail                String?
+  customerComment              String?
   consentPersonalData          Boolean     @default(false)
   publicToken                  String      @unique
   source                       String      @default("site")
@@ -443,9 +444,9 @@ model Order {
   deleteReason                 String?
   updatedAt                    DateTime    @updatedAt
 
-  curatorId String
-  serviceId String
-  clientId  String?
+  curatorId   String
+  serviceId   String
+  clientId    String?
   deletedById String?
 
   curator         Curator              @relation(fields: [curatorId], references: [id], onDelete: Restrict)
@@ -504,12 +505,12 @@ enum ChildRecordType {
 }
 
 model OrderChildRecord {
-  id          String          @id @default(cuid())
-  type        ChildRecordType
-  parentName  String
-  childCount  Int
-  sortOrder   Int             @default(0)
-  createdAt   DateTime        @default(now())
+  id         String          @id @default(cuid())
+  type       ChildRecordType
+  parentName String
+  childCount Int
+  sortOrder  Int             @default(0)
+  createdAt  DateTime        @default(now())
 
   orderId     String
   orderItemId String?
@@ -522,16 +523,16 @@ model OrderChildRecord {
 }
 
 model OrderServiceOption {
-  id                  String    @id @default(cuid())
-  titleSnapshot       String
+  id                   String    @id @default(cuid())
+  titleSnapshot        String
   serviceTitleSnapshot String?
-  descriptionSnapshot String?
-  priceRubSnapshot    Int
-  priceUnitSnapshot   PriceUnit @default(PER_PARTICIPANT)
-  quantitySnapshot    Int       @default(1)
-  totalRubSnapshot    Int
-  sortOrder           Int       @default(0)
-  createdAt           DateTime  @default(now())
+  descriptionSnapshot  String?
+  priceRubSnapshot     Int
+  priceUnitSnapshot    PriceUnit @default(PER_PARTICIPANT)
+  quantitySnapshot     Int       @default(1)
+  totalRubSnapshot     Int
+  sortOrder            Int       @default(0)
+  createdAt            DateTime  @default(now())
 
   orderId     String
   orderItemId String?
@@ -565,15 +566,16 @@ model OrderParticipant {
 }
 
 model ParticipantList {
-  id                   String                @id @default(cuid())
-  status               ParticipantListStatus @default(NEW)
-  bookmarked           Boolean               @default(false)
-  serviceTitleOverride String?
-  eventStartsAt        DateTime?
-  note                 String?
-  sentAt               DateTime?
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  id                             String                @id @default(cuid())
+  status                         ParticipantListStatus @default(NEW)
+  bookmarked                     Boolean               @default(false)
+  serviceTitleOverride           String?
+  eventStartsAt                  DateTime?
+  note                           String?
+  sentAt                         DateTime?
+  clientNamesProcessedNotifiedAt DateTime?
+  createdAt                      DateTime              @default(now())
+  updatedAt                      DateTime              @updatedAt
 
   orderId String @unique
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -583,6 +585,7 @@ model ParticipantList {
 
   @@index([status])
   @@index([bookmarked])
+  @@index([clientNamesProcessedNotifiedAt])
   @@index([eventStartsAt])
   @@index([updatedAt])
 }
@@ -649,8 +652,8 @@ model OrderRevision {
   sourceRevisionId String?
   createdAt        DateTime @default(now())
 
-  orderId      String
-  actorUserId  String?
+  orderId     String
+  actorUserId String?
 
   order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)

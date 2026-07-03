@@ -1,8 +1,11 @@
 import http from "node:http";
 import https from "node:https";
 import tls from "node:tls";
+import { UserRole } from "@prisma/client";
 
 import { formatLocalizedPrice } from "@/i18n/pricing";
+import { prisma } from "@/lib/prisma";
+import { getSiteUrlForSourceDomain } from "@/server/email/site-url";
 
 const TELEGRAM_MESSAGE_LIMIT = 4096;
 const DEFAULT_TELEGRAM_REQUEST_TIMEOUT_MS = 5000;
@@ -20,6 +23,7 @@ type OrderCreatedNotificationInput = {
   childRecordLines?: string[];
   curatorName: string;
   customerEmail: string | null;
+  customerComment?: string | null;
   customerName: string;
   customerPhone: string | null;
   customerTelegram: string | null;
@@ -53,6 +57,19 @@ type ParticipantListNotificationInput = {
   senderRole: string;
 };
 
+type StatisticianParticipantWorkNotificationInput = {
+  orderId: string;
+};
+
+type ClientParticipantNamesProcessedNotificationInput = {
+  chatId: string | null;
+  customerName: string;
+  orderNumber: number;
+  orderUrl: string;
+  participantCount: number;
+  serviceTitle: string;
+};
+
 export async function sendParticipantListTelegramNotification(
   input: ParticipantListNotificationInput
 ) {
@@ -77,6 +94,82 @@ export async function sendParticipantListTelegramNotification(
   return false;
 }
 
+export async function sendStatisticianParticipantWorkTelegramNotification(
+  input: StatisticianParticipantWorkNotificationInput
+) {
+  const order = await prisma.order.findFirst({
+    where: {
+      deletedAt: null,
+      id: input.orderId
+    },
+    select: {
+      createdAt: true,
+      customerComment: true,
+      customerEmail: true,
+      customerName: true,
+      customerPhone: true,
+      customerTelegram: true,
+      id: true,
+      orderNumber: true,
+      participants: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: {
+          fullName: true,
+          rowStatus: true
+        }
+      },
+      service: {
+        select: {
+          title: true
+        }
+      },
+      serviceOptions: {
+        orderBy: { sortOrder: "asc" },
+        select: {
+          titleSnapshot: true
+        }
+      },
+      sourceDomain: true
+    }
+  });
+
+  if (!order || !order.participants.length) {
+    return false;
+  }
+
+  const statisticians = await prisma.user.findMany({
+    orderBy: { createdAt: "asc" },
+    select: {
+      telegramId: true
+    },
+    where: {
+      active: true,
+      role: UserRole.STATISTICIAN,
+      telegramId: { not: null }
+    }
+  });
+
+  if (!statisticians.length) {
+    return false;
+  }
+
+  const text = formatStatisticianParticipantWorkMessage(order);
+  const replyMarkup = createStatisticianParticipantWorkKeyboard(order);
+  const results = await Promise.allSettled(
+    statisticians.map((statistician) =>
+      sendTelegramMessageToChat(statistician.telegramId!, text, replyMarkup)
+    )
+  );
+
+  results.forEach((result) => {
+    if (result.status === "rejected") {
+      console.error("Statistician Telegram notification failed", result.reason);
+    }
+  });
+
+  return results.some((result) => result.status === "fulfilled");
+}
+
 export async function sendOrderCreatedTelegramNotification(
   input: OrderCreatedNotificationInput
 ) {
@@ -91,10 +184,114 @@ function formatChildRecordsSection(input: OrderCreatedNotificationInput) {
   return ["", "Дети:", ...input.childRecordLines];
 }
 
+function formatCustomerCommentSection(input: OrderCreatedNotificationInput) {
+  const comment = input.customerComment?.trim();
+
+  if (!comment) {
+    return [];
+  }
+
+  return ["", "Пожелания / просьбы клиента:", comment];
+}
+
+function createStatisticianParticipantWorkKeyboard(order: {
+  orderNumber: number;
+  id: string;
+  sourceDomain: string;
+}) {
+  const siteUrl = getSiteUrlForSourceDomain(order.sourceDomain);
+  const nextPath = `/statistician#participant-list-${order.orderNumber}`;
+  const cabinetUrl = new URL("/statistician-mini-app", siteUrl);
+
+  cabinetUrl.searchParams.set("next", nextPath);
+
+  return {
+    inline_keyboard: [
+      [
+        {
+          callback_data: `stat_done:${order.id}`,
+          text: "Отметить все обработанными"
+        }
+      ],
+      [
+        {
+          text: "Открыть в кабинете",
+          url: cabinetUrl.toString()
+        }
+      ]
+    ]
+  };
+}
+
+function formatStatisticianParticipantWorkMessage(order: {
+  createdAt: Date;
+  customerComment: string | null;
+  customerEmail: string | null;
+  customerName: string;
+  customerPhone: string | null;
+  customerTelegram: string | null;
+  orderNumber: number;
+  participants: Array<{ fullName: string; rowStatus: string }>;
+  service: { title: string };
+  serviceOptions: Array<{ titleSnapshot: string }>;
+}) {
+  const unprocessed = order.participants.filter(
+    (participant) => participant.rowStatus !== "CHECKED"
+  );
+  const names = (unprocessed.length ? unprocessed : order.participants).map(
+    (participant, index) => `${index + 1}. ${participant.fullName}`
+  );
+  const options = order.serviceOptions.map((option) => option.titleSnapshot);
+  const comment = order.customerComment?.trim();
+
+  return [
+    "Новые имена для статиста",
+    "",
+    `Заказ: #${order.orderNumber}`,
+    `Заказчик: ${order.customerName}`,
+    `Контакты: ${[
+      order.customerTelegram,
+      order.customerPhone,
+      order.customerEmail
+    ]
+      .filter(Boolean)
+      .join(", ") || "не указаны"}`,
+    `Продукт: ${order.service.title}`,
+    options.length ? `Тип / обряды: ${options.join(", ")}` : null,
+    `Дата покупки: ${order.createdAt.toLocaleString("ru-RU")}`,
+    "",
+    "Имена:",
+    ...names,
+    comment ? "" : null,
+    comment ? "Пожелания / просьбы клиента:" : null,
+    comment || null,
+    "",
+    unprocessed.length
+      ? `Статус: не обработано (${unprocessed.length})`
+      : "Статус: уже обработано"
+  ]
+    .filter((line): line is string => line !== null)
+    .join("\n");
+}
+
 export async function sendPaymentSucceededTelegramNotification(
   input: PaymentSucceededNotificationInput
 ) {
   return sendTelegramMessage(formatPaymentSucceededMessage(input));
+}
+
+export async function sendClientParticipantNamesProcessedTelegramNotification(
+  input: ClientParticipantNamesProcessedNotificationInput
+) {
+  if (!input.chatId) {
+    return false;
+  }
+
+  return sendTelegramMessageToChat(
+    input.chatId,
+    formatClientParticipantNamesProcessedMessage(input),
+    createClientOrderKeyboard(input.orderUrl)
+  );
 }
 
 export function isTelegramUserAllowed(
@@ -139,7 +336,8 @@ export function formatOrderCreatedMessage(
     `Заказчик: ${input.customerName}`,
     `Telegram: ${formatOptional(input.customerTelegram)}`,
     `Телефон: ${formatOptional(input.customerPhone)}`,
-    `Email: ${formatOptional(input.customerEmail)}`
+    `Email: ${formatOptional(input.customerEmail)}`,
+    ...formatCustomerCommentSection(input)
   ]
     .filter((line): line is string => Boolean(line))
     .join("\n");
@@ -170,10 +368,40 @@ function formatPaymentSucceededMessage(
     `Заказчик: ${input.customerName}`,
     `Telegram: ${formatOptional(input.customerTelegram)}`,
     `Телефон: ${formatOptional(input.customerPhone)}`,
-    `Email: ${formatOptional(input.customerEmail)}`
+    `Email: ${formatOptional(input.customerEmail)}`,
+    ...formatCustomerCommentSection(input)
   ]
     .filter((line): line is string => Boolean(line))
     .join("\n");
+}
+
+export function formatClientParticipantNamesProcessedMessage(
+  input: Omit<ClientParticipantNamesProcessedNotificationInput, "chatId">
+) {
+  return [
+    "✅ Имена обработаны",
+    "",
+    `${input.customerName}, статист завершил проверку списка участников.`,
+    "",
+    `Заказ: #${input.orderNumber}`,
+    `Услуга: ${input.serviceTitle}`,
+    `Участников: ${input.participantCount}`,
+    "",
+    `Открыть заказ: ${input.orderUrl}`
+  ].join("\n");
+}
+
+function createClientOrderKeyboard(orderUrl: string) {
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: "Открыть заказ",
+          url: orderUrl
+        }
+      ]
+    ]
+  };
 }
 
 function formatSelectedOptions(input: OrderCreatedNotificationInput) {
@@ -215,7 +443,11 @@ async function sendTelegramMessage(text: string) {
   return true;
 }
 
-async function sendTelegramMessageToChat(chatId: string, text: string) {
+async function sendTelegramMessageToChat(
+  chatId: string,
+  text: string,
+  replyMarkup?: Record<string, unknown>
+) {
   const botToken =
     process.env.CURATOR_TELEGRAM_BOT_TOKEN?.trim() ||
     process.env.TELEGRAM_BOT_TOKEN?.trim();
@@ -224,7 +456,7 @@ async function sendTelegramMessageToChat(chatId: string, text: string) {
     return false;
   }
 
-  await callTelegramSendMessage(botToken, chatId, text);
+  await callTelegramSendMessage(botToken, chatId, text, replyMarkup);
 
   return true;
 }
@@ -232,11 +464,13 @@ async function sendTelegramMessageToChat(chatId: string, text: string) {
 async function callTelegramSendMessage(
   botToken: string,
   chatId: string,
-  text: string
+  text: string,
+  replyMarkup?: Record<string, unknown>
 ) {
   const response = await postTelegramJson(botToken, "sendMessage", {
     chat_id: chatId,
     disable_web_page_preview: true,
+    reply_markup: replyMarkup,
     text: trimTelegramMessage(text)
   });
 
