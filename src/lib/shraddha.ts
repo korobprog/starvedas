@@ -45,14 +45,15 @@ function getLabelForType(type: ChildRecordType, labels: ShraddhaLabels) {
 
 /**
  * Превращает записи о детях в строки для статиста, например:
- *   "Нерожденный ребенок Лидии Лутенко 5"
- *   "Умерший ребенок Ираиды Ивановой 4"
+ *   "Нерожденный ребенок - Лидии Лутенко 5"
+ *   "Умерший ребенок - Ираиды Ивановой 4"
  * Группирует по типу (сначала нерожденные, затем умершие), сохраняя порядок ввода
  * внутри группы.
  */
-export function formatChildRecordLines(
+function formatChildRecordLinesWithSeparator(
   records: ReadonlyArray<ChildRecordInput>,
-  labels?: Partial<ShraddhaLabels> | null
+  labels: Partial<ShraddhaLabels> | null | undefined,
+  separator: string
 ): string[] {
   const resolvedLabels = getShraddhaLabels(labels);
 
@@ -60,13 +61,29 @@ export function formatChildRecordLines(
     records
       .filter((record) => record.type === type)
       .flatMap((record) =>
-        Array.from({ length: record.childCount }, (_, index) =>
-          `${getLabelForType(type, resolvedLabels)} ${record.parentName} ${
-            index + 1
-          }`
+        Array.from(
+          { length: record.childCount },
+          (_, index) =>
+            `${getLabelForType(type, resolvedLabels)}${separator}${
+              record.parentName
+            } ${index + 1}`
         )
       )
   );
+}
+
+export function formatChildRecordLines(
+  records: ReadonlyArray<ChildRecordInput>,
+  labels?: Partial<ShraddhaLabels> | null
+): string[] {
+  return formatChildRecordLinesWithSeparator(records, labels, " - ");
+}
+
+export function formatLegacyChildRecordLines(
+  records: ReadonlyArray<ChildRecordInput>,
+  labels?: Partial<ShraddhaLabels> | null
+): string[] {
+  return formatChildRecordLinesWithSeparator(records, labels, " ");
 }
 
 /**

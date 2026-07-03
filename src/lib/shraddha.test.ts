@@ -20,21 +20,21 @@ describe("formatChildRecordLines", () => {
       ...Array.from(
         { length: records[1].childCount },
         (_, index) =>
-          `${DEFAULT_SHRADDHA_UNBORN_LABEL} ${records[1].parentName} ${
+          `${DEFAULT_SHRADDHA_UNBORN_LABEL} - ${records[1].parentName} ${
             index + 1
           }`
       ),
       ...Array.from(
         { length: records[2].childCount },
         (_, index) =>
-          `${DEFAULT_SHRADDHA_UNBORN_LABEL} ${records[2].parentName} ${
+          `${DEFAULT_SHRADDHA_UNBORN_LABEL} - ${records[2].parentName} ${
             index + 1
           }`
       ),
       ...Array.from(
         { length: records[0].childCount },
         (_, index) =>
-          `${DEFAULT_SHRADDHA_DECEASED_CHILD_LABEL} ${
+          `${DEFAULT_SHRADDHA_DECEASED_CHILD_LABEL} - ${
             records[0].parentName
           } ${index + 1}`
       )
@@ -50,8 +50,8 @@ describe("formatChildRecordLines", () => {
     };
 
     expect(formatChildRecordLines([childRecord], { unbornLabel })).toEqual([
-      `${unbornLabel} ${childRecord.parentName} 1`,
-      `${unbornLabel} ${childRecord.parentName} 2`
+      `${unbornLabel} - ${childRecord.parentName} 1`,
+      `${unbornLabel} - ${childRecord.parentName} 2`
     ]);
   });
 

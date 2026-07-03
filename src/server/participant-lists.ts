@@ -9,7 +9,10 @@ import {
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { formatChildRecordLines } from "@/lib/shraddha";
+import {
+  formatChildRecordLines,
+  formatLegacyChildRecordLines
+} from "@/lib/shraddha";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole, requireUser, type SessionUser } from "@/server/auth";
 import { notifyClientAfterParticipantNamesProcessed } from "@/server/client-participant-notifications";
@@ -322,9 +325,52 @@ async function ensureChildRecordParticipantRows(where: Prisma.OrderWhereInput) {
       unbornLabel: order.service.shraddhaUnbornLabel ?? undefined,
       deceasedChildLabel: order.service.shraddhaDeceasedChildLabel ?? undefined
     });
+    const legacyChildLines = formatLegacyChildRecordLines(order.childRecords, {
+      unbornLabel: order.service.shraddhaUnbornLabel ?? undefined,
+      deceasedChildLabel: order.service.shraddhaDeceasedChildLabel ?? undefined
+    });
 
     if (!childLines.length) {
       continue;
+    }
+
+    let renamedLegacyChildLines = false;
+
+    for (const [index, legacyLine] of legacyChildLines.entries()) {
+      const nextLine = childLines[index];
+
+      if (!nextLine || legacyLine === nextLine) {
+        continue;
+      }
+
+      const hasNextLine = order.participants.some(
+        (participant) => participant.fullName === nextLine
+      );
+      const legacyParticipant = order.participants.find(
+        (participant) => participant.fullName === legacyLine
+      );
+
+      if (!legacyParticipant || hasNextLine) {
+        continue;
+      }
+
+      await prisma.orderParticipant.updateMany({
+        where: {
+          fullName: legacyLine,
+          orderId: order.id
+        },
+        data: {
+          fullName: nextLine
+        }
+      });
+
+      for (const participant of order.participants) {
+        if (participant.fullName === legacyLine) {
+          participant.fullName = nextLine;
+          renamedLegacyChildLines = true;
+          break;
+        }
+      }
     }
 
     const existingCounts = new Map<string, number>();
@@ -348,7 +394,23 @@ async function ensureChildRecordParticipantRows(where: Prisma.OrderWhereInput) {
       }
     }
 
+    if (!missing.length && !renamedLegacyChildLines) {
+      continue;
+    }
+
+    const nextParticipantNames = [
+      ...order.participants.map((participant) => participant.fullName),
+      ...missing
+    ];
+
     if (!missing.length) {
+      await prisma.order.update({
+        data: {
+          participantCount: nextParticipantNames.length,
+          participantsText: nextParticipantNames.join("\n")
+        },
+        where: { id: order.id }
+      });
       continue;
     }
 
@@ -367,11 +429,8 @@ async function ensureChildRecordParticipantRows(where: Prisma.OrderWhereInput) {
       }),
       prisma.order.update({
         data: {
-          participantCount: order.participants.length + missing.length,
-          participantsText: [
-            ...order.participants.map((participant) => participant.fullName),
-            ...missing
-          ].join("\n")
+          participantCount: nextParticipantNames.length,
+          participantsText: nextParticipantNames.join("\n")
         },
         where: { id: order.id }
       })
@@ -681,7 +740,10 @@ export async function markOrderParticipantListProcessedByTelegram({
 }
 
 export async function getCuratorParticipantLists(curatorId: string) {
-  await ensureChildRecordParticipantRows({ curatorId, status: OrderStatus.PAID });
+  await ensureChildRecordParticipantRows({
+    curatorId,
+    status: OrderStatus.PAID
+  });
   await ensureParticipantLists({ curatorId, status: OrderStatus.PAID });
 
   return prisma.participantList.findMany({
