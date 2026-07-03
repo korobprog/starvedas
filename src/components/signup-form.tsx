@@ -436,6 +436,46 @@ function childRowsHaveIssues(rows: ChildRowsState) {
   );
 }
 
+const UNBORN_CHILD_SHORT_LABEL = "Нерож. ребенок";
+const UNBORN_CHILD_LABELS_WITH_SHORT_VERSION = new Set([
+  "Нерожденный ребенок",
+  "Нерождённый ребенок"
+]);
+
+function getChildRecordShortLabel(key: ChildRecordKind, label: string) {
+  if (
+    key === "unborn" &&
+    UNBORN_CHILD_LABELS_WITH_SHORT_VERSION.has(label.trim())
+  ) {
+    return UNBORN_CHILD_SHORT_LABEL;
+  }
+
+  return label;
+}
+
+function ResponsiveChildRecordLabel({
+  label,
+  shortLabel
+}: Readonly<{
+  label: string;
+  shortLabel: string;
+}>) {
+  if (label === shortLabel) {
+    return <>{label}</>;
+  }
+
+  return (
+    <>
+      <span aria-hidden="true" className="shraddha-children__label-full">
+        {label}
+      </span>
+      <span aria-hidden="true" className="shraddha-children__label-short">
+        {shortLabel}
+      </span>
+    </>
+  );
+}
+
 function ChildRecordsBlock({
   deceasedChildLabel,
   helpText,
@@ -451,9 +491,21 @@ function ChildRecordsBlock({
   unbornLabel: string;
   warningText: string;
 }>) {
-  const sections: Array<{ key: ChildRecordKind; label: string }> = [
-    { key: "unborn", label: unbornLabel },
-    { key: "deceased", label: deceasedChildLabel }
+  const sections: Array<{
+    key: ChildRecordKind;
+    label: string;
+    shortLabel: string;
+  }> = [
+    {
+      key: "unborn",
+      label: unbornLabel,
+      shortLabel: getChildRecordShortLabel("unborn", unbornLabel)
+    },
+    {
+      key: "deceased",
+      label: deceasedChildLabel,
+      shortLabel: getChildRecordShortLabel("deceased", deceasedChildLabel)
+    }
   ];
   const totalRows = rows.unborn.length + rows.deceased.length;
 
@@ -498,11 +550,25 @@ function ChildRecordsBlock({
       {helpText && <p className="form-note">{helpText}</p>}
       {sections.map((section) => (
         <div className="shraddha-children__section" key={section.key}>
-          <strong>{section.label}</strong>
+          <strong
+            aria-label={section.label}
+            className="shraddha-children__section-title"
+          >
+            <ResponsiveChildRecordLabel
+              label={section.label}
+              shortLabel={section.shortLabel}
+            />
+          </strong>
           {rows[section.key].map((row, index) => (
             <div className="shraddha-children__row" key={index}>
-              <span className="shraddha-children__row-label">
-                {section.label}
+              <span
+                aria-label={section.label}
+                className="shraddha-children__row-label"
+              >
+                <ResponsiveChildRecordLabel
+                  label={section.label}
+                  shortLabel={section.shortLabel}
+                />
               </span>
               <input
                 aria-invalid={isChildRowInvalid(row)}
@@ -2364,7 +2430,7 @@ export function SignupForm({
               value={customerName}
             />
           </label>
-          <div className="field-grid">
+          <div className="field-grid contact-field-grid">
             <label className="field">
               <span>{copy.fields.telegram}</span>
               <input
@@ -2374,7 +2440,7 @@ export function SignupForm({
                 value={customerTelegram}
               />
             </label>
-            <div className="field">
+            <div className="field phone-field">
               <span>{copy.fields.phone}</span>
               <div className="phone-input-row">
                 <select
@@ -2417,8 +2483,8 @@ export function SignupForm({
                 aria-hidden={isCustomerPhoneValid}
                 className={
                   isCustomerPhoneValid
-                    ? "field-error field-error--hidden"
-                    : "field-error"
+                    ? "field-error phone-input-error field-error--hidden"
+                    : "field-error phone-input-error"
                 }
                 id={customerPhoneErrorId}
               >

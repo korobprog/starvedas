@@ -1967,6 +1967,37 @@ select {
   min-height: 52px;
 }
 
+.phone-field {
+  position: relative;
+}
+
+.phone-input-error {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 15;
+  width: max-content;
+  max-width: min(100%, 360px);
+  border: 1px solid #f1b27c;
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: #fff7df;
+  box-shadow: 0 10px 26px rgb(86 48 13 / 14%);
+}
+
+.phone-input-error.field-error--hidden {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .phone-input-error {
+    position: static;
+    width: auto;
+    max-width: none;
+    box-shadow: none;
+  }
+}
+
 .field-error {
   color: #9d2500;
   font-size: 0.9rem;
@@ -2023,6 +2054,10 @@ select {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.contact-field-grid {
+  align-items: start;
 }
 
 .checkbox-field {
@@ -5011,6 +5046,10 @@ a.button[aria-disabled="true"] {
   gap: 0.5rem;
 }
 
+.shraddha-children__label-short {
+  display: none;
+}
+
 .shraddha-children__row {
   display: flex;
   flex-wrap: wrap;
@@ -5027,6 +5066,16 @@ a.button[aria-disabled="true"] {
   font-size: 0.85rem;
   color: var(--muted, #7a6a55);
   white-space: nowrap;
+}
+
+@media (max-width: 576px) {
+  .shraddha-children__label-full {
+    display: none;
+  }
+
+  .shraddha-children__label-short {
+    display: inline;
+  }
 }
 
 .shraddha-children__number {
