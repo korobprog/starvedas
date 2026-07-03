@@ -1,5 +1,8 @@
-﻿import { ParticipantListStatus, ParticipantRowStatus } from "@prisma/client";
-import { ParticipantListWorkTools } from "@/components/participant-list-work-tools";
+import { ParticipantListStatus, ParticipantRowStatus } from "@prisma/client";
+import {
+  CuratorParticipantListWorkTools,
+  ParticipantListWorkTools
+} from "@/components/participant-list-work-tools";
 import { formatChildRecordLines } from "@/lib/shraddha";
 import { formatStatus } from "@/lib/status-labels";
 import {
@@ -124,6 +127,14 @@ function ListMeta({ list }: { list: ParticipantListRow }) {
   const selectedOptions = getSelectedOptions(list);
   const eventDate = getEventDate(list);
   const problems = getListProblems(list);
+  const claimedBy = list.claimedByRole
+    ? [
+        formatStatus(list.claimedByRole),
+        list.claimedByCurator?.name ?? list.claimedByUser?.name
+      ]
+        .filter(Boolean)
+        .join(": ")
+    : null;
 
   return (
     <div className="admin-muted">
@@ -144,6 +155,33 @@ function ListMeta({ list }: { list: ParticipantListRow }) {
       <p>
         <strong>Дата начала:</strong> {formatDate(eventDate)} ·{" "}
         <strong>Участников:</strong> {list.order.participants.length}
+      </p>
+      <p>
+        <strong>Покупка:</strong>{" "}
+        {(list.order.payment?.paidAt ?? list.order.createdAt).toLocaleString(
+          "ru-RU"
+        )}
+        {list.order.payment?.receiptUrl ? (
+          <>
+            {" "}
+            ·{" "}
+            <a
+              href={list.order.payment.receiptUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              {list.order.payment.receiptLabel?.trim() || "Открыть чек"}
+            </a>
+          </>
+        ) : (
+          " · чек не указан"
+        )}
+      </p>
+      <p>
+        <strong>Буфер:</strong>{" "}
+        {claimedBy
+          ? `${claimedBy}, ${formatDateTime(list.claimedAt ?? list.updatedAt)}`
+          : "список ещё не забран"}
       </p>
       {list.order.customerComment?.trim() ? (
         <p>
@@ -223,7 +261,8 @@ function ParticipantRows({
 }) {
   const childRecordLines = formatChildRecordLines(list.order.childRecords, {
     unbornLabel: list.order.service.shraddhaUnbornLabel ?? undefined,
-    deceasedChildLabel: list.order.service.shraddhaDeceasedChildLabel ?? undefined
+    deceasedChildLabel:
+      list.order.service.shraddhaDeceasedChildLabel ?? undefined
   });
   const participantNames = new Set(
     list.order.participants.map((participant) => participant.fullName)
@@ -240,72 +279,77 @@ function ParticipantRows({
     <>
       {list.order.participants.length > 0 && (
         <div className="table-wrap">
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Участник</th>
-            <th>Статус строки</th>
-            <th>Комментарий</th>
-            {mode === "statistician" ? <th>Действие</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {list.order.participants.map((participant) => (
-            <tr key={participant.id}>
-              {mode === "statistician" ? (
-                <>
-                  <td>
-                    <form
-                      action={updateParticipantListRowAction}
-                      className="admin-form admin-form--compact"
-                    >
-                      <input name="listId" type="hidden" value={list.id} />
-                      <input
-                        name="participantId"
-                        type="hidden"
-                        value={participant.id}
-                      />
-                      <input
-                        defaultValue={participant.fullName}
-                        name="fullName"
-                        type="text"
-                      />
-                      <select
-                        defaultValue={participant.rowStatus}
-                        name="rowStatus"
-                      >
-                        {Object.values(ParticipantRowStatus).map((status) => (
-                          <option key={status} value={status}>
-                            {formatStatus(status)}
-                          </option>
-                        ))}
-                      </select>
-                      <textarea
-                        defaultValue={participant.statisticianComment ?? ""}
-                        name="statisticianComment"
-                        placeholder="Комментарий"
-                        rows={2}
-                      />
-                      <button className="button button--small" type="submit">
-                        Сохранить
-                      </button>
-                    </form>
-                  </td>
-                  <td>{formatStatus(participant.rowStatus)}</td>
-                  <td>{participant.statisticianComment || "—"}</td>
-                  <td>Правка сохраняется в истории</td>
-                </>
-              ) : (
-                <>
-                  <td>{participant.fullName}</td>
-                  <td>{formatStatus(participant.rowStatus)}</td>
-                  <td>{participant.statisticianComment || "—"}</td>
-                </>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Участник</th>
+                <th>Статус строки</th>
+                <th>Комментарий</th>
+                {mode === "statistician" ? <th>Действие</th> : null}
+              </tr>
+            </thead>
+            <tbody>
+              {list.order.participants.map((participant) => (
+                <tr key={participant.id}>
+                  {mode === "statistician" ? (
+                    <>
+                      <td>
+                        <form
+                          action={updateParticipantListRowAction}
+                          className="admin-form admin-form--compact"
+                        >
+                          <input name="listId" type="hidden" value={list.id} />
+                          <input
+                            name="participantId"
+                            type="hidden"
+                            value={participant.id}
+                          />
+                          <input
+                            defaultValue={participant.fullName}
+                            name="fullName"
+                            type="text"
+                          />
+                          <select
+                            defaultValue={participant.rowStatus}
+                            name="rowStatus"
+                          >
+                            {Object.values(ParticipantRowStatus).map(
+                              (status) => (
+                                <option key={status} value={status}>
+                                  {formatStatus(status)}
+                                </option>
+                              )
+                            )}
+                          </select>
+                          <textarea
+                            defaultValue={participant.statisticianComment ?? ""}
+                            name="statisticianComment"
+                            placeholder="Комментарий"
+                            rows={2}
+                          />
+                          <button
+                            className="button button--small"
+                            type="submit"
+                          >
+                            Сохранить
+                          </button>
+                        </form>
+                      </td>
+                      <td>{formatStatus(participant.rowStatus)}</td>
+                      <td>{participant.statisticianComment || "—"}</td>
+                      <td>Правка сохраняется в истории</td>
+                    </>
+                  ) : (
+                    <>
+                      <td>{participant.fullName}</td>
+                      <td>{formatStatus(participant.rowStatus)}</td>
+                      <td>{participant.statisticianComment || "—"}</td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
       {visibleChildRecordLines.length > 0 && (
@@ -362,6 +406,14 @@ export function ParticipantListsPanel({
           ) : null}
 
           <h3>Участники</h3>
+          {mode === "curator" && list.order.participants.length > 0 ? (
+            <CuratorParticipantListWorkTools
+              alreadyClaimed={list.claimedByRole === "CURATOR"}
+              listId={list.id}
+              orderNumber={list.order.orderNumber}
+              participants={list.order.participants}
+            />
+          ) : null}
           {mode === "statistician" && list.order.participants.length > 0 ? (
             <ParticipantListWorkTools
               listId={list.id}

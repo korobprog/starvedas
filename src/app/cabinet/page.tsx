@@ -1,6 +1,8 @@
 import {
   ClientFunnelStatus,
   OrderStatus,
+  ParticipantListClaimRole,
+  ParticipantListStatus,
   PaymentStatus,
   Prisma,
   UserRole
@@ -264,6 +266,19 @@ function parseParticipantFilters(searchParams: SearchParams | undefined) {
     referralSlug: firstParam(searchParams?.referralSlug) || "",
     serviceId: firstParam(searchParams?.serviceId) || "",
     sourceDomain: firstParam(searchParams?.sourceDomain) || ""
+  };
+}
+
+const participantListViews = ["new", "in_work", "archive", "all"] as const;
+
+function parseParticipantListView(value: string | undefined) {
+  return participantListViews.find((view) => view === value) ?? "new";
+}
+
+function parseParticipantListFilters(searchParams: SearchParams | undefined) {
+  return {
+    serviceId: firstParam(searchParams?.listServiceId) || "",
+    view: parseParticipantListView(firstParam(searchParams?.listView))
   };
 }
 
@@ -844,6 +859,7 @@ export default async function CabinetPage({
     ? (requestedSection ?? "overview")
     : "overview";
   const participantFilters = parseParticipantFilters(rawSearchParams);
+  const participantListFilters = parseParticipantListFilters(rawSearchParams);
   const clientFilters = parseClientFilters(rawSearchParams);
   const paidOrders = curator.orders.filter((order) => order.status === "PAID");
   const paidAmount = paidOrders.reduce(
@@ -886,6 +902,38 @@ export default async function CabinetPage({
   );
   const [participants, participantServices] = participantData;
   const [clients, clientServices] = clientData;
+  const filteredParticipantLists = participantLists.filter((list) => {
+    if (
+      participantListFilters.serviceId &&
+      list.order.service.id !== participantListFilters.serviceId
+    ) {
+      return false;
+    }
+
+    if (participantListFilters.view === "all") {
+      return true;
+    }
+
+    if (participantListFilters.view === "new") {
+      return list.status === ParticipantListStatus.NEW && !list.claimedByRole;
+    }
+
+    if (participantListFilters.view === "in_work") {
+      return (
+        list.claimedByRole === ParticipantListClaimRole.CURATOR &&
+        list.claimedByCuratorId === curator.id
+      );
+    }
+
+    return (
+      [
+        ParticipantListStatus.CHECKED,
+        ParticipantListStatus.READY_TO_SEND,
+        ParticipantListStatus.SENT,
+        ParticipantListStatus.ARCHIVED
+      ] as ParticipantListStatus[]
+    ).includes(list.status);
+  });
   const referralLinkRows = curator.referralLinks.map((link) => {
     const webUrl = origin
       ? buildReferralUrl(origin, link.slug)
@@ -1618,9 +1666,46 @@ export default async function CabinetPage({
                 Здесь видны списки участников по вашим оплаченным заказам,
                 статусы проверки статистом и переписка для уточнений.
               </p>
+              <form className="admin-form filter-form">
+                <input name="section" type="hidden" value="lists" />
+                <label className="field">
+                  <span>Раздел буфера</span>
+                  <select
+                    defaultValue={participantListFilters.view}
+                    name="listView"
+                  >
+                    <option value="new">Новые</option>
+                    <option value="in_work">В работе</option>
+                    <option value="archive">Обработанные / архив</option>
+                    <option value="all">Все списки</option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Мероприятие</span>
+                  <select
+                    defaultValue={participantListFilters.serviceId}
+                    name="listServiceId"
+                  >
+                    <option value="">Все мероприятия</option>
+                    {participantServices.map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="filter-form__actions">
+                  <button className="button button--primary" type="submit">
+                    Показать
+                  </button>
+                  <Link className="button" href="/cabinet?section=lists">
+                    Сбросить
+                  </Link>
+                </div>
+              </form>
               <ParticipantListsPanel
                 emptyText="Оплаченных списков участников пока нет."
-                lists={participantLists}
+                lists={filteredParticipantLists}
                 mode="curator"
               />
             </section>

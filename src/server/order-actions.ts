@@ -20,8 +20,12 @@ import {
   captureOrderRevision,
   orderRevisionEventTypes
 } from "@/server/order-revisions";
+import { ensurePaidOrderParticipantList } from "@/server/participant-lists";
 import { isCustomPaymentProviderCode } from "@/server/payment-providers";
-import { sendStatisticianParticipantWorkTelegramNotification } from "@/server/telegram-notifications";
+import {
+  sendCuratorParticipantListTelegramNotification,
+  sendStatisticianParticipantWorkTelegramNotification
+} from "@/server/telegram-notifications";
 
 const orderIdSchema = z.object({
   orderId: z.string().trim().min(1)
@@ -235,11 +239,15 @@ export async function confirmCustomPaymentAction(formData: FormData) {
   }
 
   try {
+    await ensurePaidOrderParticipantList(order.id);
     await sendStatisticianParticipantWorkTelegramNotification({
       orderId: order.id
     });
+    await sendCuratorParticipantListTelegramNotification({
+      orderId: order.id
+    });
   } catch {
-    console.error("Manual payment statistician Telegram notification failed");
+    console.error("Manual payment participant list Telegram notification failed");
   }
 
   revalidateOrderWorkspaces();

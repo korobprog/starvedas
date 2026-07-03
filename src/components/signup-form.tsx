@@ -2119,7 +2119,7 @@ export function SignupForm({
                   {service.description && (
                     <p className="choice-card__note">{service.description}</p>
                   )}
-                  {!service.isSubscription && service.detailsContent.trim() && (
+                  {service.detailsContent.trim() && (
                     <button
                       aria-label={`Показать подробное пояснение: ${service.title}`}
                       className="service-details-button"

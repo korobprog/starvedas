@@ -9,7 +9,9 @@ import {
   orderRevisionEventTypes
 } from "@/server/order-revisions";
 import { type PayformData, verifyPayformSignature } from "@/server/payform";
+import { ensurePaidOrderParticipantList } from "@/server/participant-lists";
 import {
+  sendCuratorParticipantListTelegramNotification,
   sendPaymentSucceededTelegramNotification,
   sendStatisticianParticipantWorkTelegramNotification
 } from "@/server/telegram-notifications";
@@ -485,6 +487,10 @@ export async function handlePaymentWebhook({
       });
     }
 
+    if (paymentStatus === PaymentStatus.SUCCEEDED) {
+      await ensurePaidOrderParticipantList(order.id);
+    }
+
     return NextResponse.json({ duplicate: true, ok: true });
   }
 
@@ -537,6 +543,8 @@ export async function handlePaymentWebhook({
   });
 
   if (paymentStatus === PaymentStatus.SUCCEEDED) {
+    await ensurePaidOrderParticipantList(order.id);
+
     try {
       await sendPaymentSucceededTelegramNotification({
         amountRub: order.amountRub,
@@ -578,6 +586,14 @@ export async function handlePaymentWebhook({
       });
     } catch (error) {
       console.error("Statistician Telegram notification failed", error);
+    }
+
+    try {
+      await sendCuratorParticipantListTelegramNotification({
+        orderId: order.id
+      });
+    } catch (error) {
+      console.error("Curator participant list Telegram notification failed", error);
     }
   }
 

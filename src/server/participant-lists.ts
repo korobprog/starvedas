@@ -1,6 +1,7 @@
 import {
   OrderStatus,
   ParticipantChangeAction,
+  ParticipantListClaimRole,
   ParticipantListMessageRole,
   ParticipantListStatus,
   ParticipantRowStatus,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/shraddha";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole, requireUser, type SessionUser } from "@/server/auth";
+import { getCabinetCuratorIdForSessionUser } from "@/server/cabinet-curator";
 import { notifyClientAfterParticipantNamesProcessed } from "@/server/client-participant-notifications";
 import {
   captureOrderRevision,
@@ -60,7 +62,16 @@ const bulkProcessSchema = z.object({
   participantIds: z.array(z.string().trim().min(1)).default([])
 });
 
+const curatorClaimSchema = z.object({
+  listId: z.string().trim().min(1)
+});
+
 export type ParticipantBulkProcessState = {
+  error?: string;
+  message?: string;
+};
+
+export type ParticipantListClaimState = {
   error?: string;
   message?: string;
 };
@@ -82,6 +93,13 @@ export const participantListSelect =
       take: 8
     },
     createdAt: true,
+    claimedAt: true,
+    claimedByCurator: { select: { id: true, name: true } },
+    claimedByCuratorId: true,
+    claimedByRole: true,
+    claimedByUser: { select: { id: true, name: true } },
+    claimedByUserId: true,
+    copiedAt: true,
     eventStartsAt: true,
     id: true,
     messages: {
@@ -107,6 +125,13 @@ export const participantListSelect =
         customerTelegram: true,
         id: true,
         orderNumber: true,
+        payment: {
+          select: {
+            paidAt: true,
+            receiptLabel: true,
+            receiptUrl: true
+          }
+        },
         participants: {
           orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
           select: {
@@ -126,6 +151,7 @@ export const participantListSelect =
         },
         service: {
           select: {
+            id: true,
             title: true,
             shraddhaUnbornLabel: true,
             shraddhaDeceasedChildLabel: true
@@ -250,6 +276,123 @@ async function getListAccess(listId: string, user: SessionUser) {
   }
 
   throw new Error("Нет доступа к списку участников");
+}
+
+export async function claimParticipantListByCurator({
+  curatorId,
+  listId,
+  userId
+}: {
+  curatorId: string;
+  listId: string;
+  userId: string | null;
+}) {
+  const result = await prisma.$transaction(async (tx) => {
+    const list = await tx.participantList.findUnique({
+      where: { id: listId },
+      select: {
+        claimedAt: true,
+        claimedByCuratorId: true,
+        claimedByRole: true,
+        claimedByUserId: true,
+        copiedAt: true,
+        id: true,
+        order: {
+          select: {
+            curatorId: true,
+            id: true,
+            orderNumber: true,
+            status: true
+          }
+        },
+        status: true
+      }
+    });
+
+    if (!list) {
+      throw new Error("Список не найден");
+    }
+
+    if (list.order.status !== OrderStatus.PAID) {
+      throw new Error("Список можно забрать только после оплаты заказа");
+    }
+
+    if (list.order.curatorId !== curatorId) {
+      throw new Error("Этот список принадлежит другому куратору");
+    }
+
+    if (
+      list.claimedByRole &&
+      (list.claimedByRole !== ParticipantListClaimRole.CURATOR ||
+        list.claimedByCuratorId !== curatorId)
+    ) {
+      throw new Error("Список уже забрал другой исполнитель");
+    }
+
+    if (
+      list.claimedByRole === ParticipantListClaimRole.CURATOR &&
+      list.claimedByCuratorId === curatorId &&
+      list.copiedAt
+    ) {
+      return { alreadyClaimed: true, orderNumber: list.order.orderNumber };
+    }
+
+    const now = new Date();
+    const nextData = {
+      claimedAt: list.claimedAt ?? now,
+      claimedByCuratorId: curatorId,
+      claimedByRole: ParticipantListClaimRole.CURATOR,
+      claimedByUserId: userId,
+      copiedAt: now,
+      status: ParticipantListStatus.IN_WORK
+    };
+
+    const changes = [
+      ["status", list.status, nextData.status],
+      ["claimedByRole", list.claimedByRole, nextData.claimedByRole],
+      [
+        "claimedByCuratorId",
+        list.claimedByCuratorId,
+        nextData.claimedByCuratorId
+      ],
+      ["claimedByUserId", list.claimedByUserId, nextData.claimedByUserId],
+      ["claimedAt", list.claimedAt, nextData.claimedAt],
+      ["copiedAt", list.copiedAt, nextData.copiedAt]
+    ].filter(([, from, to]) => formatFieldValue(from) !== formatFieldValue(to));
+
+    if (!changes.length) {
+      return { alreadyClaimed: true, orderNumber: list.order.orderNumber };
+    }
+
+    await captureOrderRevision(tx, {
+      actorUserId: userId ?? undefined,
+      eventType: orderRevisionEventTypes.participantListEdit,
+      note: "Куратор подтвердил копирование списка участников",
+      orderId: list.order.id
+    });
+
+    await tx.participantList.update({
+      data: nextData,
+      where: { id: list.id }
+    });
+
+    await tx.participantListChange.createMany({
+      data: changes.map(([fieldName, fromValue, toValue]) => ({
+        changedById: userId,
+        fieldName: String(fieldName),
+        fromValue: formatFieldValue(fromValue),
+        listId: list.id,
+        note: "Куратор подтвердил, что список скопирован",
+        toValue: formatFieldValue(toValue)
+      }))
+    });
+
+    return { alreadyClaimed: false, orderNumber: list.order.orderNumber };
+  });
+
+  revalidateParticipantListWorkspaces();
+
+  return result;
 }
 
 async function ensureParticipantLists(where: Prisma.OrderWhereInput) {
@@ -443,6 +586,19 @@ export async function ensureAllPaidParticipantLists() {
   await ensureParticipantLists({ status: OrderStatus.PAID });
 }
 
+export async function ensurePaidOrderParticipantList(orderId: string) {
+  await ensureChildRecordParticipantRows({
+    id: orderId,
+    status: OrderStatus.PAID
+  });
+  await ensureParticipantLists({ id: orderId, status: OrderStatus.PAID });
+
+  return prisma.participantList.findUnique({
+    select: { id: true },
+    where: { orderId }
+  });
+}
+
 export async function getStatisticianParticipantLists() {
   await ensureAllPaidParticipantLists();
 
@@ -472,6 +628,13 @@ export async function getStatisticianParticipantListsByFilter(
   }
 
   return lists.filter((list) => {
+    if (
+      filter === "unprocessed" &&
+      list.claimedByRole === ParticipantListClaimRole.CURATOR
+    ) {
+      return false;
+    }
+
     const hasParticipants = list.order.participants.length > 0;
     const allProcessed =
       hasParticipants &&
@@ -757,6 +920,54 @@ export async function getCuratorParticipantLists(curatorId: string) {
       }
     }
   });
+}
+
+export async function claimParticipantListByCuratorAction(
+  _state: ParticipantListClaimState,
+  formData: FormData
+): Promise<ParticipantListClaimState> {
+  "use server";
+  const user = await requireUser(
+    [UserRole.CURATOR, UserRole.ADMIN, UserRole.SUPER_ADMIN],
+    "/cabinet?section=lists"
+  );
+
+  const parsed = curatorClaimSchema.safeParse({
+    listId: formData.get("listId")
+  });
+
+  if (!parsed.success) {
+    return { error: "Некорректный список" };
+  }
+
+  const curatorId = await getCabinetCuratorIdForSessionUser(user);
+
+  if (!curatorId) {
+    return { error: "Куратор не найден" };
+  }
+
+  try {
+    const result = await claimParticipantListByCurator({
+      curatorId,
+      listId: parsed.data.listId,
+      userId: user.id
+    });
+
+    revalidateParticipantListWorkspaces();
+
+    return {
+      message: result.alreadyClaimed
+        ? `Список #${result.orderNumber} уже был в работе у куратора`
+        : `Список #${result.orderNumber} отмечен как скопированный`
+    };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Не удалось отметить список как скопированный"
+    };
+  }
 }
 
 export async function updateParticipantListAction(formData: FormData) {

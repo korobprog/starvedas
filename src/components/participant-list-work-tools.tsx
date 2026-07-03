@@ -1,9 +1,12 @@
-﻿"use client";
+"use client";
 
 import { useActionState, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { ChangeEvent, FormEvent } from "react";
-import { bulkProcessParticipantsAction } from "@/server/participant-list-actions";
+import {
+  bulkProcessParticipantsAction,
+  claimParticipantListByCuratorAction
+} from "@/server/participant-list-actions";
 
 type ParticipantBulkProcessState = {
   error?: string;
@@ -19,6 +22,7 @@ type ParticipantWorkRow = {
 type ExportFormat = "pdf" | "xlsx";
 
 const initialState: ParticipantBulkProcessState = {};
+const initialClaimState: ParticipantBulkProcessState = {};
 
 function createNamesText(rows: ParticipantWorkRow[]) {
   return rows.map((row) => row.fullName).join("\n");
@@ -81,6 +85,100 @@ function SubmitButton({
     >
       {pending ? "Сохраняем…" : children}
     </button>
+  );
+}
+
+function ClaimSubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button className="button button--small" disabled={pending} type="submit">
+      {pending ? "Сохраняем…" : "Да, скопировано"}
+    </button>
+  );
+}
+
+export function CuratorParticipantListWorkTools({
+  alreadyClaimed,
+  listId,
+  orderNumber,
+  participants
+}: Readonly<{
+  alreadyClaimed: boolean;
+  listId: string;
+  orderNumber: number;
+  participants: ParticipantWorkRow[];
+}>) {
+  const [confirming, setConfirming] = useState(false);
+  const [clientMessage, setClientMessage] = useState("");
+  const [state, formAction] = useActionState(
+    claimParticipantListByCuratorAction,
+    initialClaimState
+  );
+  const namesText = createNamesText(participants);
+
+  async function copyAll() {
+    await copyText(namesText);
+    setClientMessage(`Скопировано имён: ${participants.length}`);
+  }
+
+  return (
+    <div className="participant-work-tools">
+      <div className="admin-muted">
+        <strong>Буфер списка:</strong> кнопка «Скопировать имена» только
+        копирует текст. Список пропадёт из активного буфера статиста только
+        после подтверждения «Да, скопировано».
+      </div>
+
+      <div className="participant-tools__actions">
+        <button
+          className="button button--small"
+          onClick={copyAll}
+          type="button"
+        >
+          Скопировать имена
+        </button>
+        <button
+          className="button button--small"
+          disabled={alreadyClaimed}
+          onClick={() => {
+            setClientMessage("");
+            setConfirming(true);
+          }}
+          type="button"
+        >
+          {alreadyClaimed ? "Уже в работе" : "Скопировал"}
+        </button>
+      </div>
+
+      {confirming && !alreadyClaimed ? (
+        <form action={formAction} className="admin-form">
+          <input name="listId" type="hidden" value={listId} />
+          <p>
+            Вы точно скопировали список #{orderNumber} и берёте его в работу?
+          </p>
+          <div className="participant-tools__actions">
+            <ClaimSubmitButton />
+            <button
+              className="button button--small"
+              onClick={() => setConfirming(false)}
+              type="button"
+            >
+              Отмена
+            </button>
+          </div>
+        </form>
+      ) : null}
+
+      {(clientMessage || state.error || state.message) && (
+        <p
+          aria-live="polite"
+          className={state.error ? "form-warning" : "admin-muted"}
+        >
+          {clientMessage || state.error || state.message}
+        </p>
+      )}
+    </div>
   );
 }
 

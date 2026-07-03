@@ -4,6 +4,7 @@ import tls from "node:tls";
 import {
   PrismaClient,
   OrderStatus,
+  ParticipantListClaimRole,
   ParticipantListStatus,
   ParticipantRowStatus,
   UserRole
@@ -370,7 +371,8 @@ async function getCuratorByTelegramId(telegramId) {
           slug: true
         }
       },
-      slug: true
+      slug: true,
+      userId: true
     }
   });
 }
@@ -579,6 +581,337 @@ async function buildReferralText(curator) {
     .join("\n");
 }
 
+function buildCuratorCabinetListUrl(order) {
+  const url = new URL("/curator-mini-app", getPublicOrigin());
+
+  url.searchParams.set(
+    "next",
+    `/cabinet?section=lists#participant-list-${order.orderNumber}`
+  );
+
+  return url.toString();
+}
+
+function createCuratorParticipantListConfirmKeyboard(listId) {
+  return {
+    inline_keyboard: [
+      [{ callback_data: `cur_yes:${listId}`, text: "Да, скопировано" }],
+      [{ callback_data: `cur_no:${listId}`, text: "Отмена" }]
+    ]
+  };
+}
+
+function getCuratorParticipantListEventTitle(order) {
+  const options = order.serviceOptions.map((option) => option.titleSnapshot);
+
+  return options.length
+    ? `${order.service.title}: ${options.join(", ")}`
+    : order.service.title;
+}
+
+function formatCuratorParticipantListContacts(order) {
+  return (
+    [order.customerTelegram, order.customerPhone, order.customerEmail]
+      .filter(Boolean)
+      .join(", ") || "не указаны"
+  );
+}
+
+function formatCuratorParticipantListReceipt(order) {
+  if (!order.payment?.receiptUrl) {
+    return "Чек: не прикреплен";
+  }
+
+  return `${order.payment.receiptLabel?.trim() || "Чек"}: ${
+    order.payment.receiptUrl
+  }`;
+}
+
+function formatCuratorParticipantListDetailsMessage(order) {
+  const names = order.participants.map(
+    (participant, index) => `${index + 1}. ${participant.fullName}`
+  );
+
+  return [
+    "Список участников",
+    "",
+    `Мероприятие: ${getCuratorParticipantListEventTitle(order)}`,
+    `Заказ: #${order.orderNumber}`,
+    `Время оплаты: ${(order.payment?.paidAt ?? order.createdAt).toLocaleString(
+      "ru-RU"
+    )}`,
+    formatCuratorParticipantListReceipt(order),
+    "",
+    `Клиент: ${order.customerName}`,
+    `Контакты: ${formatCuratorParticipantListContacts(order)}`,
+    "",
+    "Имена:",
+    ...(names.length ? names : ["нет имён"])
+  ].join("\n");
+}
+
+async function getCuratorParticipantListTelegramDetails({ listId, telegramId }) {
+  const order = await prisma.order.findFirst({
+    where: {
+      deletedAt: null,
+      curator: {
+        active: true,
+        telegramId: String(telegramId)
+      },
+      participantList: { id: listId }
+    },
+    select: {
+      createdAt: true,
+      customerEmail: true,
+      customerName: true,
+      customerPhone: true,
+      customerTelegram: true,
+      orderNumber: true,
+      participants: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: { fullName: true }
+      },
+      payment: {
+        select: {
+          paidAt: true,
+          receiptLabel: true,
+          receiptUrl: true
+        }
+      },
+      service: { select: { title: true } },
+      serviceOptions: {
+        orderBy: { sortOrder: "asc" },
+        select: { titleSnapshot: true }
+      }
+    }
+  });
+
+  if (!order) {
+    return null;
+  }
+
+  return {
+    orderNumber: order.orderNumber,
+    replyMarkup: {
+      inline_keyboard: [
+        [{ callback_data: `cur_copy:${listId}`, text: "Скопировал" }],
+        [
+          {
+            text: "Открыть в кабинете",
+            url: buildCuratorCabinetListUrl(order)
+          }
+        ]
+      ]
+    },
+    text: formatCuratorParticipantListDetailsMessage(order)
+  };
+}
+
+async function claimParticipantListByCuratorForPolling({
+  curatorId,
+  listId,
+  userId
+}) {
+  return prisma.$transaction(async (tx) => {
+    const list = await tx.participantList.findUnique({
+      where: { id: listId },
+      select: {
+        claimedAt: true,
+        claimedByCuratorId: true,
+        claimedByRole: true,
+        claimedByUserId: true,
+        copiedAt: true,
+        id: true,
+        order: {
+          select: {
+            curatorId: true,
+            id: true,
+            orderNumber: true,
+            status: true
+          }
+        },
+        status: true
+      }
+    });
+
+    if (!list) {
+      throw new Error("Список не найден");
+    }
+
+    if (list.order.status !== OrderStatus.PAID) {
+      throw new Error("Список можно забрать только после оплаты заказа");
+    }
+
+    if (list.order.curatorId !== curatorId) {
+      throw new Error("Этот список принадлежит другому куратору");
+    }
+
+    if (
+      list.claimedByRole &&
+      (list.claimedByRole !== ParticipantListClaimRole.CURATOR ||
+        list.claimedByCuratorId !== curatorId)
+    ) {
+      throw new Error("Список уже забрал другой исполнитель");
+    }
+
+    if (
+      list.claimedByRole === ParticipantListClaimRole.CURATOR &&
+      list.claimedByCuratorId === curatorId &&
+      list.copiedAt
+    ) {
+      return { alreadyClaimed: true, orderNumber: list.order.orderNumber };
+    }
+
+    const now = new Date();
+    const nextData = {
+      claimedAt: list.claimedAt ?? now,
+      claimedByCuratorId: curatorId,
+      claimedByRole: ParticipantListClaimRole.CURATOR,
+      claimedByUserId: userId,
+      copiedAt: now,
+      status: ParticipantListStatus.IN_WORK
+    };
+
+    await tx.participantList.update({
+      data: nextData,
+      where: { id: list.id }
+    });
+
+    await tx.participantListChange.create({
+      data: {
+        changedById: userId,
+        fieldName: "claimedByRole",
+        fromValue: list.claimedByRole ?? "",
+        listId: list.id,
+        note: "Куратор подтвердил, что список скопирован",
+        toValue: ParticipantListClaimRole.CURATOR
+      }
+    });
+
+    return { alreadyClaimed: false, orderNumber: list.order.orderNumber };
+  });
+}
+
+async function handleCuratorParticipantListCallback({ callback, chatId, data }) {
+  const [action, listId] = data.split(":", 2);
+
+  if (!listId) {
+    await answerCallbackQuery(callback.id, {
+      showAlert: true,
+      text: "Некорректная кнопка списка."
+    });
+    return;
+  }
+
+  if (action === "cur_list") {
+    const details = await getCuratorParticipantListTelegramDetails({
+      listId,
+      telegramId: callback.from.id
+    });
+
+    await answerCallbackQuery(callback.id, {
+      showAlert: !details,
+      text: details ? "Список открыт." : "Список не найден или недоступен."
+    });
+
+    if (details && chatId) {
+      await sendMessage(chatId, details.text, details.replyMarkup);
+    }
+    return;
+  }
+
+  if (action === "cur_copy") {
+    const details = await getCuratorParticipantListTelegramDetails({
+      listId,
+      telegramId: callback.from.id
+    });
+
+    await answerCallbackQuery(callback.id, {
+      showAlert: !details,
+      text: details
+        ? "Подтвердите копирование."
+        : "Список не найден или недоступен."
+    });
+
+    if (details && chatId) {
+      await sendMessage(
+        chatId,
+        [
+          `Заказ #${details.orderNumber}`,
+          "",
+          "Подтвердите, что список скопирован.",
+          "После подтверждения список исчезнет из активного буфера статиста."
+        ].join("\n"),
+        createCuratorParticipantListConfirmKeyboard(listId)
+      );
+    }
+    return;
+  }
+
+  if (action === "cur_yes") {
+    const curator = await getCuratorByTelegramId(callback.from.id);
+
+    if (!curator) {
+      await answerCallbackQuery(callback.id, {
+        showAlert: true,
+        text: "Telegram ID не привязан к куратору."
+      });
+      return;
+    }
+
+    try {
+      const result = await claimParticipantListByCuratorForPolling({
+        curatorId: curator.id,
+        listId,
+        userId: curator.userId || null
+      });
+
+      await answerCallbackQuery(callback.id, {
+        text: result.alreadyClaimed
+          ? "Список уже был в работе."
+          : "Список взят в работу."
+      });
+
+      if (chatId) {
+        await sendMessage(
+          chatId,
+          [
+            `Заказ #${result.orderNumber}`,
+            "",
+            result.alreadyClaimed
+              ? "Список уже был отмечен как взятый в работу."
+              : "Список отмечен как взятый в работу.",
+            "У статиста он больше не отображается в активном буфере."
+          ].join("\n")
+        );
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Не удалось отметить список как скопированный.";
+
+      await answerCallbackQuery(callback.id, {
+        showAlert: true,
+        text: message
+      });
+
+      if (chatId) {
+        await sendMessage(chatId, message);
+      }
+    }
+    return;
+  }
+
+  if (action === "cur_no") {
+    await answerCallbackQuery(callback.id, { text: "Отменено." });
+
+    if (chatId) {
+      await sendMessage(chatId, "Отменено. Список не изменен.");
+    }
+  }
+}
+
 async function handleAuthorizedCuratorMessage(chatId, from, command) {
   const curator = await getCuratorByTelegramId(from.id);
 
@@ -643,6 +976,21 @@ async function handleTelegramUpdate(update) {
             : result.reason
         );
       }
+
+      return;
+    }
+
+    if (
+      data.startsWith("cur_list:") ||
+      data.startsWith("cur_copy:") ||
+      data.startsWith("cur_yes:") ||
+      data.startsWith("cur_no:")
+    ) {
+      await handleCuratorParticipantListCallback({
+        callback,
+        chatId,
+        data
+      });
 
       return;
     }

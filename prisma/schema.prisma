@@ -92,6 +92,11 @@ enum ParticipantListStatus {
   ARCHIVED
 }
 
+enum ParticipantListClaimRole {
+  CURATOR
+  STATISTICIAN
+}
+
 enum ParticipantRowStatus {
   NEW
   CHECKED
@@ -139,6 +144,7 @@ model User {
   reviewedPartnerApplications CuratorPartnerApplication[]
   participantListChanges      ParticipantListChange[]
   participantListMessages     ParticipantListMessage[]
+  claimedParticipantLists     ParticipantList[]           @relation("ParticipantListClaimedByUser")
 }
 
 model Curator {
@@ -166,13 +172,14 @@ model Curator {
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 
-  user               User?                      @relation(fields: [userId], references: [id], onDelete: SetNull)
-  clients            ClientProfile[]
-  clientEvents       ClientEvent[]
-  orders             Order[]
-  referralLinks      ReferralLink[]
-  paymentOptions     CuratorPaymentOption[]
-  partnerApplication CuratorPartnerApplication?
+  user                    User?                      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  clients                 ClientProfile[]
+  clientEvents            ClientEvent[]
+  orders                  Order[]
+  referralLinks           ReferralLink[]
+  paymentOptions          CuratorPaymentOption[]
+  partnerApplication      CuratorPartnerApplication?
+  claimedParticipantLists ParticipantList[]          @relation("ParticipantListClaimedByCurator")
 }
 
 model CuratorPartnerApplication {
@@ -566,24 +573,36 @@ model OrderParticipant {
 }
 
 model ParticipantList {
-  id                             String                @id @default(cuid())
-  status                         ParticipantListStatus @default(NEW)
-  bookmarked                     Boolean               @default(false)
+  id                             String                    @id @default(cuid())
+  status                         ParticipantListStatus     @default(NEW)
+  claimedByRole                  ParticipantListClaimRole?
+  claimedAt                      DateTime?
+  copiedAt                       DateTime?
+  bookmarked                     Boolean                   @default(false)
   serviceTitleOverride           String?
   eventStartsAt                  DateTime?
   note                           String?
   sentAt                         DateTime?
   clientNamesProcessedNotifiedAt DateTime?
-  createdAt                      DateTime              @default(now())
-  updatedAt                      DateTime              @updatedAt
+  createdAt                      DateTime                  @default(now())
+  updatedAt                      DateTime                  @updatedAt
 
-  orderId String @unique
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId            String  @unique
+  claimedByUserId    String?
+  claimedByCuratorId String?
+
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  claimedByUser    User?    @relation("ParticipantListClaimedByUser", fields: [claimedByUserId], references: [id], onDelete: SetNull)
+  claimedByCurator Curator? @relation("ParticipantListClaimedByCurator", fields: [claimedByCuratorId], references: [id], onDelete: SetNull)
 
   changes  ParticipantListChange[]
   messages ParticipantListMessage[]
 
   @@index([status])
+  @@index([claimedByRole])
+  @@index([claimedByUserId])
+  @@index([claimedByCuratorId])
+  @@index([claimedAt])
   @@index([bookmarked])
   @@index([clientNamesProcessedNotifiedAt])
   @@index([eventStartsAt])

@@ -5,8 +5,15 @@ import { OrderStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { formatMoney } from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
-import { markOrderParticipantListProcessedByTelegram } from "@/server/participant-lists";
+import {
+  claimParticipantListByCurator,
+  markOrderParticipantListProcessedByTelegram
+} from "@/server/participant-lists";
 import { buildReferralPath, buildReferralUrl } from "@/server/referrals";
+import {
+  createCuratorParticipantListConfirmKeyboard,
+  getCuratorParticipantListTelegramDetails
+} from "@/server/telegram-notifications";
 import {
   getCuratorTelegramBotUsername,
   getTelegramBotToken
@@ -378,7 +385,8 @@ async function getCuratorByTelegramId(telegramId: number) {
           slug: true
         }
       },
-      slug: true
+      slug: true,
+      userId: true
     }
   });
 }
@@ -558,6 +566,149 @@ async function handleAuthorizedCuratorMessage(
   );
 }
 
+async function handleCuratorParticipantListCallback({
+  callback,
+  chatId,
+  data
+}: {
+  callback: TelegramCallbackQuery;
+  chatId?: number;
+  data: string;
+}) {
+  const [action, listId] = data.split(":", 2);
+
+  if (!listId) {
+    await answerCallbackQuery(callback.id, {
+      showAlert: true,
+      text: "Некорректная кнопка списка."
+    });
+    return;
+  }
+
+  if (action === "cur_list") {
+    const details = await getCuratorParticipantListTelegramDetails({
+      curatorTelegramId: callback.from.id,
+      listId
+    });
+
+    await answerCallbackQuery(callback.id, {
+      showAlert: !details,
+      text: details ? "Список открыт." : "Список не найден или недоступен."
+    }).catch((error) => {
+      console.error("Curator list open callback answer failed", error);
+    });
+
+    if (details && chatId) {
+      await sendMessage(chatId, details.text, details.replyMarkup);
+    }
+
+    return;
+  }
+
+  if (action === "cur_copy") {
+    const details = await getCuratorParticipantListTelegramDetails({
+      curatorTelegramId: callback.from.id,
+      listId
+    });
+
+    await answerCallbackQuery(callback.id, {
+      showAlert: !details,
+      text: details
+        ? "Подтвердите копирование."
+        : "Список не найден или недоступен."
+    }).catch((error) => {
+      console.error("Curator list copy callback answer failed", error);
+    });
+
+    if (details && chatId) {
+      await sendMessage(
+        chatId,
+        [
+          `Заказ #${details.orderNumber}`,
+          "",
+          "Подтвердите, что список скопирован.",
+          "После подтверждения список исчезнет из активного буфера статиста."
+        ].join("\n"),
+        createCuratorParticipantListConfirmKeyboard(listId)
+      );
+    }
+
+    return;
+  }
+
+  if (action === "cur_yes") {
+    const curator = await getCuratorByTelegramId(callback.from.id);
+
+    if (!curator) {
+      await answerCallbackQuery(callback.id, {
+        showAlert: true,
+        text: "Telegram ID не привязан к куратору."
+      });
+      return;
+    }
+
+    try {
+      const result = await claimParticipantListByCurator({
+        curatorId: curator.id,
+        listId,
+        userId: curator.userId ?? null
+      });
+
+      await answerCallbackQuery(callback.id, {
+        text: result.alreadyClaimed
+          ? "Список уже был в работе."
+          : "Список взят в работу."
+      }).catch((error) => {
+        console.error("Curator list claim callback answer failed", error);
+      });
+
+      if (chatId) {
+        await sendMessage(
+          chatId,
+          [
+            `Заказ #${result.orderNumber}`,
+            "",
+            result.alreadyClaimed
+              ? "Список уже был отмечен как взятый в работу."
+              : "Список отмечен как взятый в работу.",
+            "У статиста он больше не отображается в активном буфере."
+          ].join("\n")
+        );
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Не удалось отметить список как скопированный.";
+
+      await answerCallbackQuery(callback.id, {
+        showAlert: true,
+        text: message
+      }).catch((answerError) => {
+        console.error("Curator list claim error answer failed", answerError);
+      });
+
+      if (chatId) {
+        await sendMessage(chatId, message);
+      }
+    }
+
+    return;
+  }
+
+  if (action === "cur_no") {
+    await answerCallbackQuery(callback.id, {
+      text: "Отменено."
+    }).catch((error) => {
+      console.error("Curator list cancel callback answer failed", error);
+    });
+
+    if (chatId) {
+      await sendMessage(chatId, "Отменено. Список не изменен.");
+    }
+  }
+}
+
 async function handleTelegramUpdate(request: Request, update: TelegramUpdate) {
   try {
     if (update.callback_query) {
@@ -593,6 +744,21 @@ async function handleTelegramUpdate(request: Request, update: TelegramUpdate) {
               : result.reason
           );
         }
+
+        return;
+      }
+
+      if (
+        data.startsWith("cur_list:") ||
+        data.startsWith("cur_copy:") ||
+        data.startsWith("cur_yes:") ||
+        data.startsWith("cur_no:")
+      ) {
+        await handleCuratorParticipantListCallback({
+          callback,
+          chatId,
+          data
+        });
 
         return;
       }

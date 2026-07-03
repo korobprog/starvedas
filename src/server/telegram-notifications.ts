@@ -61,6 +61,10 @@ type StatisticianParticipantWorkNotificationInput = {
   orderId: string;
 };
 
+type CuratorParticipantListNotificationInput = {
+  orderId: string;
+};
+
 type ClientParticipantNamesProcessedNotificationInput = {
   chatId: string | null;
   customerName: string;
@@ -170,6 +174,66 @@ export async function sendStatisticianParticipantWorkTelegramNotification(
   return results.some((result) => result.status === "fulfilled");
 }
 
+export async function sendCuratorParticipantListTelegramNotification(
+  input: CuratorParticipantListNotificationInput
+) {
+  const order = await getCuratorParticipantListOrderByOrderId(input.orderId);
+
+  if (!order?.curator.telegramId || !order.participantList) {
+    return false;
+  }
+
+  return sendTelegramMessageToChat(
+    order.curator.telegramId,
+    formatCuratorParticipantListSummaryMessage(order),
+    createCuratorParticipantListSummaryKeyboard(order)
+  );
+}
+
+export async function getCuratorParticipantListTelegramDetails({
+  curatorTelegramId,
+  listId
+}: {
+  curatorTelegramId: number | string;
+  listId: string;
+}) {
+  const order = await getCuratorParticipantListOrderByListId({
+    curatorTelegramId,
+    listId
+  });
+
+  if (!order?.participantList) {
+    return null;
+  }
+
+  return {
+    orderNumber: order.orderNumber,
+    replyMarkup: createCuratorParticipantListDetailsKeyboard(
+      order.participantList.id
+    ),
+    text: formatCuratorParticipantListDetailsMessage(order)
+  };
+}
+
+export function createCuratorParticipantListConfirmKeyboard(listId: string) {
+  return {
+    inline_keyboard: [
+      [
+        {
+          callback_data: `cur_yes:${listId}`,
+          text: "Да, скопировано"
+        }
+      ],
+      [
+        {
+          callback_data: `cur_no:${listId}`,
+          text: "Отмена"
+        }
+      ]
+    ]
+  };
+}
+
 export async function sendOrderCreatedTelegramNotification(
   input: OrderCreatedNotificationInput
 ) {
@@ -221,6 +285,248 @@ function createStatisticianParticipantWorkKeyboard(order: {
       ]
     ]
   };
+}
+
+function getCuratorParticipantListOrderByOrderId(orderId: string) {
+  return prisma.order.findFirst({
+    where: {
+      deletedAt: null,
+      id: orderId
+    },
+    select: curatorParticipantListOrderSelect
+  });
+}
+
+function getCuratorParticipantListOrderByListId({
+  curatorTelegramId,
+  listId
+}: {
+  curatorTelegramId: number | string;
+  listId: string;
+}) {
+  return prisma.order.findFirst({
+    where: {
+      deletedAt: null,
+      curator: {
+        active: true,
+        telegramId: String(curatorTelegramId)
+      },
+      participantList: {
+        id: listId
+      }
+    },
+    select: curatorParticipantListOrderSelect
+  });
+}
+
+const curatorParticipantListOrderSelect = {
+  createdAt: true,
+  curator: {
+    select: {
+      name: true,
+      telegramId: true
+    }
+  },
+  customerEmail: true,
+  customerName: true,
+  customerPhone: true,
+  customerTelegram: true,
+  orderNumber: true,
+  participantList: {
+    select: {
+      id: true,
+      status: true
+    }
+  },
+  participants: {
+    orderBy: [{ sortOrder: "asc" as const }, { createdAt: "asc" as const }],
+    select: {
+      fullName: true
+    }
+  },
+  payment: {
+    select: {
+      paidAt: true,
+      receiptLabel: true,
+      receiptUrl: true
+    }
+  },
+  service: {
+    select: {
+      title: true
+    }
+  },
+  serviceOptions: {
+    orderBy: { sortOrder: "asc" as const },
+    select: {
+      titleSnapshot: true
+    }
+  },
+  sourceDomain: true
+};
+
+function createCuratorParticipantListSummaryKeyboard(order: {
+  orderNumber: number;
+  participantList: { id: string } | null;
+  sourceDomain: string;
+}) {
+  const listId = order.participantList?.id;
+
+  if (!listId) {
+    return undefined;
+  }
+
+  return {
+    inline_keyboard: [
+      [
+        {
+          callback_data: `cur_list:${listId}`,
+          text: "Открыть список"
+        }
+      ],
+      [
+        {
+          text: "Открыть в кабинете",
+          url: buildCuratorCabinetListUrl(order)
+        }
+      ]
+    ]
+  };
+}
+
+function createCuratorParticipantListDetailsKeyboard(listId: string) {
+  return {
+    inline_keyboard: [
+      [
+        {
+          callback_data: `cur_copy:${listId}`,
+          text: "Скопировал"
+        }
+      ]
+    ]
+  };
+}
+
+function buildCuratorCabinetListUrl(order: {
+  orderNumber: number;
+  sourceDomain: string;
+}) {
+  const siteUrl = getSiteUrlForSourceDomain(order.sourceDomain);
+  const cabinetUrl = new URL("/curator-mini-app", siteUrl);
+
+  cabinetUrl.searchParams.set(
+    "next",
+    `/cabinet?section=lists#participant-list-${order.orderNumber}`
+  );
+
+  return cabinetUrl.toString();
+}
+
+function getCuratorParticipantListEventTitle(order: {
+  service: { title: string };
+  serviceOptions: Array<{ titleSnapshot: string }>;
+}) {
+  const options = order.serviceOptions.map((option) => option.titleSnapshot);
+
+  if (!options.length) {
+    return order.service.title;
+  }
+
+  return `${order.service.title}: ${options.join(", ")}`;
+}
+
+function formatCuratorParticipantListReceipt(order: {
+  payment: { receiptLabel: string | null; receiptUrl: string | null } | null;
+}) {
+  if (!order.payment?.receiptUrl) {
+    return "Чек: не прикреплен";
+  }
+
+  return `${order.payment.receiptLabel?.trim() || "Чек"}: ${
+    order.payment.receiptUrl
+  }`;
+}
+
+function formatCuratorParticipantListContacts(order: {
+  customerEmail: string | null;
+  customerPhone: string | null;
+  customerTelegram: string | null;
+}) {
+  return (
+    [order.customerTelegram, order.customerPhone, order.customerEmail]
+      .filter(Boolean)
+      .join(", ") || "не указаны"
+  );
+}
+
+function formatCuratorParticipantListSummaryMessage(order: {
+  createdAt: Date;
+  customerEmail: string | null;
+  customerName: string;
+  customerPhone: string | null;
+  customerTelegram: string | null;
+  orderNumber: number;
+  participants: Array<{ fullName: string }>;
+  payment: {
+    paidAt: Date | null;
+    receiptLabel: string | null;
+    receiptUrl: string | null;
+  } | null;
+  service: { title: string };
+  serviceOptions: Array<{ titleSnapshot: string }>;
+}) {
+  return [
+    "Новый список для обработки",
+    "",
+    `Мероприятие: ${getCuratorParticipantListEventTitle(order)}`,
+    `Заказ: #${order.orderNumber}`,
+    `Имен: ${order.participants.length}`,
+    `Время оплаты: ${(order.payment?.paidAt ?? order.createdAt).toLocaleString(
+      "ru-RU"
+    )}`,
+    formatCuratorParticipantListReceipt(order),
+    "",
+    `Клиент: ${order.customerName}`,
+    `Контакты: ${formatCuratorParticipantListContacts(order)}`
+  ].join("\n");
+}
+
+function formatCuratorParticipantListDetailsMessage(order: {
+  createdAt: Date;
+  customerEmail: string | null;
+  customerName: string;
+  customerPhone: string | null;
+  customerTelegram: string | null;
+  orderNumber: number;
+  participants: Array<{ fullName: string }>;
+  payment: {
+    paidAt: Date | null;
+    receiptLabel: string | null;
+    receiptUrl: string | null;
+  } | null;
+  service: { title: string };
+  serviceOptions: Array<{ titleSnapshot: string }>;
+}) {
+  const names = order.participants.map(
+    (participant, index) => `${index + 1}. ${participant.fullName}`
+  );
+
+  return [
+    "Список участников",
+    "",
+    `Мероприятие: ${getCuratorParticipantListEventTitle(order)}`,
+    `Заказ: #${order.orderNumber}`,
+    `Время оплаты: ${(order.payment?.paidAt ?? order.createdAt).toLocaleString(
+      "ru-RU"
+    )}`,
+    formatCuratorParticipantListReceipt(order),
+    "",
+    `Клиент: ${order.customerName}`,
+    `Контакты: ${formatCuratorParticipantListContacts(order)}`,
+    "",
+    "Имена:",
+    ...(names.length ? names : ["нет имён"])
+  ].join("\n");
 }
 
 function formatStatisticianParticipantWorkMessage(order: {
