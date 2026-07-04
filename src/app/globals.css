@@ -2487,6 +2487,16 @@ select {
   font-weight: 800;
 }
 
+.login-help-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.login-help-actions .button {
+  width: 100%;
+}
+
 .form-actions .button {
   min-width: 0;
   white-space: normal;
@@ -4237,6 +4247,15 @@ a.button[aria-disabled="true"] {
     flex: 1 1 auto;
   }
 
+  .login-help-actions {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+
+  .login-help-actions .button {
+    min-height: 50px;
+  }
+
   .signup-form--actions-visible {
     padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
   }
@@ -5138,4 +5157,17 @@ a.button[aria-disabled="true"] {
   border: 1px dashed var(--border);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.65);
+}
+
+.participant-bulk-copy {
+  display: grid;
+  gap: 14px;
+}
+
+.participant-bulk-copy__textarea {
+  min-height: 320px;
+  max-height: 520px;
+  overflow: auto;
+  resize: vertical;
+  white-space: pre;
 }

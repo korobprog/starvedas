@@ -62,6 +62,10 @@ const bulkProcessSchema = z.object({
   participantIds: z.array(z.string().trim().min(1)).default([])
 });
 
+const bulkProcessListsSchema = z.object({
+  listIds: z.array(z.string().trim().min(1)).default([])
+});
+
 const curatorClaimSchema = z.object({
   listId: z.string().trim().min(1)
 });
@@ -756,6 +760,149 @@ export async function bulkProcessParticipantsAction(
 
   revalidateParticipantListWorkspaces();
   await notifyClientAfterParticipantNamesProcessed(list.orderId);
+
+  return {
+    message: `Обработано имён: ${participantsToProcess.length}`
+  };
+}
+
+export async function bulkProcessParticipantListsAction(
+  _state: ParticipantBulkProcessState,
+  formData: FormData
+): Promise<ParticipantBulkProcessState> {
+  "use server";
+  const user = await requireUser(
+    [UserRole.STATISTICIAN, UserRole.ADMIN, UserRole.SUPER_ADMIN],
+    "/statistician"
+  );
+  requireStatisticianLike(user);
+
+  const parsed = bulkProcessListsSchema.safeParse({
+    listIds: formData.getAll("listIds")
+  });
+
+  if (!parsed.success) {
+    return { error: "Выберите списки для обработки" };
+  }
+
+  const listIds = [...new Set(parsed.data.listIds)];
+
+  if (!listIds.length) {
+    return { error: "Нет списков для обработки" };
+  }
+
+  const lists = await prisma.participantList.findMany({
+    select: {
+      id: true,
+      orderId: true,
+      order: {
+        select: {
+          participants: {
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+            select: {
+              fullName: true,
+              id: true,
+              rowStatus: true
+            }
+          }
+        }
+      }
+    },
+    where: {
+      id: { in: listIds },
+      order: {
+        deletedAt: null,
+        status: OrderStatus.PAID
+      }
+    }
+  });
+
+  if (!lists.length) {
+    return { error: "Оплаченные списки не найдены" };
+  }
+
+  const participantsToProcess = lists.flatMap((list) =>
+    list.order.participants
+      .filter(
+        (participant) => participant.rowStatus !== ParticipantRowStatus.CHECKED
+      )
+      .map((participant) => ({
+        ...participant,
+        listId: list.id,
+        orderId: list.orderId
+      }))
+  );
+
+  if (!participantsToProcess.length) {
+    return { error: "В выбранных списках нет необработанных имён" };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (const list of lists) {
+      const listParticipantsToProcess = participantsToProcess.filter(
+        (participant) => participant.listId === list.id
+      );
+
+      if (!listParticipantsToProcess.length) {
+        continue;
+      }
+
+      await captureOrderRevision(tx, {
+        actorUserId: user.id,
+        eventType: orderRevisionEventTypes.participantListEdit,
+        note: "Статист подтвердил копирование и отметил список обработанным",
+        orderId: list.orderId
+      });
+
+      await tx.orderParticipant.updateMany({
+        data: {
+          rowStatus: ParticipantRowStatus.CHECKED
+        },
+        where: {
+          id: {
+            in: listParticipantsToProcess.map((participant) => participant.id)
+          }
+        }
+      });
+
+      await tx.participantListChange.createMany({
+        data: listParticipantsToProcess.map((participant) => ({
+          changedById: user.id,
+          fieldName: `participant:${participant.id}:rowStatus`,
+          fromValue: participant.rowStatus,
+          listId: list.id,
+          toValue: ParticipantRowStatus.CHECKED
+        }))
+      });
+
+      const processedIds = new Set(
+        listParticipantsToProcess.map((participant) => participant.id)
+      );
+      const allProcessed = list.order.participants.every(
+        (participant) =>
+          participant.rowStatus === ParticipantRowStatus.CHECKED ||
+          processedIds.has(participant.id)
+      );
+
+      if (allProcessed) {
+        await tx.participantList.update({
+          data: {
+            status: ParticipantListStatus.CHECKED
+          },
+          where: { id: list.id }
+        });
+      }
+    }
+  });
+
+  revalidateParticipantListWorkspaces();
+  await Promise.all(
+    [
+      ...new Set(
+        participantsToProcess.map((participant) => participant.orderId)
+      )
+    ].map((orderId) => notifyClientAfterParticipantNamesProcessed(orderId))
+  );
 
   return {
     message: `Обработано имён: ${participantsToProcess.length}`

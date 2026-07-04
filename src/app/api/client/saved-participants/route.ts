@@ -23,5 +23,16 @@ export async function GET() {
     }
   });
 
-  return NextResponse.json({ authenticated: true, participants });
+  return NextResponse.json({
+    authenticated: true,
+    client: {
+      consentMailings: client.consentMailings,
+      consentPersonalData: client.consentPersonalData,
+      email: client.email,
+      name: client.name,
+      phone: client.phone,
+      telegram: client.telegram
+    },
+    participants
+  });
 }

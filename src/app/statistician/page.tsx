@@ -1,6 +1,10 @@
 import Link from "next/link";
-import { UserRole } from "@prisma/client";
+import { ParticipantRowStatus, UserRole } from "@prisma/client";
 import { ParticipantListsPanel } from "@/components/participant-lists-panel";
+import {
+  StatisticianBulkCopyPanel,
+  type StatisticianBulkCopyItem
+} from "@/components/statistician-bulk-copy-panel";
 import { VedicGiftRequestsPanel } from "@/components/vedic-gift-requests-panel";
 import { isAdminRole, requireUser } from "@/server/auth";
 import { logoutAction } from "@/server/auth-actions";
@@ -25,9 +29,56 @@ function firstParam(value: string | string[] | undefined) {
 function parseParticipantFilter(value: string | string[] | undefined) {
   const filter = firstParam(value);
 
-  return filter === "all" || filter === "processed"
-    ? filter
-    : "unprocessed";
+  return filter === "all" || filter === "processed" ? filter : "unprocessed";
+}
+
+function formatParticipantBulkDate(date: Date | null) {
+  return date ? date.toLocaleDateString("ru-RU") : "Дата не указана";
+}
+
+function getParticipantBulkEventDate(
+  list: Awaited<
+    ReturnType<typeof getStatisticianParticipantListsByFilter>
+  >[number]
+) {
+  return (
+    list.eventStartsAt ??
+    list.order.serviceOptions
+      .map((option) => option.option?.eventStartsAt ?? null)
+      .find((date): date is Date => Boolean(date)) ??
+    null
+  );
+}
+
+function getParticipantBulkTitle(
+  list: Awaited<
+    ReturnType<typeof getStatisticianParticipantListsByFilter>
+  >[number]
+) {
+  const title = list.serviceTitleOverride?.trim() || list.order.service.title;
+  const options = list.order.serviceOptions
+    .map((option) => option.titleSnapshot)
+    .filter(Boolean);
+
+  return options.length ? `${title} — ${options.join(", ")}` : title;
+}
+
+function createParticipantBulkCopyItems(
+  lists: Awaited<ReturnType<typeof getStatisticianParticipantListsByFilter>>
+): StatisticianBulkCopyItem[] {
+  return lists
+    .map((list) => ({
+      dateLabel: formatParticipantBulkDate(getParticipantBulkEventDate(list)),
+      listId: list.id,
+      names: list.order.participants
+        .filter(
+          (participant) =>
+            participant.rowStatus !== ParticipantRowStatus.CHECKED
+        )
+        .map((participant) => participant.fullName),
+      title: getParticipantBulkTitle(list)
+    }))
+    .filter((item) => item.names.length > 0);
 }
 
 export default async function StatisticianPage({
@@ -55,6 +106,10 @@ export default async function StatisticianPage({
     (list) => list.status === "READY_TO_SEND"
   ).length;
   const bookmarkedCount = lists.filter((list) => list.bookmarked).length;
+  const bulkCopyItems =
+    participantFilter === "unprocessed"
+      ? createParticipantBulkCopyItems(lists)
+      : [];
 
   return (
     <main className="admin-page">
@@ -168,7 +223,9 @@ export default async function StatisticianPage({
             </Link>
             <Link
               className={
-                participantFilter === "all" ? "button button--primary" : "button"
+                participantFilter === "all"
+                  ? "button button--primary"
+                  : "button"
               }
               href="/statistician?participantFilter=all"
             >
@@ -176,6 +233,10 @@ export default async function StatisticianPage({
             </Link>
           </div>
         </section>
+
+        {bulkCopyItems.length > 0 ? (
+          <StatisticianBulkCopyPanel items={bulkCopyItems} />
+        ) : null}
 
         <VedicGiftRequestsPanel requests={vedicGiftRequests} />
 

@@ -85,7 +85,7 @@ export default async function ClientLoginPage({
         <div className="login-help">
           <strong>Нет клиентского кабинета?</strong>
           <p>Создайте кабинет или вернитесь к форме записи на сайте.</p>
-          <div className="form-actions">
+          <div className="form-actions login-help-actions">
             <Link className="button button--primary" href="/client/register">
               Создать кабинет
             </Link>

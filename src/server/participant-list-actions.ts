@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  bulkProcessParticipantListsAction as runBulkProcessParticipantListsAction,
   bulkProcessParticipantsAction as runBulkProcessParticipantsAction,
   claimParticipantListByCuratorAction as runClaimParticipantListByCuratorAction,
   type ParticipantListClaimState,
@@ -12,6 +13,13 @@ export async function bulkProcessParticipantsAction(
   formData: FormData
 ) {
   return runBulkProcessParticipantsAction(state, formData);
+}
+
+export async function bulkProcessParticipantListsAction(
+  state: ParticipantBulkProcessState,
+  formData: FormData
+) {
+  return runBulkProcessParticipantListsAction(state, formData);
 }
 
 export async function claimParticipantListByCuratorAction(

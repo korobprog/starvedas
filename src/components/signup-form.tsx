@@ -18,6 +18,7 @@ import {
   formatPhoneNumberInput,
   getDefaultPhoneCountry,
   getPhoneCountryCallingCode,
+  getPhoneCountryFromValue,
   getPhoneCountryOptions,
   isPhoneCountryCode,
   isValidPhoneNumberForCountry,
@@ -66,8 +67,18 @@ type SavedParticipantOption = {
   id: string;
 };
 
+type ClientContactDefaults = {
+  consentMailings?: boolean;
+  consentPersonalData?: boolean;
+  email?: string | null;
+  name?: string | null;
+  phone?: string | null;
+  telegram?: string | null;
+};
+
 type SavedParticipantsResponse = {
   authenticated?: boolean;
+  client?: ClientContactDefaults | null;
   participants?: SavedParticipantOption[];
 };
 
@@ -859,6 +870,7 @@ export function SignupForm({
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerPhoneCountry, setCustomerPhoneCountry] =
     useState<PhoneCountryCode>(() => getDefaultPhoneCountry(locale));
+  const customerPhoneCountryRef = useRef(customerPhoneCountry);
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerComment, setCustomerComment] = useState("");
   const [consentPersonalData, setConsentPersonalData] = useState(true);
@@ -880,6 +892,62 @@ export function SignupForm({
   const stepHasRendered = useRef(false);
   const checkoutStartedRecorded = useRef(false);
   const repeatLoadedKey = useRef<string | null>(null);
+
+  useEffect(() => {
+    customerPhoneCountryRef.current = customerPhoneCountry;
+  }, [customerPhoneCountry]);
+
+  const applyClientContactDefaults = useCallback(
+    (client?: ClientContactDefaults | null) => {
+      if (!client) {
+        return;
+      }
+
+      setCustomerName((current) => current || client.name || "");
+      setCustomerNameTouched((current) => current || Boolean(client.name));
+      setCustomerTelegram((current) => current || client.telegram || "");
+      setCustomerEmail((current) => current || client.email || "");
+      setConsentPersonalData(
+        (current) => current || Boolean(client.consentPersonalData)
+      );
+      setConsentMailings(
+        (current) => current || Boolean(client.consentMailings)
+      );
+
+      const phone = client.phone?.trim();
+
+      if (!phone) {
+        return;
+      }
+
+      setCustomerPhone((current) => {
+        if (current.trim()) {
+          return current;
+        }
+
+        const country = getPhoneCountryFromValue(
+          phone,
+          customerPhoneCountryRef.current
+        );
+
+        customerPhoneCountryRef.current = country;
+        setCustomerPhoneCountry(country);
+
+        return formatPhoneNumberInput(phone, country);
+      });
+    },
+    [
+      setConsentMailings,
+      setConsentPersonalData,
+      setCustomerEmail,
+      setCustomerName,
+      setCustomerNameTouched,
+      setCustomerPhone,
+      setCustomerPhoneCountry,
+      setCustomerTelegram
+    ]
+  );
+
   const selectedPaymentProvider = useMemo(
     () =>
       paymentProviders.find((provider) => provider.code === paymentProvider),
@@ -1211,13 +1279,14 @@ export function SignupForm({
 
         setIsClientSessionActive(Boolean(result.authenticated));
         setSavedParticipants(result.participants ?? []);
+        applyClientContactDefaults(result.client);
       })
       .catch(() => undefined);
 
     return () => {
       cancelled = true;
     };
-  }, [fetchSavedParticipants]);
+  }, [applyClientContactDefaults, fetchSavedParticipants]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1273,21 +1342,7 @@ export function SignupForm({
           client: result.client
         });
         setIsClientSessionActive(true);
-        setCustomerName((current) => current || result.client.name || "");
-        setCustomerNameTouched(
-          (current) => current || Boolean(result.client.name)
-        );
-        setCustomerTelegram(
-          (current) => current || result.client.telegram || ""
-        );
-        setCustomerPhone((current) => current || result.client.phone || "");
-        setCustomerEmail((current) => current || result.client.email || "");
-        setConsentPersonalData(
-          (current) => current || Boolean(result.client.consentPersonalData)
-        );
-        setConsentMailings(
-          (current) => current || Boolean(result.client.consentMailings)
-        );
+        applyClientContactDefaults(result.client);
 
         if (result.referralSlug && result.referralSlug !== referralSlug) {
           const url = new URL(window.location.href);
@@ -1306,6 +1361,7 @@ export function SignupForm({
 
             setIsClientSessionActive(Boolean(savedResult.authenticated));
             setSavedParticipants(savedResult.participants ?? []);
+            applyClientContactDefaults(savedResult.client);
           })
           .catch(() => undefined);
       })
@@ -1321,7 +1377,7 @@ export function SignupForm({
     return () => {
       cancelled = true;
     };
-  }, [fetchSavedParticipants, referralSlug]);
+  }, [applyClientContactDefaults, fetchSavedParticipants, referralSlug]);
 
   useEffect(() => {
     const repeatToken = new URLSearchParams(window.location.search).get(

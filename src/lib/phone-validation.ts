@@ -52,6 +52,26 @@ export function getPhoneCountryCallingCode(country: PhoneCountryCode) {
   return getCountryCallingCode(country);
 }
 
+export function getPhoneCountryFromValue(
+  value?: string | null,
+  fallbackCountry?: string | null
+) {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return getSafeCountry(fallbackCountry);
+  }
+
+  const phoneNumber = parsePhoneNumberFromString(
+    trimmed,
+    getSafeCountry(fallbackCountry)
+  );
+
+  return isPhoneCountryCode(phoneNumber?.country)
+    ? phoneNumber.country
+    : getSafeCountry(fallbackCountry);
+}
+
 export function getPhoneCountryOptions(locale?: string | null) {
   const regionNames = createRegionNames(locale);
 
