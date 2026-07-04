@@ -260,6 +260,97 @@ function parseWebhookAmountKopeks(payload: Record<string, unknown>) {
   return Number.isFinite(amount) ? Math.round(amount * 100) : undefined;
 }
 
+function truncateDiagnosticValue(value: string, maxLength = 200) {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
+}
+
+function getDiagnosticString(payload: Record<string, unknown>, keys: string[]) {
+  const value = getString(payload, keys);
+
+  return value ? truncateDiagnosticValue(value) : undefined;
+}
+
+function getWebhookProductsDiagnostic(payload: Record<string, unknown>) {
+  const products = payload.products;
+  const entries = Array.isArray(products)
+    ? products
+    : products && typeof products === "object"
+      ? Object.entries(products)
+          .sort(([left], [right]) => Number(left) - Number(right))
+          .map(([, value]) => value)
+      : [];
+
+  return entries
+    .filter(
+      (entry): entry is Record<string, unknown> =>
+        Boolean(entry) && typeof entry === "object" && !Array.isArray(entry)
+    )
+    .slice(0, 10)
+    .map((product) => ({
+      name: getDiagnosticString(product, ["name"]),
+      paymentMethod: getDiagnosticString(product, ["paymentMethod"]),
+      paymentObject: getDiagnosticString(product, ["paymentObject"]),
+      price: getDiagnosticString(product, ["price"]),
+      quantity: getDiagnosticString(product, ["quantity"]),
+      sum: getDiagnosticString(product, ["sum"]),
+      taxType:
+        product.tax && typeof product.tax === "object"
+          ? getDiagnosticString(product.tax as Record<string, unknown>, [
+              "tax_type"
+            ])
+          : undefined
+    }));
+}
+
+function getPaymentWebhookMismatchDiagnostics({
+  expectedAmountRub,
+  orderNumber,
+  payload,
+  providerName,
+  webhookAmountRub
+}: {
+  expectedAmountRub: number;
+  orderNumber: number;
+  payload: Record<string, unknown>;
+  providerName: string;
+  webhookAmountRub: number;
+}) {
+  return {
+    commission: getDiagnosticString(payload, ["commission"]),
+    commissionSum: getDiagnosticString(payload, [
+      "commission_sum",
+      "commissionSum"
+    ]),
+    discountValue: getDiagnosticString(payload, [
+      "discount_value",
+      "discountValue"
+    ]),
+    expectedAmountRub,
+    orderId: getDiagnosticString(payload, ["order_id"]),
+    orderNum: getDiagnosticString(payload, ["order_num"]),
+    orderNumber,
+    paymentInit: getDiagnosticString(payload, ["payment_init", "paymentInit"]),
+    paymentStatus: getDiagnosticString(payload, [
+      "payment_status",
+      "status",
+      "transaction_status"
+    ]),
+    paymentStatusDescription: getDiagnosticString(payload, [
+      "payment_status_description",
+      "paymentStatusDescription"
+    ]),
+    paymentType: getDiagnosticString(payload, ["payment_type", "paymentType"]),
+    products: getWebhookProductsDiagnostic(payload),
+    providerName,
+    webhookAmountRub,
+    webhookAmountSource: getDiagnosticString(payload, [
+      "sum",
+      "amount",
+      "amountRub"
+    ])
+  };
+}
+
 function canIgnoreStatusChange({
   currentStatus,
   nextStatus
@@ -453,12 +544,16 @@ export async function handlePaymentWebhook({
   }
 
   if (webhookAmountKopeks !== expectedAmountKopeks) {
-    console.error("Payment webhook amount mismatch", {
-      expectedAmountRub: order.amountRub,
-      orderNumber,
-      providerName,
-      webhookAmountRub: webhookAmountKopeks / 100
-    });
+    console.error(
+      "Payment webhook amount mismatch",
+      getPaymentWebhookMismatchDiagnostics({
+        expectedAmountRub: order.amountRub,
+        orderNumber,
+        payload,
+        providerName,
+        webhookAmountRub: webhookAmountKopeks / 100
+      })
+    );
 
     return NextResponse.json({ message: "Amount mismatch" }, { status: 409 });
   }
@@ -593,7 +688,10 @@ export async function handlePaymentWebhook({
         orderId: order.id
       });
     } catch (error) {
-      console.error("Curator participant list Telegram notification failed", error);
+      console.error(
+        "Curator participant list Telegram notification failed",
+        error
+      );
     }
   }
 
