@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { getSiteUrlForSourceDomain } from "@/server/email/site-url";
 
 const TELEGRAM_MESSAGE_LIMIT = 4096;
+const TELEGRAM_RESPONSE_LOG_LIMIT = 500;
 const DEFAULT_TELEGRAM_REQUEST_TIMEOUT_MS = 5000;
 const defaultTelegramApiIps = ["149.154.167.220"];
 
@@ -579,13 +580,11 @@ function formatStatisticianParticipantWorkMessage(order: {
     "",
     `Заказ: #${order.orderNumber}`,
     `Заказчик: ${order.customerName}`,
-    `Контакты: ${[
-      order.customerTelegram,
-      order.customerPhone,
-      order.customerEmail
-    ]
-      .filter(Boolean)
-      .join(", ") || "не указаны"}`,
+    `Контакты: ${
+      [order.customerTelegram, order.customerPhone, order.customerEmail]
+        .filter(Boolean)
+        .join(", ") || "не указаны"
+    }`,
     `Продукт: ${order.service.title}`,
     options.length ? `Тип / обряды: ${options.join(", ")}` : null,
     `Дата покупки: ${order.createdAt.toLocaleString("ru-RU")}`,
@@ -794,15 +793,17 @@ async function callTelegramSendMessage(
 
   if (!response.ok) {
     throw new Error(
-      `Telegram sendMessage failed (${response.status} ${response.statusText}): ${response.body}`.trim()
+      `Telegram sendMessage failed (${response.status} ${response.statusText}): ${formatTelegramResponseBodyForError(response.body)}`.trim()
     );
   }
 
-  const parsed = JSON.parse(response.body || "{}") as { ok?: boolean };
+  const parsed = parseTelegramJsonResponse(response.body, "sendMessage") as {
+    ok?: boolean;
+  };
 
   if (!parsed.ok) {
     throw new Error(
-      `Telegram sendMessage returned ok=false: ${response.body}`.trim()
+      `Telegram sendMessage returned ok=false: ${formatTelegramResponseBodyForError(response.body)}`.trim()
     );
   }
 }
@@ -879,7 +880,7 @@ function parseHttpStatus(rawResponse: string): TelegramResponse {
   const status = Number(match[1]);
 
   return {
-    body: body.slice(0, 500),
+    body,
     ok: status >= 200 && status < 300,
     status,
     statusText: match[2] || ""
@@ -1083,7 +1084,7 @@ async function postJsonViaHttpsTarget(
           const status = response.statusCode ?? 0;
 
           settleResolve({
-            body: Buffer.concat(chunks).toString("utf8").slice(0, 500),
+            body: Buffer.concat(chunks).toString("utf8"),
             ok: status >= 200 && status < 300,
             status,
             statusText: response.statusMessage ?? ""
@@ -1105,6 +1106,32 @@ async function postJsonViaHttpsTarget(
 
 function formatOptional(value: string | null) {
   return value?.trim() || "не указан";
+}
+
+function parseTelegramJsonResponse(body: string, method: string) {
+  try {
+    return JSON.parse(body || "{}");
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+
+    throw new Error(
+      `Telegram ${method} returned invalid JSON (${reason}): ${formatTelegramResponseBodyForError(body)}`.trim()
+    );
+  }
+}
+
+function formatTelegramResponseBodyForError(body: string) {
+  const normalized = body.replace(/\s+/g, " ").trim();
+
+  if (!normalized) {
+    return "empty response body";
+  }
+
+  if (normalized.length <= TELEGRAM_RESPONSE_LOG_LIMIT) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, TELEGRAM_RESPONSE_LOG_LIMIT)}…`;
 }
 
 function trimTelegramMessage(text: string) {
