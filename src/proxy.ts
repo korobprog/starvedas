@@ -1,4 +1,5 @@
-﻿import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { getMaintenanceSettings } from "@/server/site-settings";
 
 const PUBLIC_FILE = /\.(.*)$/;
 
@@ -23,19 +24,7 @@ export async function proxy(request: NextRequest) {
   }
 
   try {
-    const statusUrl = new URL("/api/maintenance-status", request.url);
-    const response = await fetch(statusUrl, {
-      cache: "no-store",
-      headers: {
-        "x-maintenance-check": "1"
-      }
-    });
-
-    if (!response.ok) {
-      return NextResponse.next();
-    }
-
-    const status = (await response.json()) as { mode?: boolean };
+    const status = await getMaintenanceSettings();
 
     if (status.mode) {
       const url = request.nextUrl.clone();
