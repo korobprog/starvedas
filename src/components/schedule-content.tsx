@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, Fragment } from "react";
+import { useEffect, useRef, useState } from "react";
+import { stripHtmlToText, toScheduleHtml } from "@/lib/schedule-format";
 
 type ScheduleContentProps = {
   body: string;
@@ -9,40 +10,36 @@ type ScheduleContentProps = {
 };
 
 const previewCharLimit = 360;
-const previewLineLimit = 4;
+const previewBlockLimit = 4;
 
-function normalizeScheduleBody(value: string) {
-  return value.replaceAll("\r\n", "\n").replaceAll("\r", "\n").trim();
+function getHtmlBlocks(value: string) {
+  return [
+    ...value.matchAll(
+      /<(p|h3|h4|ul|ol|blockquote)(?:\s[^>]*)?>[\s\S]*?<\/\1>/gi
+    )
+  ].map((match) => match[0]);
 }
 
 function getScheduleParts(value: string) {
-  const body = normalizeScheduleBody(value);
-  const lines = body.split("\n");
+  const body = toScheduleHtml(value);
+  const blocks = getHtmlBlocks(body);
 
-  if (lines.length > previewLineLimit) {
+  if (blocks.length > previewBlockLimit) {
     return {
-      preview: lines.slice(0, previewLineLimit).join("\n").trimEnd(),
-      rest: lines.slice(previewLineLimit).join("\n").trimStart()
+      preview: blocks.slice(0, previewBlockLimit).join(""),
+      rest: blocks.slice(previewBlockLimit).join("")
     };
   }
 
-  if (body.length <= previewCharLimit) {
+  if (stripHtmlToText(body).length <= previewCharLimit || blocks.length <= 1) {
     return { preview: body, rest: "" };
   }
 
-  const minCut = Math.floor(previewCharLimit * 0.55);
-  const cutCandidates = [
-    body.lastIndexOf("\n\n", previewCharLimit),
-    body.lastIndexOf("\n", previewLineLimit),
-    body.lastIndexOf(". ", previewCharLimit),
-    body.lastIndexOf(" ", previewCharLimit)
-  ];
-  const cut =
-    cutCandidates.find((candidate) => candidate > minCut) ?? previewCharLimit;
-
   return {
-    preview: body.slice(0, cut).trimEnd(),
-    rest: body.slice(cut).trimStart()
+    preview: blocks
+      .slice(0, Math.max(1, Math.ceil(blocks.length / 2)))
+      .join(""),
+    rest: blocks.slice(Math.max(1, Math.ceil(blocks.length / 2))).join("")
   };
 }
 
@@ -72,40 +69,16 @@ function useInView() {
 
 function ScheduleText({
   className = "",
-  text,
-  baseDelay
+  html
 }: {
   className?: string;
-  text: string;
-  baseDelay?: number;
+  html: string;
 }) {
-  const paragraphs = text
-    .split(/\n{2,}/)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean);
-
   return (
     <div
       className={`schedule-content__text${className ? ` ${className}` : ""}`}
-    >
-      {paragraphs.map((paragraph, paragraphIndex) => {
-        const lines = paragraph.split("\n");
-
-        return (
-          <p
-            key={`${paragraphIndex}-${paragraph.slice(0, 16)}`}
-            style={{ animationDelay: `${(baseDelay ?? 0.25) + paragraphIndex * 0.08}s` }}
-          >
-            {lines.map((line, lineIndex) => (
-              <Fragment key={`${lineIndex}-${line.slice(0, 16)}`}>
-                {line}
-                {lineIndex < lines.length - 1 && <br />}
-              </Fragment>
-            ))}
-          </p>
-        );
-      })}
-    </div>
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 }
 
@@ -120,13 +93,15 @@ export function ScheduleContent({ body, month, title }: ScheduleContentProps) {
     >
       <span>{month}</span>
       <h3>{title}</h3>
-      <ScheduleText text={rest ? preview : body} />
+      <ScheduleText html={rest ? preview : body} />
       {rest && (
         <details className="schedule-content__details">
           <summary className="schedule-content__toggle">
-            <span className="schedule-content__toggle-label">Расписание целиком</span>
+            <span className="schedule-content__toggle-label">
+              Расписание целиком
+            </span>
           </summary>
-          <ScheduleText className="schedule-content__text--rest" text={rest} baseDelay={0.05} />
+          <ScheduleText className="schedule-content__text--rest" html={rest} />
         </details>
       )}
     </div>

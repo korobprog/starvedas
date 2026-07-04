@@ -7,6 +7,7 @@ import { SupportCta } from "@/components/support-cta";
 import { getHomeCopy } from "@/i18n/home-copy";
 import { localeCookieName } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
+import { sanitizeScheduleHtml } from "@/lib/sanitize-schedule-html";
 import { steps } from "@/lib/site-data";
 import { getPublicOrganizationSettings } from "@/server/organization-settings";
 import { getCheckoutPaymentProvidersForCurator } from "@/server/payment-providers";
@@ -291,7 +292,7 @@ export default async function Home({
               <h2>{copy.sections.schedule.title}</h2>
               {activeSchedule ? (
                 <ScheduleContent
-                  body={activeSchedule.body}
+                  body={sanitizeScheduleHtml(activeSchedule.body)}
                   month={activeSchedule.month}
                   title={activeSchedule.title}
                 />

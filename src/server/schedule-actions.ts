@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { stripHtmlToText } from "@/lib/schedule-format";
+import { sanitizeScheduleHtml } from "@/lib/sanitize-schedule-html";
 import { prisma } from "@/lib/prisma";
 import { requireAdminUser } from "@/server/auth";
 
@@ -26,10 +28,17 @@ export async function saveSchedule(formData: FormData) {
   });
 
   if (!parsed.success) {
-    throw new Error("Некорректные данные расписания");
+    throw new Error("Invalid schedule data");
   }
 
-  const data = parsed.data;
+  const data = {
+    ...parsed.data,
+    body: sanitizeScheduleHtml(parsed.data.body)
+  };
+
+  if (stripHtmlToText(data.body).length < 10) {
+    throw new Error("Invalid schedule data");
+  }
 
   if (data.active) {
     await prisma.schedule.updateMany({

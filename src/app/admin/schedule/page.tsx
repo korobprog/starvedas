@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
 import { AdminSubmitButton } from "@/components/admin-submit-button";
+import { ScheduleRichTextEditor } from "@/components/schedule-rich-text-editor";
 import { getAdminCopy } from "@/i18n/admin-copy";
 import { localeCookieName } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
+import { sanitizeScheduleHtml } from "@/lib/sanitize-schedule-html";
 import { saveSchedule } from "@/server/schedule-actions";
 
 export const dynamic = "force-dynamic";
@@ -54,7 +56,12 @@ export default async function AdminSchedulePage({
           <article className="schedule-preview">
             <span>{activeSchedule.month}</span>
             <h3>{activeSchedule.title}</h3>
-            <p>{activeSchedule.body}</p>
+            <div
+              className="schedule-preview__text"
+              dangerouslySetInnerHTML={{
+                __html: sanitizeScheduleHtml(activeSchedule.body)
+              }}
+            />
           </article>
         ) : (
           <p className="admin-muted">{copy.schedule.activeEmpty}</p>
@@ -82,15 +89,12 @@ export default async function AdminSchedulePage({
               type="text"
             />
           </label>
-          <label className="field">
+          <div className="field rich-text-field">
             <span>{copy.schedule.body}</span>
-            <textarea
-              name="body"
+            <ScheduleRichTextEditor
               placeholder={copy.schedule.bodyPlaceholder}
-              required
-              rows={8}
             />
-          </label>
+          </div>
           <label className="checkbox-field">
             <input name="active" type="checkbox" />
             <span>{copy.schedule.publish}</span>
@@ -130,15 +134,10 @@ export default async function AdminSchedulePage({
                     type="text"
                   />
                 </label>
-                <label className="field">
+                <div className="field rich-text-field">
                   <span>{copy.schedule.text}</span>
-                  <textarea
-                    defaultValue={schedule.body}
-                    name="body"
-                    required
-                    rows={5}
-                  />
-                </label>
+                  <ScheduleRichTextEditor initialValue={schedule.body} />
+                </div>
                 <label className="checkbox-field">
                   <input
                     defaultChecked={schedule.active}
