@@ -1,5 +1,4 @@
-﻿import Link from "next/link";
-import { CuratorMiniAppLogin } from "@/components/curator-mini-app-login";
+﻿import { CuratorMiniAppLogin } from "@/components/curator-mini-app-login";
 
 export const dynamic = "force-dynamic";
 
@@ -21,19 +20,16 @@ export default async function CuratorMiniAppPage({
     <main className="page-shell">
       <section className="content-section content-section--narrow">
         <div className="section-heading">
-          <p className="eyebrow">Кабинет куратора</p>
+          <p className="eyebrow">Telegram Mini App</p>
           <h1>Вход через Telegram</h1>
           <p>
-            Если ваш Telegram ID привязан администратором, мы откроем кабинет
-            куратора внутри Mini App.
+            По реферальной ссылке откроем клиентский кабинет. Если Telegram ID
+            привязан администратором к куратору, откроем кабинет куратора.
           </p>
         </div>
         <div className="telegram-auth-card">
           <CuratorMiniAppLogin nextPath={nextPath} />
         </div>
-        <Link className="button" href="/admin/login?next=%2Fcabinet">
-          Войти по email и паролю
-        </Link>
       </section>
     </main>
   );
