@@ -252,13 +252,7 @@ function StatisticianEditForm({ list }: { list: ParticipantListRow }) {
   );
 }
 
-function ParticipantRows({
-  list,
-  mode
-}: {
-  list: ParticipantListRow;
-  mode: "curator" | "statistician";
-}) {
+function getVisibleChildRecordLines(list: ParticipantListRow) {
   const childRecordLines = formatChildRecordLines(list.order.childRecords, {
     unbornLabel: list.order.service.shraddhaUnbornLabel ?? undefined,
     deceasedChildLabel:
@@ -267,9 +261,29 @@ function ParticipantRows({
   const participantNames = new Set(
     list.order.participants.map((participant) => participant.fullName)
   );
-  const visibleChildRecordLines = childRecordLines.filter(
-    (line) => !participantNames.has(line)
-  );
+
+  return childRecordLines.filter((line) => !participantNames.has(line));
+}
+
+function getCuratorCopyParticipants(list: ParticipantListRow) {
+  return [
+    ...list.order.participants,
+    ...getVisibleChildRecordLines(list).map((fullName, index) => ({
+      fullName,
+      id: `child-record-${list.id}-${index}`,
+      rowStatus: "NEW"
+    }))
+  ];
+}
+
+function ParticipantRows({
+  list,
+  mode
+}: {
+  list: ParticipantListRow;
+  mode: "curator" | "statistician";
+}) {
+  const visibleChildRecordLines = getVisibleChildRecordLines(list);
 
   if (!list.order.participants.length && visibleChildRecordLines.length === 0) {
     return <p className="admin-muted">Участников в списке нет.</p>;
@@ -382,52 +396,63 @@ export function ParticipantListsPanel({
   return (
     <div className="admin-grid">
       {lists.map((list) => (
-        <section
-          className="admin-card admin-card--wide"
-          id={`participant-list-${list.order.orderNumber}`}
-          key={list.id}
-        >
-          <div className="section-heading section-heading--compact">
-            <p className="eyebrow">
-              {list.bookmarked ? "★ " : ""}Список #{list.order.orderNumber} ·{" "}
-              {formatStatus(list.status)}
-            </p>
-            <h2>{list.order.curator.name}</h2>
-            <p>
-              Списки приходят через Telegram. Проверьте ФИО, сервис и дату
-              начала мероприятия перед отправкой.
-            </p>
-          </div>
-
-          <ListMeta list={list} />
-
-          {mode === "statistician" ? (
-            <StatisticianEditForm list={list} />
-          ) : null}
-
-          <h3>Участники</h3>
-          {mode === "curator" && list.order.participants.length > 0 ? (
-            <CuratorParticipantListWorkTools
-              alreadyClaimed={list.claimedByRole === "CURATOR"}
-              listId={list.id}
-              orderNumber={list.order.orderNumber}
-              participants={list.order.participants}
-            />
-          ) : null}
-          {mode === "statistician" && list.order.participants.length > 0 ? (
-            <ParticipantListWorkTools
-              listId={list.id}
-              orderNumber={list.order.orderNumber}
-              participants={list.order.participants}
-            />
-          ) : null}
-          <ParticipantRows list={list} mode={mode} />
-
-          <h3>Переписка по списку</h3>
-          <ListMessages list={list} />
-          <MessageForm listId={list.id} />
-        </section>
+        <ParticipantListCard key={list.id} list={list} mode={mode} />
       ))}
     </div>
+  );
+}
+
+function ParticipantListCard({
+  list,
+  mode
+}: {
+  list: ParticipantListRow;
+  mode: "curator" | "statistician";
+}) {
+  const curatorCopyParticipants = getCuratorCopyParticipants(list);
+
+  return (
+    <section
+      className="admin-card admin-card--wide"
+      id={`participant-list-${list.order.orderNumber}`}
+    >
+      <div className="section-heading section-heading--compact">
+        <p className="eyebrow">
+          {list.bookmarked ? "★ " : ""}Список #{list.order.orderNumber} ·{" "}
+          {formatStatus(list.status)}
+        </p>
+        <h2>{list.order.curator.name}</h2>
+        <p>
+          Списки приходят через Telegram. Проверьте ФИО, сервис и дату начала
+          мероприятия перед отправкой.
+        </p>
+      </div>
+
+      <ListMeta list={list} />
+
+      {mode === "statistician" ? <StatisticianEditForm list={list} /> : null}
+
+      <h3>Участники</h3>
+      {mode === "curator" && curatorCopyParticipants.length > 0 ? (
+        <CuratorParticipantListWorkTools
+          alreadyClaimed={list.claimedByRole === "CURATOR"}
+          listId={list.id}
+          orderNumber={list.order.orderNumber}
+          participants={curatorCopyParticipants}
+        />
+      ) : null}
+      {mode === "statistician" && list.order.participants.length > 0 ? (
+        <ParticipantListWorkTools
+          listId={list.id}
+          orderNumber={list.order.orderNumber}
+          participants={list.order.participants}
+        />
+      ) : null}
+      <ParticipantRows list={list} mode={mode} />
+
+      <h3>Переписка по списку</h3>
+      <ListMessages list={list} />
+      <MessageForm listId={list.id} />
+    </section>
   );
 }

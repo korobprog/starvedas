@@ -5,6 +5,7 @@ import {
   StatisticianBulkCopyPanel,
   type StatisticianBulkCopyItem
 } from "@/components/statistician-bulk-copy-panel";
+import { formatChildRecordLines } from "@/lib/shraddha";
 import { VedicGiftRequestsPanel } from "@/components/vedic-gift-requests-panel";
 import { isAdminRole, requireUser } from "@/server/auth";
 import { logoutAction } from "@/server/auth-actions";
@@ -32,8 +33,8 @@ function parseParticipantFilter(value: string | string[] | undefined) {
   return filter === "all" || filter === "processed" ? filter : "unprocessed";
 }
 
-function formatParticipantBulkDate(date: Date | null) {
-  return date ? date.toLocaleDateString("ru-RU") : "Дата не указана";
+function formatParticipantBulkDate(date: Date) {
+  return date.toLocaleDateString("ru-RU");
 }
 
 function getParticipantBulkEventDate(
@@ -50,6 +51,18 @@ function getParticipantBulkEventDate(
   );
 }
 
+function getParticipantBulkDate(
+  list: Awaited<
+    ReturnType<typeof getStatisticianParticipantListsByFilter>
+  >[number]
+) {
+  return (
+    getParticipantBulkEventDate(list) ??
+    list.order.payment?.paidAt ??
+    list.order.createdAt
+  );
+}
+
 function getParticipantBulkTitle(
   list: Awaited<
     ReturnType<typeof getStatisticianParticipantListsByFilter>
@@ -63,19 +76,36 @@ function getParticipantBulkTitle(
   return options.length ? `${title} — ${options.join(", ")}` : title;
 }
 
+function getParticipantBulkNames(
+  list: Awaited<
+    ReturnType<typeof getStatisticianParticipantListsByFilter>
+  >[number]
+) {
+  const participantNames = new Set(
+    list.order.participants.map((participant) => participant.fullName)
+  );
+  const unprocessedNames = list.order.participants
+    .filter(
+      (participant) => participant.rowStatus !== ParticipantRowStatus.CHECKED
+    )
+    .map((participant) => participant.fullName);
+  const childRecordLines = formatChildRecordLines(list.order.childRecords, {
+    unbornLabel: list.order.service.shraddhaUnbornLabel ?? undefined,
+    deceasedChildLabel:
+      list.order.service.shraddhaDeceasedChildLabel ?? undefined
+  }).filter((line) => !participantNames.has(line));
+
+  return [...unprocessedNames, ...childRecordLines];
+}
+
 function createParticipantBulkCopyItems(
   lists: Awaited<ReturnType<typeof getStatisticianParticipantListsByFilter>>
 ): StatisticianBulkCopyItem[] {
   return lists
     .map((list) => ({
-      dateLabel: formatParticipantBulkDate(getParticipantBulkEventDate(list)),
+      dateLabel: formatParticipantBulkDate(getParticipantBulkDate(list)),
       listId: list.id,
-      names: list.order.participants
-        .filter(
-          (participant) =>
-            participant.rowStatus !== ParticipantRowStatus.CHECKED
-        )
-        .map((participant) => participant.fullName),
+      names: getParticipantBulkNames(list),
       title: getParticipantBulkTitle(list)
     }))
     .filter((item) => item.names.length > 0);
