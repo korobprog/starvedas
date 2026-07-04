@@ -137,7 +137,7 @@ function ListMeta({ list }: { list: ParticipantListRow }) {
     : null;
 
   return (
-    <div className="admin-muted">
+    <div className="admin-muted participant-list-card__meta">
       <p>
         <strong>Заказчик:</strong> {list.order.customerName} ·{" "}
         {[
@@ -410,29 +410,8 @@ function ParticipantListCard({
   mode: "curator" | "statistician";
 }) {
   const curatorCopyParticipants = getCuratorCopyParticipants(list);
-
-  return (
-    <section
-      className="admin-card admin-card--wide"
-      id={`participant-list-${list.order.orderNumber}`}
-    >
-      <div className="section-heading section-heading--compact">
-        <p className="eyebrow">
-          {list.bookmarked ? "★ " : ""}Список #{list.order.orderNumber} ·{" "}
-          {formatStatus(list.status)}
-        </p>
-        <h2>{list.order.curator.name}</h2>
-        <p>
-          Списки приходят через Telegram. Проверьте ФИО, сервис и дату начала
-          мероприятия перед отправкой.
-        </p>
-      </div>
-
-      <ListMeta list={list} />
-
-      {mode === "statistician" ? <StatisticianEditForm list={list} /> : null}
-
-      <h3>Участники</h3>
+  const participantsContent = (
+    <>
       {mode === "curator" && curatorCopyParticipants.length > 0 ? (
         <CuratorParticipantListWorkTools
           alreadyClaimed={list.claimedByRole === "CURATOR"}
@@ -449,10 +428,64 @@ function ParticipantListCard({
         />
       ) : null}
       <ParticipantRows list={list} mode={mode} />
-
-      <h3>Переписка по списку</h3>
+    </>
+  );
+  const messagesContent = (
+    <>
       <ListMessages list={list} />
       <MessageForm listId={list.id} />
+    </>
+  );
+
+  return (
+    <section
+      className={`admin-card admin-card--wide participant-list-card participant-list-card--${mode}`}
+      id={`participant-list-${list.order.orderNumber}`}
+    >
+      <div className="section-heading section-heading--compact">
+        <p className="eyebrow">
+          {list.bookmarked ? "★ " : ""}Список #{list.order.orderNumber} ·{" "}
+          {formatStatus(list.status)}
+        </p>
+        <h2>{list.order.curator.name}</h2>
+        <p>
+          Списки приходят через Telegram. Проверьте ФИО, сервис и дату начала
+          мероприятия перед отправкой.
+        </p>
+      </div>
+
+      <ListMeta list={list} />
+
+      {mode === "statistician" ? (
+        <details className="participant-list-card__details">
+          <summary>Редактировать список</summary>
+          <StatisticianEditForm list={list} />
+        </details>
+      ) : null}
+
+      {mode === "statistician" ? (
+        <details className="participant-list-card__details">
+          <summary>Имена и действия ({list.order.participants.length})</summary>
+          {participantsContent}
+        </details>
+      ) : (
+        <>
+          <h3>Участники</h3>
+          {participantsContent}
+        </>
+      )}
+
+      {mode === "statistician" ? (
+        <details className="participant-list-card__details">
+          <summary>Переписка по списку</summary>
+          {messagesContent}
+        </details>
+      ) : (
+        <>
+          <h3>Переписка по списку</h3>
+          {messagesContent}
+        </>
+      )}
     </section>
   );
 }

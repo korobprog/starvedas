@@ -3980,6 +3980,34 @@ a.button[aria-disabled="true"] {
     gap: 4px;
   }
 
+  .participant-list-card--statistician {
+    gap: 10px;
+    border-radius: 16px;
+    padding: 12px;
+  }
+
+  .participant-list-card--statistician .section-heading h2 {
+    font-size: 1.2rem;
+  }
+
+  .participant-list-card--statistician .section-heading p {
+    font-size: 0.88rem;
+  }
+
+  .participant-list-card--statistician .participant-list-card__meta {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    font-size: 0.88rem;
+  }
+
+  .participant-list-card__details summary {
+    padding: 10px;
+  }
+
+  .participant-list-card__details[open] {
+    padding: 0 10px 10px;
+  }
+
   .accounting-actions {
     grid-template-columns: 1fr;
   }
@@ -5157,6 +5185,82 @@ a.button[aria-disabled="true"] {
   border: 1px dashed var(--border);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.65);
+}
+
+.participant-list-card--statistician {
+  gap: 12px;
+  border-radius: 20px;
+  padding: 16px 18px;
+}
+
+.participant-list-card--statistician .section-heading {
+  gap: 6px;
+}
+
+.participant-list-card--statistician .section-heading .eyebrow {
+  margin: 0;
+}
+
+.participant-list-card--statistician .section-heading h2 {
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  line-height: 1.1;
+}
+
+.participant-list-card--statistician .section-heading p {
+  max-width: none;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.participant-list-card--statistician .participant-list-card__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 6px 18px;
+  line-height: 1.35;
+}
+
+.participant-list-card--statistician .participant-list-card__meta p {
+  margin: 0;
+}
+
+.participant-list-card__details {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 250, 241, 0.72);
+}
+
+.participant-list-card__details summary {
+  cursor: pointer;
+  list-style-position: inside;
+  padding: 10px 12px;
+  color: var(--primary-dark);
+  font-weight: 900;
+}
+
+.participant-list-card__details[open] {
+  padding: 0 12px 12px;
+}
+
+.participant-list-card__details[open] summary {
+  margin-inline: -12px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.participant-list-card--statistician .participant-work-tools {
+  margin: 0 0 12px;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.participant-list-card--statistician .admin-table {
+  min-width: 720px;
+}
+
+.participant-list-card--statistician .admin-table th,
+.participant-list-card--statistician .admin-table td {
+  padding: 8px;
 }
 
 .participant-bulk-copy {
