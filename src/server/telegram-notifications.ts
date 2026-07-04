@@ -183,11 +183,17 @@ export async function sendCuratorParticipantListTelegramNotification(
     return false;
   }
 
-  return sendTelegramMessageToChat(
+  const summarySent = await sendTelegramMessageToChat(
     order.curator.telegramId,
     formatCuratorParticipantListSummaryMessage(order),
     createCuratorParticipantListSummaryKeyboard(order)
   );
+  const namesSent = await sendTelegramMessageToChat(
+    order.curator.telegramId,
+    formatCuratorParticipantNamesMessage(order)
+  );
+
+  return summarySent && namesSent;
 }
 
 export async function getCuratorParticipantListTelegramDetails({
@@ -320,6 +326,7 @@ function getCuratorParticipantListOrderByListId({
 }
 
 const curatorParticipantListOrderSelect = {
+  amountRub: true,
   createdAt: true,
   curator: {
     select: {
@@ -346,9 +353,7 @@ const curatorParticipantListOrderSelect = {
   },
   payment: {
     select: {
-      paidAt: true,
-      receiptLabel: true,
-      receiptUrl: true
+      paidAt: true
     }
   },
   service: {
@@ -435,31 +440,49 @@ function getCuratorParticipantListEventTitle(order: {
   return `${order.service.title}: ${options.join(", ")}`;
 }
 
-function formatCuratorParticipantListReceipt(order: {
-  payment: { receiptLabel: string | null; receiptUrl: string | null } | null;
-}) {
-  if (!order.payment?.receiptUrl) {
-    return "Чек: не прикреплен";
-  }
-
-  return `${order.payment.receiptLabel?.trim() || "Чек"}: ${
-    order.payment.receiptUrl
-  }`;
+function formatCuratorAmountRub(amountRub: number) {
+  return `${new Intl.NumberFormat("ru-RU", {
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0
+  }).format(amountRub)} ₽`;
 }
 
-function formatCuratorParticipantListContacts(order: {
+function getCuratorParticipantNameLines(order: {
+  customerName: string;
+  participants: Array<{ fullName: string }>;
+}) {
+  const participantNames = order.participants
+    .map((participant) => participant.fullName.trim())
+    .filter(Boolean);
+
+  return participantNames.length ? participantNames : [order.customerName];
+}
+
+function formatCuratorParticipantNamesMessage(order: {
+  customerName: string;
+  participants: Array<{ fullName: string }>;
+}) {
+  return getCuratorParticipantNameLines(order).join("\n");
+}
+
+function getCuratorParticipantListContactLines(order: {
   customerEmail: string | null;
   customerPhone: string | null;
   customerTelegram: string | null;
 }) {
-  return (
-    [order.customerTelegram, order.customerPhone, order.customerEmail]
-      .filter(Boolean)
-      .join(", ") || "не указаны"
-  );
+  const contacts = [
+    order.customerTelegram,
+    order.customerPhone,
+    order.customerEmail
+  ]
+    .map((contact) => contact?.trim())
+    .filter((contact): contact is string => Boolean(contact));
+
+  return contacts.length ? contacts : ["не указаны"];
 }
 
 function formatCuratorParticipantListSummaryMessage(order: {
+  amountRub: number;
   createdAt: Date;
   customerEmail: string | null;
   customerName: string;
@@ -469,8 +492,6 @@ function formatCuratorParticipantListSummaryMessage(order: {
   participants: Array<{ fullName: string }>;
   payment: {
     paidAt: Date | null;
-    receiptLabel: string | null;
-    receiptUrl: string | null;
   } | null;
   service: { title: string };
   serviceOptions: Array<{ titleSnapshot: string }>;
@@ -478,20 +499,23 @@ function formatCuratorParticipantListSummaryMessage(order: {
   return [
     "Новый список для обработки",
     "",
-    `Мероприятие: ${getCuratorParticipantListEventTitle(order)}`,
     `Заказ: #${order.orderNumber}`,
-    `Имен: ${order.participants.length}`,
+    `Сумма: ${formatCuratorAmountRub(order.amountRub)}`,
+    `Мероприятие: ${getCuratorParticipantListEventTitle(order)}`,
+    `Имен: ${getCuratorParticipantNameLines(order).length}`,
     `Время оплаты: ${(order.payment?.paidAt ?? order.createdAt).toLocaleString(
       "ru-RU"
     )}`,
-    formatCuratorParticipantListReceipt(order),
     "",
     `Клиент: ${order.customerName}`,
-    `Контакты: ${formatCuratorParticipantListContacts(order)}`
+    "",
+    "Контакты:",
+    ...getCuratorParticipantListContactLines(order)
   ].join("\n");
 }
 
 function formatCuratorParticipantListDetailsMessage(order: {
+  amountRub: number;
   createdAt: Date;
   customerEmail: string | null;
   customerName: string;
@@ -501,31 +525,31 @@ function formatCuratorParticipantListDetailsMessage(order: {
   participants: Array<{ fullName: string }>;
   payment: {
     paidAt: Date | null;
-    receiptLabel: string | null;
-    receiptUrl: string | null;
   } | null;
   service: { title: string };
   serviceOptions: Array<{ titleSnapshot: string }>;
 }) {
-  const names = order.participants.map(
-    (participant, index) => `${index + 1}. ${participant.fullName}`
+  const names = getCuratorParticipantNameLines(order).map(
+    (name, index) => `${index + 1}. ${name}`
   );
 
   return [
     "Список участников",
     "",
-    `Мероприятие: ${getCuratorParticipantListEventTitle(order)}`,
     `Заказ: #${order.orderNumber}`,
+    `Сумма: ${formatCuratorAmountRub(order.amountRub)}`,
+    `Мероприятие: ${getCuratorParticipantListEventTitle(order)}`,
     `Время оплаты: ${(order.payment?.paidAt ?? order.createdAt).toLocaleString(
       "ru-RU"
     )}`,
-    formatCuratorParticipantListReceipt(order),
     "",
     `Клиент: ${order.customerName}`,
-    `Контакты: ${formatCuratorParticipantListContacts(order)}`,
+    "",
+    "Контакты:",
+    ...getCuratorParticipantListContactLines(order),
     "",
     "Имена:",
-    ...(names.length ? names : ["нет имён"])
+    ...names
   ].join("\n");
 }
 
@@ -669,7 +693,6 @@ function formatPaymentSucceededMessage(
     input.participantNames.join("\n"),
     ...formatChildRecordsSection(input),
     ...formatSelectedOptions(input),
-    ...formatReceipt(input),
     "",
     `Заказчик: ${input.customerName}`,
     `Telegram: ${formatOptional(input.customerTelegram)}`,
@@ -722,17 +745,6 @@ function formatSelectedOptions(input: OrderCreatedNotificationInput) {
       (option) =>
         `- ${option.title}: ${formatLocalizedPrice(option.priceRub, input.locale)}`
     )
-  ];
-}
-
-function formatReceipt(input: PaymentSucceededNotificationInput) {
-  if (!input.receiptUrl) {
-    return [];
-  }
-
-  return [
-    "",
-    `${input.receiptLabel?.trim() || "Чек об оплате"}: ${input.receiptUrl}`
   ];
 }
 
