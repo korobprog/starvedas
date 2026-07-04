@@ -1,6 +1,5 @@
 import type { OrganizationSettings } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { organizationSettingsId } from "@/server/organization-settings";
 
 export const defaultMaintenanceMessage =
   "На сайте идут обновления.\nСкоро сайт снова заработает.\nПо вопросам напишите администратору.";
@@ -59,8 +58,8 @@ export function toMaintenanceSettings(
 
 export async function getMaintenanceSettings(): Promise<MaintenanceSettings> {
   try {
-    const settings = await prisma.organizationSettings.findUnique({
-      where: { id: organizationSettingsId },
+    const settings = await prisma.organizationSettings.findFirst({
+      orderBy: { updatedAt: "desc" },
       select: {
         maintenanceMessage: true,
         maintenanceMode: true,

@@ -47,6 +47,10 @@ export async function saveMaintenanceSettings(formData: FormData) {
     update: parsed.data
   });
 
+  await prisma.organizationSettings.updateMany({
+    data: parsed.data
+  });
+
   revalidatePath("/");
   revalidatePath("/maintenance");
   revalidatePath("/admin/settings");

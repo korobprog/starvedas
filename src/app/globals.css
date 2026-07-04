@@ -5710,6 +5710,44 @@ a.button[aria-disabled="true"] {
   position: relative;
 }
 
+.maintenance-game__field--butter {
+  background:
+    radial-gradient(circle at 50% 88%, rgba(255, 224, 130, 0.28), transparent 30%),
+    radial-gradient(circle at 18% 18%, rgba(120, 185, 255, 0.18), transparent 26%),
+    linear-gradient(180deg, rgba(20, 24, 54, 0.72), rgba(48, 25, 50, 0.72));
+  cursor: none;
+  touch-action: none;
+}
+
+.maintenance-game__krishna {
+  bottom: 4.4rem;
+  filter: drop-shadow(0 0 18px rgba(116, 199, 255, 0.34));
+  font-size: clamp(3.8rem, 12vw, 7rem);
+  left: 50%;
+  opacity: 0.9;
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.maintenance-game__butter {
+  animation: maintenance-butter-wobble 0.9s ease-in-out infinite alternate;
+  filter: drop-shadow(0 8px 16px rgba(255, 202, 40, 0.32));
+  font-size: clamp(1.85rem, 5vw, 3rem);
+  position: absolute;
+  transform: translate(-50%, -50%);
+  user-select: none;
+}
+
+.maintenance-game__basket {
+  bottom: 0.75rem;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.28));
+  font-size: clamp(3rem, 9vw, 5.2rem);
+  position: absolute;
+  transform: translateX(-50%);
+  transition: left 0.08s linear;
+  user-select: none;
+}
+
 .maintenance-game__flame {
   bottom: 2.5rem;
   filter: drop-shadow(0 0 28px rgba(255, 152, 0, 0.6));
@@ -5833,6 +5871,17 @@ a.button[aria-disabled="true"] {
   }
   50% {
     translate: 0 -0.9rem;
+  }
+}
+
+@keyframes maintenance-butter-wobble {
+  from {
+    rotate: -8deg;
+    scale: 0.96;
+  }
+  to {
+    rotate: 10deg;
+    scale: 1.06;
   }
 }
 
