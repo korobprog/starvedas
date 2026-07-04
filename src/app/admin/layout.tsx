@@ -48,6 +48,7 @@ export default async function AdminLayout({
                 { href: "/admin/clients", label: "Клиенты" },
                 { href: "/admin/recovery", label: "Восстановление" },
                 { href: "/admin/schedule", label: copy.layout.schedule },
+                { href: "/admin/settings", label: "Настройки" },
                 ...(canManageCriticalSettings
                   ? [
                       {

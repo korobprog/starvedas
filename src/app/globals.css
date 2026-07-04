@@ -5413,3 +5413,444 @@ a.button[aria-disabled="true"] {
 .schedule-preview__text :is(p, h3, h4, ul, ol, blockquote) {
   animation: scheduleSlideIn 0.5s ease-out both;
 }
+
+/* Keep schedule admin forms compact when cards in the two-column list have different heights. */
+.admin-list-item,
+.admin-list-item.admin-form,
+.admin-list-item .admin-form,
+.schedule-rich-editor {
+  align-content: start;
+}
+
+.schedule-rich-editor__toolbar {
+  align-items: center;
+}
+
+.admin-form .schedule-rich-editor__button,
+.schedule-rich-editor__button {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+  min-height: 36px;
+  justify-self: start;
+  line-height: 1.1;
+}
+
+.admin-form .schedule-rich-editor__button {
+  max-width: max-content;
+}
+
+.admin-list-item > .field,
+.admin-list-item > .rich-text-field,
+.admin-list-item > .checkbox-field,
+.admin-list-item > .button {
+  align-self: start;
+}
+
+.admin-list-item > .button {
+  width: auto;
+  min-height: 44px;
+}
+
+@media (max-width: 640px) {
+  .admin-form .schedule-rich-editor__button {
+    width: auto;
+  }
+
+  .schedule-rich-editor__toolbar {
+    align-items: center;
+  }
+}
+
+.schedule-rich-editor__content :is(strong, b),
+.schedule-content__text :is(strong, b),
+.schedule-preview__text :is(strong, b) {
+  color: var(--primary-dark);
+  font-weight: 900;
+}
+
+/* Maintenance mode */
+.maintenance-toggle-field span {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.maintenance-toggle-field small {
+  color: var(--muted-text, #7a6a5d);
+  font-weight: 500;
+}
+
+.status-pill {
+  align-self: flex-start;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.4rem 0.75rem;
+}
+
+.status-pill--success {
+  background: rgba(56, 142, 60, 0.14);
+  color: #2e7d32;
+}
+
+.maintenance-preview-card {
+  overflow: hidden;
+}
+
+.maintenance-preview {
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 184, 77, 0.34), transparent 34%),
+    linear-gradient(145deg, rgba(72, 32, 15, 0.95), rgba(31, 17, 28, 0.96));
+  border: 1px solid rgba(255, 216, 148, 0.35);
+  border-radius: 1.5rem;
+  color: #fff7e6;
+  display: grid;
+  gap: 1rem;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 1.75rem;
+  position: relative;
+}
+
+.maintenance-preview__sun {
+  background: conic-gradient(from 0deg, transparent, rgba(255, 204, 112, 0.4), transparent 24%);
+  border-radius: 999px;
+  height: 12rem;
+  inset: -4rem -3rem auto auto;
+  opacity: 0.75;
+  position: absolute;
+  width: 12rem;
+  z-index: -1;
+}
+
+.maintenance-preview h3,
+.maintenance-preview p {
+  margin: 0;
+}
+
+.maintenance-preview .button {
+  width: fit-content;
+}
+
+.maintenance-page {
+  align-items: center;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(255, 183, 77, 0.2), transparent 30%),
+    radial-gradient(circle at 12% 24%, rgba(255, 112, 67, 0.14), transparent 24%),
+    linear-gradient(180deg, #1f1321 0%, #3a1c16 54%, #150f18 100%);
+  color: #fff8e8;
+  display: grid;
+  gap: 2rem;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: clamp(1rem, 4vw, 4rem);
+  position: relative;
+}
+
+.maintenance-page__mandala {
+  animation: maintenance-spin 36s linear infinite;
+  background:
+    repeating-conic-gradient(from 0deg, rgba(255, 215, 128, 0.11) 0 8deg, transparent 8deg 16deg),
+    radial-gradient(circle, transparent 42%, rgba(255, 204, 128, 0.12) 43% 44%, transparent 45%);
+  border-radius: 999px;
+  height: min(80vw, 44rem);
+  left: 50%;
+  opacity: 0.65;
+  position: absolute;
+  top: 6%;
+  transform: translateX(-50%);
+  width: min(80vw, 44rem);
+}
+
+.maintenance-hero,
+.maintenance-game {
+  backdrop-filter: blur(18px);
+  background: rgba(255, 248, 232, 0.08);
+  border: 1px solid rgba(255, 222, 168, 0.22);
+  border-radius: clamp(1.5rem, 4vw, 2.5rem);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  margin: 0 auto;
+  max-width: 74rem;
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+.maintenance-hero {
+  align-items: center;
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
+  padding: clamp(1.5rem, 5vw, 4rem);
+}
+
+.maintenance-hero__content {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.maintenance-hero h1 {
+  color: #fff7df;
+  font-size: clamp(2.4rem, 7vw, 5.8rem);
+  line-height: 0.95;
+  margin: 0;
+  max-width: 11ch;
+}
+
+.maintenance-hero__message {
+  color: rgba(255, 248, 232, 0.86);
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.7;
+  max-width: 38rem;
+}
+
+.maintenance-hero__message p {
+  margin: 0;
+}
+
+.maintenance-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.maintenance-hero__fire {
+  aspect-ratio: 1;
+  display: grid;
+  min-height: 19rem;
+  place-items: center;
+  position: relative;
+}
+
+.maintenance-hero__aura {
+  animation: maintenance-pulse 3.8s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(255, 193, 7, 0.45), rgba(255, 87, 34, 0.16) 36%, transparent 68%);
+  border-radius: 999px;
+  inset: 5%;
+  position: absolute;
+}
+
+.maintenance-hero__flame {
+  animation: maintenance-flicker 2.4s ease-in-out infinite alternate;
+  border-radius: 55% 45% 58% 42% / 64% 58% 42% 36%;
+  bottom: 26%;
+  left: 50%;
+  position: absolute;
+  transform: rotate(45deg);
+}
+
+.maintenance-hero__flame--outer {
+  background: linear-gradient(135deg, #ff6d00, #ffb300);
+  height: 10rem;
+  width: 10rem;
+}
+
+.maintenance-hero__flame--middle {
+  animation-delay: -0.6s;
+  background: linear-gradient(135deg, #ffd54f, #ff7043);
+  height: 7.2rem;
+  width: 7.2rem;
+}
+
+.maintenance-hero__flame--inner {
+  animation-delay: -1s;
+  background: linear-gradient(135deg, #fff8e1, #ffd54f);
+  height: 4rem;
+  width: 4rem;
+}
+
+.maintenance-hero__bowl {
+  background: linear-gradient(180deg, #9c5a2c, #48200f);
+  border-radius: 0 0 999px 999px;
+  bottom: 18%;
+  box-shadow: inset 0 10px 18px rgba(255, 224, 178, 0.22);
+  height: 3.4rem;
+  position: absolute;
+  width: 14rem;
+}
+
+.maintenance-game {
+  display: grid;
+  gap: 1.25rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+}
+
+.maintenance-game__header,
+.maintenance-game__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.maintenance-game h2,
+.maintenance-game p {
+  margin: 0;
+}
+
+.maintenance-game__score {
+  background: rgba(255, 213, 79, 0.16);
+  border: 1px solid rgba(255, 213, 79, 0.28);
+  border-radius: 999px;
+  color: #ffe6a3;
+  font-weight: 800;
+  padding: 0.55rem 0.85rem;
+}
+
+.maintenance-game__field {
+  background:
+    radial-gradient(circle at 50% 70%, rgba(255, 143, 0, 0.25), transparent 24%),
+    rgba(18, 13, 23, 0.55);
+  border: 1px solid rgba(255, 222, 168, 0.16);
+  border-radius: 1.5rem;
+  min-height: 18rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.maintenance-game__flame {
+  bottom: 2.5rem;
+  filter: drop-shadow(0 0 28px rgba(255, 152, 0, 0.6));
+  height: 8rem;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  width: 8rem;
+}
+
+.maintenance-game__flame span {
+  animation: maintenance-flicker 1.8s ease-in-out infinite alternate;
+  border-radius: 55% 45% 58% 42% / 64% 58% 42% 36%;
+  bottom: 0;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%) rotate(45deg) scale(var(--flame-scale, 0.9));
+}
+
+.maintenance-game__flame span:nth-child(1) {
+  background: #ff7043;
+  height: 7rem;
+  width: 7rem;
+}
+
+.maintenance-game__flame span:nth-child(2) {
+  animation-delay: -0.4s;
+  background: #ffca28;
+  height: 5rem;
+  width: 5rem;
+}
+
+.maintenance-game__flame span:nth-child(3) {
+  animation-delay: -0.8s;
+  background: #fff8e1;
+  height: 2.8rem;
+  width: 2.8rem;
+}
+
+.maintenance-game__flame--complete {
+  filter: drop-shadow(0 0 42px rgba(255, 213, 79, 0.92));
+}
+
+.maintenance-game__spark {
+  animation: maintenance-float 3.4s ease-in-out infinite;
+  background: rgba(255, 248, 225, 0.12);
+  border: 1px solid rgba(255, 224, 178, 0.3);
+  border-radius: 999px;
+  color: #ffe0a3;
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 3rem;
+  min-width: 3rem;
+  position: absolute;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.maintenance-game__spark:hover,
+.maintenance-game__spark--active {
+  background: rgba(255, 213, 79, 0.24);
+  box-shadow: 0 0 24px rgba(255, 193, 7, 0.42);
+  transform: translateY(-4px) scale(1.08);
+}
+
+.maintenance-game__meter {
+  background: rgba(255, 248, 232, 0.12);
+  border-radius: 999px;
+  height: 0.85rem;
+  overflow: hidden;
+}
+
+.maintenance-game__meter span {
+  background: linear-gradient(90deg, #ff7043, #ffca28, #fff8e1);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.maintenance-game__actions p {
+  color: rgba(255, 248, 232, 0.78);
+  max-width: 36rem;
+}
+
+@keyframes maintenance-spin {
+  from {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  to {
+    transform: translateX(-50%) rotate(360deg);
+  }
+}
+
+@keyframes maintenance-pulse {
+  0%,
+  100% {
+    opacity: 0.62;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes maintenance-flicker {
+  from {
+    border-radius: 58% 42% 62% 38% / 62% 55% 45% 38%;
+    transform: translateX(-50%) rotate(42deg) scale(0.96);
+  }
+  to {
+    border-radius: 46% 54% 50% 50% / 70% 52% 48% 30%;
+    transform: translateX(-50%) rotate(48deg) scale(1.04);
+  }
+}
+
+@keyframes maintenance-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -0.9rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .maintenance-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .maintenance-hero__fire {
+    min-height: 15rem;
+    order: -1;
+  }
+
+  .maintenance-hero__bowl {
+    width: 11rem;
+  }
+
+  .maintenance-game__field {
+    min-height: 15rem;
+  }
+}
