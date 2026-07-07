@@ -222,6 +222,7 @@ model ReferralLink {
 
   curatorId String
   curator   Curator @relation(fields: [curatorId], references: [id], onDelete: Cascade)
+  orders    Order[]
 
   @@index([active])
   @@index([curatorId])
@@ -442,6 +443,8 @@ model Order {
   source                       String      @default("site")
   sourceDomain                 String      @default("starvedas.ru")
   referralSlug                 String?
+  referralLinkId               String?
+  referralLinkTitleSnapshot    String?
   isSubscriptionSnapshot       Boolean     @default(false)
   subscriptionStartsAtSnapshot DateTime?
   subscriptionEndsAtSnapshot   DateTime?
@@ -457,6 +460,7 @@ model Order {
   deletedById String?
 
   curator         Curator              @relation(fields: [curatorId], references: [id], onDelete: Restrict)
+  referralLink    ReferralLink?        @relation(fields: [referralLinkId], references: [id], onDelete: SetNull)
   service         Service              @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   client          ClientProfile?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
   deletedBy       User?                @relation("OrderDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
@@ -472,6 +476,7 @@ model Order {
 
   @@index([sourceDomain])
   @@index([referralSlug])
+  @@index([referralLinkId])
   @@index([deletedAt, updatedAt])
   @@index([deletedById, deletedAt])
 }

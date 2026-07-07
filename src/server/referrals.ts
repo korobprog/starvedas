@@ -22,6 +22,13 @@ export type PublicCuratorAssignment = {
   supportUrl: string | null;
 };
 
+export type PublicReferralLinkAssignment = {
+  id: string;
+  isPrimary: boolean;
+  slug: string;
+  title: string | null;
+};
+
 const publicCuratorSelect = {
   id: true,
   name: true,
@@ -258,15 +265,92 @@ export async function findActiveCuratorByReferralSlug(slug: string) {
   return referralLink?.curator ?? null;
 }
 
+export async function findActiveReferralLinkBySlug(slug: string) {
+  const slugs = slugLookupValues(slug);
+
+  if (slugs.length === 0) {
+    return null;
+  }
+
+  return prisma.referralLink.findFirst({
+    where: {
+      active: true,
+      slug: {
+        in: slugs
+      },
+      curator: {
+        active: true,
+        hidden: false
+      }
+    },
+    select: {
+      curator: {
+        select: publicCuratorSelect
+      },
+      id: true,
+      isPrimary: true,
+      slug: true,
+      title: true
+    }
+  });
+}
+
+export async function getCuratorReferralAssignment(
+  referralSlug?: string | null,
+  sourceDomain?: string | null
+) {
+  const referralLink = referralSlug
+    ? await findActiveReferralLinkBySlug(referralSlug)
+    : null;
+
+  if (referralLink) {
+    const { curator, ...link } = referralLink;
+
+    return {
+      curator,
+      referralLink: link
+    };
+  }
+
+  const curator = await ensureDefaultSystemCurator(sourceDomain);
+
+  if (referralSlug) {
+    return {
+      curator,
+      referralLink: null
+    };
+  }
+
+  const defaultReferralLink = await prisma.referralLink.findFirst({
+    where: {
+      active: true,
+      curatorId: curator.id,
+      slug: normalizeSlug(curator.slug)
+    },
+    select: {
+      id: true,
+      isPrimary: true,
+      slug: true,
+      title: true
+    }
+  });
+
+  return {
+    curator,
+    referralLink: defaultReferralLink
+  };
+}
+
 export async function getCuratorForReferral(
   referralSlug?: string | null,
   sourceDomain?: string | null
 ) {
-  const curator = referralSlug
-    ? await findActiveCuratorByReferralSlug(referralSlug)
-    : null;
+  const assignment = await getCuratorReferralAssignment(
+    referralSlug,
+    sourceDomain
+  );
 
-  return curator ?? ensureDefaultSystemCurator(sourceDomain);
+  return assignment.curator;
 }
 
 export async function getAssignedCuratorFromCookie(

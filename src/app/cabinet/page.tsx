@@ -10,6 +10,7 @@ import {
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { CabinetBurgerNav } from "@/components/cabinet-burger-nav";
+import { CuratorServiceCopyBuffer } from "@/components/curator-service-copy-buffer";
 import { ClientsTable } from "@/components/clients-table";
 import { ParticipantsTable } from "@/components/participants-table";
 import { PartnerApplicationGate } from "@/components/partner-application-gate";
@@ -36,7 +37,10 @@ import {
   confirmCustomPaymentAction,
   savePaymentReceiptAction
 } from "@/server/order-actions";
-import { getCuratorParticipantLists } from "@/server/participant-lists";
+import {
+  buildCuratorServiceParticipantListBuffers,
+  getCuratorParticipantLists
+} from "@/server/participant-lists";
 import {
   customPaymentProviderCodes,
   getCuratorPaymentProviderSettings
@@ -839,6 +843,8 @@ export default async function CabinetPage({
     buildTelegramMiniAppReferralUrl(primaryReferralSlug);
   const canViewClients =
     user.role !== UserRole.CURATOR || curator.canViewClients;
+  const canViewParticipantLists =
+    user.role === UserRole.CURATOR || canViewClients;
   const canOpenProductsSection =
     serviceManagementAccess || user.role === UserRole.CURATOR;
   const canManageCabinetPayments =
@@ -848,16 +854,21 @@ export default async function CabinetPage({
     "content",
     ...(canOpenProductsSection ? (["products"] as const) : []),
     ...(canManageCabinetPayments ? (["payments"] as const) : []),
-    ...(canViewClients ? (["lists", "clients"] as const) : [])
+    ...(canViewParticipantLists ? (["lists"] as const) : []),
+    ...(canViewClients ? (["clients"] as const) : [])
   ];
+  const defaultCabinetSection: CabinetSection =
+    user.role === UserRole.CURATOR && availableCabinetSections.includes("lists")
+      ? "lists"
+      : "overview";
   const requestedSection = firstParam(rawSearchParams?.section) as
     | CabinetSection
     | undefined;
   const activeSection = availableCabinetSections.includes(
-    requestedSection ?? "overview"
+    requestedSection ?? defaultCabinetSection
   )
-    ? (requestedSection ?? "overview")
-    : "overview";
+    ? (requestedSection ?? defaultCabinetSection)
+    : defaultCabinetSection;
   const participantFilters = parseParticipantFilters(rawSearchParams);
   const participantListFilters = parseParticipantListFilters(rawSearchParams);
   const clientFilters = parseClientFilters(rawSearchParams);
@@ -890,7 +901,7 @@ export default async function CabinetPage({
     canViewClients
       ? getAwaitingCustomOrders(curator.id, participantFilters)
       : Promise.resolve([]),
-    canViewClients
+    canViewParticipantLists
       ? getCuratorParticipantLists(curator.id)
       : Promise.resolve([]),
     serviceManagementAccess ? getManagedServices() : Promise.resolve([]),
@@ -902,6 +913,17 @@ export default async function CabinetPage({
   );
   const [participants, participantServices] = participantData;
   const [clients, clientServices] = clientData;
+  const curatorListBuffers =
+    user.role === UserRole.CURATOR
+      ? buildCuratorServiceParticipantListBuffers(participantLists)
+      : [];
+  const selectedCuratorListServiceId =
+    firstParam(rawSearchParams?.listServiceId) || "";
+  const selectedCuratorListBuffer = selectedCuratorListServiceId
+    ? curatorListBuffers.find(
+        (buffer) => buffer.serviceId === selectedCuratorListServiceId
+      )
+    : undefined;
   const filteredParticipantLists = participantLists.filter((list) => {
     if (
       participantListFilters.serviceId &&
@@ -1659,55 +1681,100 @@ export default async function CabinetPage({
               </section>
             )}
 
-          {activeSection === "lists" && canViewClients && (
+          {activeSection === "lists" && canViewParticipantLists && (
             <section className="admin-card admin-card--wide">
-              <h2>Списки участников</h2>
-              <p className="admin-muted">
-                Здесь видны списки участников по вашим оплаченным заказам,
-                статусы проверки статистом и переписка для уточнений.
-              </p>
-              <form className="admin-form filter-form">
-                <input name="section" type="hidden" value="lists" />
-                <label className="field">
-                  <span>Раздел буфера</span>
-                  <select
-                    defaultValue={participantListFilters.view}
-                    name="listView"
-                  >
-                    <option value="new">Новые</option>
-                    <option value="in_work">В работе</option>
-                    <option value="archive">Обработанные / архив</option>
-                    <option value="all">Все списки</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Мероприятие</span>
-                  <select
-                    defaultValue={participantListFilters.serviceId}
-                    name="listServiceId"
-                  >
-                    <option value="">Все мероприятия</option>
-                    {participantServices.map((service) => (
-                      <option key={service.id} value={service.id}>
-                        {service.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="filter-form__actions">
-                  <button className="button button--primary" type="submit">
-                    Показать
-                  </button>
-                  <Link className="button" href="/cabinet?section=lists">
-                    Сбросить
-                  </Link>
-                </div>
-              </form>
-              <ParticipantListsPanel
-                emptyText="Оплаченных списков участников пока нет."
-                lists={filteredParticipantLists}
-                mode="curator"
-              />
+              {user.role === UserRole.CURATOR ? (
+                <>
+                  <h2>Списки</h2>
+                  {selectedCuratorListBuffer ? (
+                    <CuratorServiceCopyBuffer
+                      buffer={selectedCuratorListBuffer}
+                    />
+                  ) : selectedCuratorListServiceId ? (
+                    <>
+                      <p className="admin-muted">
+                        Новых имён по этой услуге уже нет.
+                      </p>
+                      <Link className="button" href="/cabinet?section=lists">
+                        К спискам
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <h3>Выберите список</h3>
+                      {curatorListBuffers.length > 0 ? (
+                        <div className="curator-service-list-buttons">
+                          {curatorListBuffers.map((buffer) => (
+                            <Link
+                              className="button button--primary"
+                              href={`/cabinet?section=lists&listServiceId=${encodeURIComponent(
+                                buffer.serviceId
+                              )}`}
+                              key={buffer.serviceId}
+                            >
+                              {buffer.serviceTitle} — {buffer.nameCount}
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="admin-muted">
+                          Новых имён для копирования пока нет.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h2>Списки участников</h2>
+                  <p className="admin-muted">
+                    Здесь видны списки участников по вашим оплаченным заказам,
+                    статусы проверки статистом и переписка для уточнений.
+                  </p>
+                  <form className="admin-form filter-form">
+                    <input name="section" type="hidden" value="lists" />
+                    <label className="field">
+                      <span>Раздел буфера</span>
+                      <select
+                        defaultValue={participantListFilters.view}
+                        name="listView"
+                      >
+                        <option value="new">Новые</option>
+                        <option value="in_work">В работе</option>
+                        <option value="archive">Обработанные / архив</option>
+                        <option value="all">Все списки</option>
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Мероприятие</span>
+                      <select
+                        defaultValue={participantListFilters.serviceId}
+                        name="listServiceId"
+                      >
+                        <option value="">Все мероприятия</option>
+                        {participantServices.map((service) => (
+                          <option key={service.id} value={service.id}>
+                            {service.title}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="filter-form__actions">
+                      <button className="button button--primary" type="submit">
+                        Показать
+                      </button>
+                      <Link className="button" href="/cabinet?section=lists">
+                        Сбросить
+                      </Link>
+                    </div>
+                  </form>
+                  <ParticipantListsPanel
+                    emptyText="Оплаченных списков участников пока нет."
+                    lists={filteredParticipantLists}
+                    mode="curator"
+                  />
+                </>
+              )}
             </section>
           )}
 

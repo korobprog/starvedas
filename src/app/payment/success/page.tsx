@@ -11,6 +11,11 @@ import { prisma } from "@/lib/prisma";
 import { shouldHideAdminSupportButtonsOnSourceDomain } from "@/server/organization-settings";
 import { getAssignedCuratorFromCookie } from "@/server/referrals";
 import { getSourceDomainFromHeaders } from "@/server/source-domain";
+import {
+  getOrderVedicGiftDescription,
+  getOrderVedicGiftTitle,
+  isOrderEligibleForVedicGift
+} from "@/server/vedic-gifts";
 
 async function getOrderPostPurchase(publicToken?: string) {
   if (!publicToken) {
@@ -24,6 +29,7 @@ async function getOrderPostPurchase(publicToken?: string) {
         publicToken
       },
       select: {
+        amountRub: true,
         curator: {
           select: {
             name: true,
@@ -45,6 +51,18 @@ async function getOrderPostPurchase(publicToken?: string) {
             vedicGiftDescription: true,
             vedicGiftEnabled: true,
             vedicGiftTitle: true
+          }
+        },
+        items: {
+          orderBy: { sortOrder: "asc" },
+          select: {
+            service: {
+              select: {
+                vedicGiftDescription: true,
+                vedicGiftEnabled: true,
+                vedicGiftTitle: true
+              }
+            }
           }
         },
         sourceDomain: true,
@@ -100,7 +118,7 @@ export default async function PaymentSuccessPage({
       })
     : false;
 
-  const showVedicGift = Boolean(order?.service?.vedicGiftEnabled);
+  const showVedicGift = order ? isOrderEligibleForVedicGift(order) : false;
   const isPaymentConfirmed = Boolean(
     order?.status === OrderStatus.PAID &&
     order.payment?.status === PaymentStatus.SUCCEEDED
@@ -194,19 +212,13 @@ export default async function PaymentSuccessPage({
           <section className="simple-card">
             <VedicGiftForm
               alreadySubmitted={Boolean(order.vedicGiftData)}
-              description={
-                order.service.vedicGiftDescription?.trim() ||
-                "Пожалуйста, укажите данные для составления разбора по ведической астрологии (Джйотиш)."
-              }
+              description={getOrderVedicGiftDescription(order)}
               initialEmail={initialContactEmail}
               initialName={initialContactName}
               initialPhone={initialContactPhone}
               initialTelegram={initialContactTelegram}
               orderToken={order.publicToken}
-              title={
-                order.service.vedicGiftTitle?.trim() ||
-                "🎁 Подарок: ведический астрологический разбор"
-              }
+              title={getOrderVedicGiftTitle(order)}
             />
           </section>
         )}

@@ -4,6 +4,7 @@ import {
   bulkProcessParticipantListsAction as runBulkProcessParticipantListsAction,
   bulkProcessParticipantsAction as runBulkProcessParticipantsAction,
   claimParticipantListByCuratorAction as runClaimParticipantListByCuratorAction,
+  claimCuratorServiceParticipantListsAction as runClaimCuratorServiceParticipantListsAction,
   type ParticipantListClaimState,
   type ParticipantBulkProcessState
 } from "@/server/participant-lists";
@@ -27,4 +28,11 @@ export async function claimParticipantListByCuratorAction(
   formData: FormData
 ) {
   return runClaimParticipantListByCuratorAction(state, formData);
+}
+
+export async function claimCuratorServiceParticipantListsAction(
+  state: ParticipantListClaimState,
+  formData: FormData
+) {
+  return runClaimCuratorServiceParticipantListsAction(state, formData);
 }

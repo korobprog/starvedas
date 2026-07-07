@@ -29,7 +29,7 @@ import {
   getPaymentProviderForCheckout,
   isCustomPaymentProviderCode
 } from "@/server/payment-providers";
-import { getCuratorForReferral } from "@/server/referrals";
+import { getCuratorReferralAssignment } from "@/server/referrals";
 import { shouldHideAdminSupportButtonsOnSourceDomain } from "@/server/organization-settings";
 import { getServiceForOrder, type OrderService } from "@/server/services";
 import { getSourceDomainFromHeaders } from "@/server/source-domain";
@@ -278,7 +278,7 @@ export async function POST(request: Request) {
     });
     const requestedReferralSlug =
       data.referralSlug ?? firstStoredReferralSlug ?? undefined;
-    const curator = await getCuratorForReferral(
+    const { curator, referralLink } = await getCuratorReferralAssignment(
       requestedReferralSlug,
       sourceDomain
     );
@@ -488,6 +488,8 @@ export async function POST(request: Request) {
             .join(", ")}`
         : primaryService.localizedTitle;
     const referralSlug = requestedReferralSlug ?? curator.slug;
+    const referralLinkTitleSnapshot =
+      referralLink?.title?.trim() || referralLink?.slug || null;
     const consentMailings = curator.showMailingConsentCheckbox
       ? data.consentMailings
       : false;
@@ -530,6 +532,10 @@ export async function POST(request: Request) {
           participantCount: aggregateParticipantCount,
           participantsText: aggregateParticipantsText,
           publicToken: createOrderPublicToken(),
+          referralLink: referralLink
+            ? { connect: { id: referralLink.id } }
+            : undefined,
+          referralLinkTitleSnapshot,
           referralSlug,
           sourceDomain,
           status: initialOrderStatus,

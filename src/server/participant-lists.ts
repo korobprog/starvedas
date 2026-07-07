@@ -70,6 +70,10 @@ const curatorClaimSchema = z.object({
   listId: z.string().trim().min(1)
 });
 
+const curatorServiceClaimSchema = z.object({
+  serviceId: z.string().trim().min(1)
+});
+
 export type ParticipantBulkProcessState = {
   error?: string;
   message?: string;
@@ -280,6 +284,76 @@ async function getListAccess(listId: string, user: SessionUser) {
   }
 
   throw new Error("Нет доступа к списку участников");
+}
+
+export type CuratorServiceParticipantListBuffer = {
+  listIds: string[];
+  nameCount: number;
+  namesText: string;
+  serviceId: string;
+  serviceTitle: string;
+};
+
+export function getCuratorParticipantListNameLines(list: ParticipantListRow) {
+  const participantLines = list.order.participants
+    .map((participant) => participant.fullName.trim())
+    .filter(Boolean);
+  const participantNames = new Set(participantLines);
+  const childRecordLines = formatChildRecordLines(list.order.childRecords, {
+    unbornLabel: list.order.service.shraddhaUnbornLabel ?? undefined,
+    deceasedChildLabel:
+      list.order.service.shraddhaDeceasedChildLabel ?? undefined
+  }).filter((line) => line.trim() && !participantNames.has(line));
+
+  return [...participantLines, ...childRecordLines];
+}
+
+export function isNewCuratorParticipantList(list: ParticipantListRow) {
+  return (
+    list.status === ParticipantListStatus.NEW &&
+    !list.claimedByRole &&
+    !list.copiedAt
+  );
+}
+
+export function buildCuratorServiceParticipantListBuffers(
+  lists: ParticipantListRow[]
+): CuratorServiceParticipantListBuffer[] {
+  const buffers = new Map<string, CuratorServiceParticipantListBuffer>();
+
+  for (const list of lists) {
+    if (!isNewCuratorParticipantList(list)) {
+      continue;
+    }
+
+    const lines = getCuratorParticipantListNameLines(list);
+
+    if (!lines.length) {
+      continue;
+    }
+
+    const serviceId = list.order.service.id;
+    const existing = buffers.get(serviceId);
+
+    if (existing) {
+      existing.listIds.push(list.id);
+      existing.nameCount += lines.length;
+      existing.namesText = [existing.namesText, lines.join("\n")]
+        .filter(Boolean)
+        .join("\n");
+      continue;
+    }
+
+    buffers.set(serviceId, {
+      listIds: [list.id],
+      nameCount: lines.length,
+      namesText: lines.join("\n"),
+      serviceId,
+      serviceTitle: list.order.service.title
+    });
+  }
+
+  return [...buffers.values()];
 }
 
 export async function claimParticipantListByCurator({
@@ -1049,6 +1123,63 @@ export async function markOrderParticipantListProcessedByTelegram({
   };
 }
 
+export type CuratorParticipantListReminderSummary = {
+  curatorId: string;
+  curatorName: string;
+  telegramId: string;
+  totalNameCount: number;
+  services: Array<{
+    nameCount: number;
+    serviceId: string;
+    serviceTitle: string;
+  }>;
+};
+
+export async function getCuratorParticipantListReminderSummaries() {
+  await ensureAllPaidParticipantLists();
+
+  const curators = await prisma.curator.findMany({
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      telegramId: true
+    },
+    where: {
+      active: true,
+      telegramId: { not: null }
+    }
+  });
+
+  const summaries: CuratorParticipantListReminderSummary[] = [];
+
+  for (const curator of curators) {
+    const lists = await getCuratorParticipantLists(curator.id);
+    const buffers = buildCuratorServiceParticipantListBuffers(lists);
+
+    if (!buffers.length || !curator.telegramId) {
+      continue;
+    }
+
+    summaries.push({
+      curatorId: curator.id,
+      curatorName: curator.name,
+      telegramId: curator.telegramId,
+      totalNameCount: buffers.reduce(
+        (total, buffer) => total + buffer.nameCount,
+        0
+      ),
+      services: buffers.map((buffer) => ({
+        nameCount: buffer.nameCount,
+        serviceId: buffer.serviceId,
+        serviceTitle: buffer.serviceTitle
+      }))
+    });
+  }
+
+  return summaries;
+}
+
 export async function getCuratorParticipantLists(curatorId: string) {
   await ensureChildRecordParticipantRows({
     curatorId,
@@ -1113,6 +1244,157 @@ export async function claimParticipantListByCuratorAction(
         error instanceof Error
           ? error.message
           : "Не удалось отметить список как скопированный"
+    };
+  }
+}
+
+export async function claimCuratorServiceParticipantLists({
+  curatorId,
+  serviceId,
+  userId
+}: {
+  curatorId: string;
+  serviceId: string;
+  userId: string | null;
+}) {
+  const result = await prisma.$transaction(async (tx) => {
+    const lists = await tx.participantList.findMany({
+      orderBy: [{ eventStartsAt: "asc" }, { updatedAt: "asc" }],
+      select: participantListSelect,
+      where: {
+        claimedByRole: null,
+        copiedAt: null,
+        order: {
+          curatorId,
+          deletedAt: null,
+          serviceId,
+          status: OrderStatus.PAID
+        },
+        status: ParticipantListStatus.NEW
+      }
+    });
+    const listsWithNames = lists
+      .map((list) => ({
+        list,
+        lines: getCuratorParticipantListNameLines(list)
+      }))
+      .filter((item) => item.lines.length > 0);
+
+    if (!listsWithNames.length) {
+      return { listCount: 0, nameCount: 0, serviceTitle: "" };
+    }
+
+    const now = new Date();
+    let nameCount = 0;
+
+    for (const { list, lines } of listsWithNames) {
+      nameCount += lines.length;
+
+      const nextData = {
+        claimedAt: list.claimedAt ?? now,
+        claimedByCuratorId: curatorId,
+        claimedByRole: ParticipantListClaimRole.CURATOR,
+        claimedByUserId: userId,
+        copiedAt: now,
+        status: ParticipantListStatus.IN_WORK
+      };
+      const changes = [
+        ["status", list.status, nextData.status],
+        ["claimedByRole", list.claimedByRole, nextData.claimedByRole],
+        [
+          "claimedByCuratorId",
+          list.claimedByCuratorId,
+          nextData.claimedByCuratorId
+        ],
+        ["claimedByUserId", list.claimedByUserId, nextData.claimedByUserId],
+        ["claimedAt", list.claimedAt, nextData.claimedAt],
+        ["copiedAt", list.copiedAt, nextData.copiedAt]
+      ].filter(
+        ([, from, to]) => formatFieldValue(from) !== formatFieldValue(to)
+      );
+
+      await captureOrderRevision(tx, {
+        actorUserId: userId ?? undefined,
+        eventType: orderRevisionEventTypes.participantListEdit,
+        note: `??????? ?????????? ??????????? ????? ???? ??????: ${list.order.service.title}`,
+        orderId: list.order.id
+      });
+
+      await tx.participantList.update({
+        data: nextData,
+        where: { id: list.id }
+      });
+
+      if (changes.length) {
+        await tx.participantListChange.createMany({
+          data: changes.map(([fieldName, fromValue, toValue]) => ({
+            changedById: userId,
+            fieldName: String(fieldName),
+            fromValue: formatFieldValue(fromValue),
+            listId: list.id,
+            note: "??????? ??????????, ??? ????? ?????? ???????????",
+            toValue: formatFieldValue(toValue)
+          }))
+        });
+      }
+    }
+
+    return {
+      listCount: listsWithNames.length,
+      nameCount,
+      serviceTitle: listsWithNames[0]?.list.order.service.title ?? ""
+    };
+  });
+
+  revalidateParticipantListWorkspaces();
+
+  return result;
+}
+
+export async function claimCuratorServiceParticipantListsAction(
+  _state: ParticipantListClaimState,
+  formData: FormData
+): Promise<ParticipantListClaimState> {
+  "use server";
+  const user = await requireUser(
+    [UserRole.CURATOR, UserRole.ADMIN, UserRole.SUPER_ADMIN],
+    "/cabinet?section=lists"
+  );
+
+  const parsed = curatorServiceClaimSchema.safeParse({
+    serviceId: formData.get("serviceId")
+  });
+
+  if (!parsed.success) {
+    return { error: "???????????? ??????" };
+  }
+
+  const curatorId = await getCabinetCuratorIdForSessionUser(user);
+
+  if (!curatorId) {
+    return { error: "??????? ?? ??????" };
+  }
+
+  try {
+    const result = await claimCuratorServiceParticipantLists({
+      curatorId,
+      serviceId: parsed.data.serviceId,
+      userId: user.id
+    });
+
+    if (!result.nameCount) {
+      return { error: "????? ???? ?? ???? ?????? ??? ???" };
+    }
+
+    return {
+      message: `??????????? ? ?????? ?? ??????: ${result.nameCount}`
+    };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "?? ??????? ??????????? ??????????? ????"
     };
   }
 }

@@ -75,6 +75,15 @@ type ClientParticipantNamesProcessedNotificationInput = {
   serviceTitle: string;
 };
 
+type CuratorParticipantListReminderNotificationInput = {
+  telegramId: string;
+  totalNameCount: number;
+  services: Array<{
+    nameCount: number;
+    serviceTitle: string;
+  }>;
+};
+
 export async function sendParticipantListTelegramNotification(
   input: ParticipantListNotificationInput
 ) {
@@ -173,6 +182,20 @@ export async function sendStatisticianParticipantWorkTelegramNotification(
   });
 
   return results.some((result) => result.status === "fulfilled");
+}
+
+export async function sendCuratorParticipantListReminderTelegramNotification(
+  input: CuratorParticipantListReminderNotificationInput
+) {
+  if (!input.telegramId || input.totalNameCount <= 0) {
+    return false;
+  }
+
+  return sendTelegramMessageToChat(
+    input.telegramId,
+    formatCuratorParticipantListReminderMessage(input),
+    createCuratorParticipantListReminderKeyboard()
+  );
 }
 
 export async function sendCuratorParticipantListTelegramNotification(
@@ -370,6 +393,40 @@ const curatorParticipantListOrderSelect = {
   },
   sourceDomain: true
 };
+
+function createCuratorParticipantListReminderKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0441\u043f\u0438\u0441\u043a\u0438",
+          url: buildCuratorCabinetListsUrl()
+        }
+      ]
+    ]
+  };
+}
+
+function buildCuratorCabinetListsUrl() {
+  const siteUrl = getSiteUrlForSourceDomain("chintamanidhama.ru");
+  const cabinetUrl = new URL("/curator-mini-app", siteUrl);
+
+  cabinetUrl.searchParams.set("next", "/cabinet?section=lists");
+
+  return cabinetUrl.toString();
+}
+
+function formatCuratorParticipantListReminderMessage(
+  input: CuratorParticipantListReminderNotificationInput
+) {
+  return [
+    `\u0423 \u0432\u0430\u0441 \u043d\u043e\u0432\u044b\u0435 \u0438\u043c\u0435\u043d\u0430 \u0434\u043b\u044f \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0438: ${input.totalNameCount}`,
+    "",
+    ...input.services.map(
+      (service) => `${service.serviceTitle}: ${service.nameCount}`
+    )
+  ].join("\n");
+}
 
 function createCuratorParticipantListSummaryKeyboard(order: {
   orderNumber: number;

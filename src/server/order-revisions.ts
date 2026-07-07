@@ -121,6 +121,8 @@ const orderRevisionAggregateSelect = Prisma.validator<Prisma.OrderSelect>()({
     }
   },
   publicToken: true,
+  referralLinkId: true,
+  referralLinkTitleSnapshot: true,
   referralSlug: true,
   serviceId: true,
   serviceOptions: {
@@ -212,6 +214,8 @@ export type OrderRevisionSnapshot = {
     participantCount: number;
     participantsText: string;
     publicToken: string;
+    referralLinkId: string | null;
+    referralLinkTitleSnapshot: string | null;
     referralSlug: string | null;
     serviceId: string;
     source: string;
@@ -338,6 +342,8 @@ export function serializeOrderAggregate(
       participantCount: order.participantCount,
       participantsText: order.participantsText,
       publicToken: order.publicToken,
+      referralLinkId: order.referralLinkId,
+      referralLinkTitleSnapshot: order.referralLinkTitleSnapshot,
       referralSlug: order.referralSlug,
       serviceId: order.serviceId,
       source: order.source,
@@ -565,6 +571,22 @@ async function resolveUserId(
   return user?.id ?? null;
 }
 
+async function resolveReferralLinkId(
+  tx: OrderRevisionTx,
+  referralLinkId: string | null
+): Promise<string | null> {
+  if (!referralLinkId) {
+    return null;
+  }
+
+  const referralLink = await tx.referralLink.findUnique({
+    where: { id: referralLinkId },
+    select: { id: true }
+  });
+
+  return referralLink?.id ?? null;
+}
+
 async function resolveCuratorId(
   tx: OrderRevisionTx,
   curatorId: string
@@ -698,6 +720,10 @@ export async function restoreOrderRevision(
     tx,
     snapshot.order.deletedById
   );
+  const restoredReferralLinkId = await resolveReferralLinkId(
+    tx,
+    snapshot.order.referralLinkId
+  );
 
   await tx.order.update({
     where: { id: revision.orderId },
@@ -718,6 +744,8 @@ export async function restoreOrderRevision(
       leadStatus: snapshot.order.leadStatus,
       participantCount: snapshot.order.participantCount,
       participantsText: snapshot.order.participantsText,
+      referralLinkId: restoredReferralLinkId,
+      referralLinkTitleSnapshot: snapshot.order.referralLinkTitleSnapshot,
       referralSlug: snapshot.order.referralSlug,
       source: snapshot.order.source,
       sourceDomain: snapshot.order.sourceDomain,

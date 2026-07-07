@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { SignupForm } from "@/components/signup-form";
 import { ScheduleContent } from "@/components/schedule-content";
 import { SiteNav } from "@/components/site-nav";
+import { HomeHero } from "@/components/home-hero";
 import { SupportCta } from "@/components/support-cta";
 import { getHomeCopy } from "@/i18n/home-copy";
 import { localeCookieName } from "@/i18n/config";
@@ -137,41 +138,13 @@ export default async function Home({
         </div>
       </header>
 
-      <section className="hero" id="top">
-        <div className="container hero__grid">
-          <div>
-            <p className="eyebrow">{copy.hero.eyebrow}</p>
-            <h1>{copy.hero.title}</h1>
-            <p className="hero__lead">{copy.hero.lead}</p>
-            <div className="hero__actions">
-              <a className="button button--primary" href="#signup">
-                {copy.hero.primaryCta}
-              </a>
-              <a className="button" href="#schedule">
-                {copy.hero.secondaryCta}
-              </a>
-              <SupportCta
-                className="support-cta--inline"
-                supportButtonLabel={assignedCurator.supportButtonLabel}
-                supportEnabled={curatorSupportEnabled}
-                supportUrl={assignedCurator.supportUrl}
-              />
-            </div>
-          </div>
-
-          <aside className="trust-card" aria-labelledby="trust-title">
-            <h2 id="trust-title">{copy.trust.title}</h2>
-            <ul className="trust-list">
-              {copy.trust.items.map((item) => (
-                <li key={item.title}>
-                  <strong>{item.title}</strong>
-                  <span>{item.text}</span>
-                </li>
-              ))}
-            </ul>
-          </aside>
-        </div>
-      </section>
+      <HomeHero
+        copy={copy.hero}
+        supportButtonLabel={assignedCurator.supportButtonLabel}
+        supportEnabled={curatorSupportEnabled}
+        supportUrl={assignedCurator.supportUrl}
+        trust={copy.trust}
+      />
 
       <section className="section section--warm" id="signup">
         <div className="container">
@@ -268,7 +241,7 @@ export default async function Home({
                   </Link>
                 ))}
               </div>
-              <div className="form-actions">
+              <div className="form-actions articles__actions">
                 <Link className="button button--primary" href="/articles">
                   {copy.sections.articles.cta}
                 </Link>

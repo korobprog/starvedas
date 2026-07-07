@@ -2,6 +2,7 @@ import { OrderStatus, PaymentStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { isOrderEligibleForVedicGift } from "@/server/vedic-gifts";
 
 export const dynamic = "force-dynamic";
 
@@ -68,15 +69,25 @@ export async function POST(request: Request) {
         status: OrderStatus.PAID
       },
       select: {
+        amountRub: true,
         id: true,
+        items: {
+          select: {
+            service: {
+              select: {
+                vedicGiftEnabled: true
+              }
+            }
+          }
+        },
         service: { select: { vedicGiftEnabled: true } }
       }
     });
 
-    if (!order || !order.service.vedicGiftEnabled) {
+    if (!order || !isOrderEligibleForVedicGift(order)) {
       return NextResponse.json(
         {
-          message: "Подарочный разбор недоступен для этого продукта"
+          message: "Подарочный разбор недоступен для этого заказа"
         },
         { status: 403 }
       );

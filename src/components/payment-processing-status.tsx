@@ -57,9 +57,9 @@ export function PaymentProcessingStatus({
 
         if (data.confirmed) {
           isDone = true;
-          setStatusText("Оплата подтверждена. Открываем ваш заказ…");
+          setStatusText("Оплата подтверждена. Показываем данные заказа…");
           window.setTimeout(() => {
-            router.replace(data.clientOrderPath ?? clientOrderPath);
+            router.refresh();
           }, 700);
           return;
         }

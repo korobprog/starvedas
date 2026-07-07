@@ -10,6 +10,7 @@ import {
   useRef,
   useState
 } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { MarkdownContent } from "@/components/markdown-content";
 import { SupportCta } from "@/components/support-cta";
 import { formatMoney } from "@/i18n/pricing";
@@ -840,6 +841,7 @@ export function SignupForm({
   const initialAvailableServiceSlug =
     services.find((service) => service.slug === initialServiceSlug)?.slug ?? "";
   const [step, setStep] = useState(0);
+  const shouldReduceMotion = useReducedMotion();
   const [mode, setMode] = useState<"wizard" | "multi">("wizard");
   const [multiSelections, setMultiSelections] = useState<
     Record<
@@ -1225,6 +1227,8 @@ export function SignupForm({
         ? copy.actions.creating
         : copy.actions.pay
       : copy.actions.continue;
+  const progressPercent = Math.round(((step + 1) / formSteps.length) * 100);
+  const progressValue = progressPercent / 100;
   const clientRegisterHref = referralSlug
     ? `/client/register?ref=${encodeURIComponent(referralSlug)}`
     : "/client/register";
@@ -1906,33 +1910,60 @@ export function SignupForm({
       </div>
 
       {mode === "wizard" && (
-        <ol className="form-progress" aria-label={copy.progressAria}>
-          {formSteps.map(({ Icon, label }, index) => (
-            <li
-              className={
-                index === step
-                  ? "form-progress__item is-active"
-                  : index < step
-                    ? "form-progress__item is-done"
-                    : "form-progress__item"
-              }
-              aria-current={index === step ? "step" : undefined}
-              aria-label={label}
-              key={label}
-            >
-              <span className="form-progress__icon" aria-hidden="true">
-                <Icon />
-              </span>
-              <span className="form-progress__label">{label}</span>
-            </li>
-          ))}
-        </ol>
+        <div className="form-progress-shell">
+          <ol className="form-progress" aria-label={copy.progressAria}>
+            {formSteps.map(({ Icon, label }, index) => (
+              <li
+                className={
+                  index === step
+                    ? "form-progress__item is-active"
+                    : index < step
+                      ? "form-progress__item is-done"
+                      : "form-progress__item"
+                }
+                aria-current={index === step ? "step" : undefined}
+                aria-label={label}
+                key={label}
+              >
+                <span className="form-progress__icon" aria-hidden="true">
+                  <Icon />
+                </span>
+                <span className="form-progress__label">{label}</span>
+              </li>
+            ))}
+          </ol>
+          <div
+            aria-label={`${copy.progressAria}: ${progressPercent}%`}
+            aria-valuemax={100}
+            aria-valuemin={0}
+            aria-valuenow={progressPercent}
+            className="form-progress-percent"
+            role="progressbar"
+          >
+            <div className="form-progress-percent__header">
+              <span>{formSteps[step]?.label}</span>
+              <strong>{progressPercent}%</strong>
+            </div>
+            <div className="form-progress-percent__track" aria-hidden="true">
+              <motion.div
+                animate={{ scaleX: progressValue }}
+                className="form-progress-percent__bar"
+                initial={false}
+                transition={
+                  shouldReduceMotion
+                    ? { duration: 0 }
+                    : { duration: 0.45, ease: "easeOut" }
+                }
+              />
+            </div>
+            <span className="form-progress-percent__meta">
+              Шаг {step + 1} из {formSteps.length}
+            </span>
+          </div>
+        </div>
       )}
 
-      <div
-        className="signup-auth-links"
-        aria-label="Личный кабинет клиента"
-      >
+      <div className="signup-auth-links" aria-label="Личный кабинет клиента">
         {isClientCabinetActive ? (
           <>
             <span className="signup-auth-links__label">
@@ -1948,9 +1979,7 @@ export function SignupForm({
           </>
         ) : (
           <>
-            <span className="signup-auth-links__label">
-              Уже записывались?
-            </span>
+            <span className="signup-auth-links__label">Уже записывались?</span>
             <span className="signup-auth-links__actions">
               <a
                 className="button button--small signup-auth-links__button"
@@ -2414,7 +2443,9 @@ export function SignupForm({
           )}
           {selectedService && (
             <div aria-live="polite" className="live-estimate">
-              <span className="live-estimate__label">Предварительная сумма</span>
+              <span className="live-estimate__label">
+                Предварительная сумма
+              </span>
               <strong className="live-estimate__amount">
                 {formatMoney(estimatedAmount, selectedService.currency)}
               </strong>
