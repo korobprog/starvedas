@@ -149,9 +149,11 @@ export function HomeHero({
             {copy.eyebrow}
           </motion.p>
           <motion.h1 variants={contentVariants}>{copy.title}</motion.h1>
-          <motion.p className="hero__lead" variants={contentVariants}>
-            {copy.lead}
-          </motion.p>
+          {copy.lead && (
+            <motion.p className="hero__lead" variants={contentVariants}>
+              {copy.lead}
+            </motion.p>
+          )}
           <motion.div className="hero__actions" variants={contentVariants}>
             <motion.a
               className="button button--primary hero__primary-cta"
