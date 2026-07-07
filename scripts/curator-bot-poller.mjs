@@ -11,7 +11,9 @@ import {
 } from "@prisma/client";
 
 const prisma = new PrismaClient();
-const telegramLongPollingTimeoutSeconds = 50;
+const defaultTelegramLongPollingTimeoutSeconds = 20;
+const telegramLongPollingTimeoutSeconds =
+  getTelegramLongPollingTimeoutSeconds();
 const telegramRequestTimeoutMs = getTelegramRequestTimeoutMs();
 const defaultTelegramApiIps = ["149.154.167.220"];
 
@@ -32,6 +34,19 @@ function getTelegramRequestTimeoutMs() {
   }
 
   return (telegramLongPollingTimeoutSeconds + 25) * 1000;
+}
+
+function getTelegramLongPollingTimeoutSeconds() {
+  const raw =
+    trimEnv("CURATOR_TELEGRAM_LONG_POLLING_TIMEOUT_SECONDS") ||
+    trimEnv("TELEGRAM_LONG_POLLING_TIMEOUT_SECONDS");
+  const parsed = Number(raw);
+
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return Math.min(Math.floor(parsed), 50);
+  }
+
+  return defaultTelegramLongPollingTimeoutSeconds;
 }
 
 function isTelegramTimeoutError(error) {
@@ -138,7 +153,33 @@ async function postJsonViaHttpProxy(targetUrl, payload, proxyUrl) {
   const targetPort = Number(target.port || 443);
 
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const settleResolve = (value) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      resolve(value);
+    };
+    const settleReject = (error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      reject(error);
+    };
+    const headers = {};
+
+    if (proxy.username || proxy.password) {
+      headers["Proxy-Authorization"] = `Basic ${Buffer.from(
+        `${decodeURIComponent(proxy.username)}:${decodeURIComponent(
+          proxy.password
+        )}`
+      ).toString("base64")}`;
+    }
+
     const request = http.request({
+      headers,
       host: proxy.hostname,
       method: "CONNECT",
       path: `${target.hostname}:${targetPort}`,
@@ -149,7 +190,7 @@ async function postJsonViaHttpProxy(targetUrl, payload, proxyUrl) {
     request.once("connect", (response, socket, head) => {
       if (response.statusCode !== 200) {
         socket.destroy();
-        reject(
+        settleReject(
           new Error(
             `Telegram proxy CONNECT failed: ${response.statusCode ?? "unknown"}`
           )
@@ -184,20 +225,22 @@ async function postJsonViaHttpProxy(targetUrl, payload, proxyUrl) {
       secureSocket.on("data", (chunk) => chunks.push(chunk));
       secureSocket.once("end", () => {
         try {
-          resolve(parseHttpStatus(Buffer.concat(chunks).toString("utf8")));
+          settleResolve(
+            parseHttpStatus(Buffer.concat(chunks).toString("utf8"))
+          );
         } catch (error) {
-          reject(error);
+          settleReject(error);
         }
       });
       secureSocket.once("timeout", () => {
         secureSocket.destroy(new Error("Telegram proxy request timed out"));
       });
-      secureSocket.once("error", reject);
+      secureSocket.once("error", settleReject);
     });
     request.once("timeout", () => {
       request.destroy(new Error("Telegram proxy CONNECT timed out"));
     });
-    request.once("error", reject);
+    request.once("error", settleReject);
     request.end();
   });
 }
@@ -290,9 +333,18 @@ async function postTelegramJson(method, payload = {}) {
 
   const url = `https://api.telegram.org/bot${botToken}/${method}`;
   const proxyUrl = getTelegramProxyUrl();
+  let proxyError = null;
 
   if (proxyUrl) {
-    return postJsonViaHttpProxy(url, payload, proxyUrl);
+    try {
+      return await postJsonViaHttpProxy(url, payload, proxyUrl);
+    } catch (error) {
+      proxyError = error;
+      console.warn(
+        "Curator polling bot Telegram proxy request failed; trying direct connection",
+        error instanceof Error ? error.message : error
+      );
+    }
   }
 
   try {
@@ -306,6 +358,12 @@ async function postTelegramJson(method, payload = {}) {
       } catch (pinnedIpError) {
         lastError = pinnedIpError;
       }
+    }
+
+    if (proxyError) {
+      throw new Error(
+        `Telegram proxy failed (${proxyError instanceof Error ? proxyError.message : String(proxyError)}); direct fallback failed (${lastError instanceof Error ? lastError.message : String(lastError)})`
+      );
     }
 
     throw lastError;
