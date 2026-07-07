@@ -172,10 +172,10 @@ export const services = [
     ...noVedicGift
   },
   {
-    title: "Шраддха ягья (за каждого участника)",
+    title: "Шраддха ягья (за каждого усопшего)",
     slug: "shraddha-name",
     description:
-      "Участие в шраддха ягьи, стоимость рассчитывается за каждого участника.",
+      "Участие в шраддха ягьи, стоимость рассчитывается за каждого усопшего.",
     detailsContent: "",
     ...noSubscriptionPeriod,
     ...noShraddhaMode,
@@ -183,7 +183,7 @@ export const services = [
     priceRub: 250,
     currency: "RUB",
     priceAmount: 250,
-    priceLabel: "250 руб. за участника",
+    priceLabel: "250 руб. за усопшего",
     priceUnit: "PER_NAME" satisfies PriceUnit,
     ...noVedicGift
   }

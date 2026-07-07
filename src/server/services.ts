@@ -286,7 +286,7 @@ function createPriceLabel(
 ) {
   return formatMoney(priceAmount, currency, {
     perName: priceUnit === "PER_NAME",
-    perParticipant: priceUnit === "PER_PARTICIPANT" || priceUnit === "PER_NAME"
+    perParticipant: priceUnit === "PER_PARTICIPANT"
   });
 }
 

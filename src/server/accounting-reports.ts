@@ -42,6 +42,8 @@ type GoogleCredentials = {
 type AccountingOperation = {
   amountRub: number;
   currency: string;
+  curatorName: string;
+  curatorSlug: string;
   customerEmail: string;
   customerName: string;
   customerPhone: string;
@@ -52,7 +54,9 @@ type AccountingOperation = {
   orderNumber: number;
   paymentId: string;
   paymentStatus: string;
+  partnerTitle: string;
   providerPaymentId: string;
+  referralSlug: string;
   receiptUrl: string;
   serviceTitle: string;
   sourceDomain: SourceDomain;
@@ -345,7 +349,9 @@ function collectOperations(
   orders: Array<
     Prisma.OrderGetPayload<{
       include: {
+        curator: true;
         payment: true;
+        referralLink: true;
         service: true;
         serviceOptions: true;
       };
@@ -364,6 +370,8 @@ function collectOperations(
     return {
       amountRub: payment?.amountRub ?? order.amountRub,
       currency: payment?.currency ?? order.currency,
+      curatorName: order.curator.name,
+      curatorSlug: order.curator.slug,
       customerEmail: order.customerEmail ?? "",
       customerName: order.customerName,
       customerPhone: order.customerPhone ?? "",
@@ -374,7 +382,13 @@ function collectOperations(
       orderNumber: order.orderNumber,
       paymentId: payment?.id ?? "",
       paymentStatus,
+      partnerTitle:
+        order.referralLinkTitleSnapshot ??
+        order.referralLink?.title ??
+        order.referralSlug ??
+        "",
       providerPaymentId: payment?.providerPaymentId ?? "",
+      referralSlug: order.referralSlug ?? order.referralLink?.slug ?? "",
       receiptUrl: payment?.receiptUrl ?? "",
       serviceTitle: options
         ? `${order.service.title}; ${options}`
@@ -456,6 +470,10 @@ function buildSheetTables(params: {
     operation.paymentId,
     operation.providerPaymentId,
     operation.sourceDomain,
+    operation.curatorName,
+    operation.curatorSlug,
+    operation.partnerTitle,
+    operation.referralSlug,
     operation.customerName,
     operation.customerEmail,
     operation.customerPhone,
@@ -480,6 +498,10 @@ function buildSheetTables(params: {
           "ID платежа",
           "ID платежа у провайдера",
           "Сайт-источник",
+          "Куратор",
+          "Слаг куратора",
+          "Партнер / источник",
+          "Партнерская ссылка",
           "Клиент",
           "Email",
           "Телефон",
@@ -770,7 +792,9 @@ export async function getAccountingDashboard() {
 async function getAccountingOrders(sourceDomain: SourceDomain) {
   return prisma.order.findMany({
     include: {
+      curator: true,
       payment: true,
+      referralLink: true,
       service: true,
       serviceOptions: {
         orderBy: { sortOrder: "asc" }

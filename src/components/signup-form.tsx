@@ -330,11 +330,90 @@ function getEstimateUnitLabel(
     return "фиксированная стоимость";
   }
 
-  if (isShraddhaService || priceUnit === "PER_NAME") {
-    return "записей";
+  if (isShraddhaService) {
+    return "усопших";
+  }
+
+  if (priceUnit === "PER_NAME") {
+    return "имён";
   }
 
   return "участников";
+}
+
+function isShraddhaNameService(
+  service: Pick<SiteService, "priceUnit" | "slug" | "title"> | null | undefined
+) {
+  if (!service) {
+    return false;
+  }
+
+  return (
+    service.slug === "shraddha-name" ||
+    (service.priceUnit === "PER_NAME" &&
+      service.title.toLocaleLowerCase("ru").includes("шраддха"))
+  );
+}
+
+function getShraddhaServiceTitle(service: SiteService) {
+  if (!isShraddhaNameService(service)) {
+    return service.title;
+  }
+
+  return service.title
+    .replace(
+      /за\s+кажд(?:ое имя|ого участника|ого человека)/i,
+      "за каждого усопшего"
+    )
+    .replace(/\([^)]*\)/, "(за каждого усопшего)");
+}
+
+function getShraddhaServiceDescription(service: SiteService) {
+  if (!isShraddhaNameService(service)) {
+    return service.description;
+  }
+
+  return service.description
+    .replace(/за\s+каждое\s+имя/gi, "за каждого усопшего")
+    .replace(/за\s+каждого\s+участника/gi, "за каждого усопшего")
+    .replace(/каждый\s+участник/gi, "каждый усопший");
+}
+
+function getShraddhaServicePriceLabel(service: SiteService) {
+  if (!isShraddhaNameService(service)) {
+    return service.priceLabel;
+  }
+
+  return service.priceLabel
+    .replace(/за\s+участника/gi, "за усопшего")
+    .replace(/за\s+имя/gi, "за усопшего")
+    .replace(/\/ participant/gi, "за усопшего")
+    .replace(/\/ name/gi, "за усопшего");
+}
+
+function getParticipantListCopy(
+  copy: ReturnType<typeof getSignupCopy>,
+  isShraddha: boolean
+) {
+  if (!isShraddha) {
+    return {
+      countLabel: copy.fields.participantCount,
+      incompleteWarning: copy.warnings.incompleteParticipants,
+      listLabel: copy.fields.participantList,
+      placeholder: copy.placeholders.participants,
+      reviewLabel: copy.review.participants
+    };
+  }
+
+  return {
+    countLabel: "Количество усопших",
+    incompleteWarning:
+      "Заполните имя и фамилию для каждого усопшего. Сейчас заполнено: {{count}}.",
+    listLabel: "Список имён усопших",
+    placeholder:
+      "Введите имена усопших: каждая новая строка — отдельный усопший. В каждой строке укажите только имя и фамилию (2 слова). Тариф считается за каждого усопшего.",
+    reviewLabel: "Усопших"
+  };
 }
 
 function multiServiceNeedsParticipants(
@@ -789,8 +868,8 @@ function ServiceDetailsDialog({
           <span className="service-details-modal__eyebrow">
             Подробно о церемонии
           </span>
-          <h3 id={titleId}>{service.title}</h3>
-          <p>{service.priceLabel}</p>
+          <h3 id={titleId}>{getShraddhaServiceTitle(service)}</h3>
+          <p>{getShraddhaServicePriceLabel(service)}</p>
           {service.isSubscription && (
             <p className="service-details-modal__period">
               {getSubscriptionPeriodText(service)}
@@ -998,6 +1077,11 @@ export function SignupForm({
   const hasInvalidParticipants =
     invalidParticipantLines.length > 0 || participantCount > 200;
   const isShraddhaService = Boolean(selectedService?.shraddhaModeEnabled);
+  const usesShraddhaDeceasedNamesCopy = isShraddhaNameService(selectedService);
+  const participantListCopy = getParticipantListCopy(
+    copy,
+    usesShraddhaDeceasedNamesCopy
+  );
   const wizardChildPayload = isShraddhaService
     ? childRowsToPayload(childRows)
     : [];
@@ -1054,12 +1138,15 @@ export function SignupForm({
     wizardChildUnits
   ]);
   const liveEstimateUnitLabel = selectedService
-    ? getEstimateUnitLabel(selectedService.priceUnit, isShraddhaService)
+    ? getEstimateUnitLabel(
+        selectedService.priceUnit,
+        usesShraddhaDeceasedNamesCopy
+      )
     : "";
   const liveEstimateHint = selectedService
     ? selectedService.priceUnit === "PER_ORDER"
-      ? selectedService.priceLabel
-      : `В расчёте: ${participantCount + wizardChildUnits} ${liveEstimateUnitLabel} · ${selectedService.priceLabel}`
+      ? getShraddhaServicePriceLabel(selectedService)
+      : `В расчёте: ${participantCount + wizardChildUnits} ${liveEstimateUnitLabel} · ${getShraddhaServicePriceLabel(selectedService)}`
     : "";
 
   const multiLines = useMemo(() => {
@@ -2046,10 +2133,10 @@ export function SignupForm({
                     />
                     <span className="choice-card__label-content">
                       <span className="choice-card__title">
-                        {service.title}
+                        {getShraddhaServiceTitle(service)}
                       </span>
                       <small className="choice-card__price">
-                        {service.priceLabel}
+                        {getShraddhaServicePriceLabel(service)}
                       </small>
                       {service.isSubscription && (
                         <span className="choice-card__subscription-meta">
@@ -2066,8 +2153,10 @@ export function SignupForm({
                       )}
                     </span>
                   </label>
-                  {service.description && (
-                    <p className="choice-card__note">{service.description}</p>
+                  {getShraddhaServiceDescription(service) && (
+                    <p className="choice-card__note">
+                      {getShraddhaServiceDescription(service)}
+                    </p>
                   )}
                   {isSelected && mustSelectOptions && (
                     <div className="rite-choice-list">
@@ -2115,7 +2204,14 @@ export function SignupForm({
                   )}
                   {isSelected && needsParticipants && (
                     <label className="field">
-                      <span>{copy.fields.participantList}</span>
+                      <span>
+                        {
+                          getParticipantListCopy(
+                            copy,
+                            isShraddhaNameService(service)
+                          ).listLabel
+                        }
+                      </span>
                       <textarea
                         onChange={(event) =>
                           setMultiParticipants(service.slug, event.target.value)
@@ -2155,7 +2251,7 @@ export function SignupForm({
                 <ul className="rite-summary-list">
                   {multiLines.map((line) => (
                     <li key={line.service.slug}>
-                      {line.service.title}
+                      {getShraddhaServiceTitle(line.service)}
                       {line.options.length > 0
                         ? ` — ${line.options
                             .map((option) => option.title)
@@ -2247,10 +2343,10 @@ export function SignupForm({
                     )}
                     <span className="choice-card__label-content">
                       <span className="choice-card__title">
-                        {service.title}
+                        {getShraddhaServiceTitle(service)}
                       </span>
                       <small className="choice-card__price">
-                        {service.priceLabel}
+                        {getShraddhaServicePriceLabel(service)}
                       </small>
                       {service.isSubscription && (
                         <span className="choice-card__subscription-meta">
@@ -2267,12 +2363,14 @@ export function SignupForm({
                       )}
                     </span>
                   </label>
-                  {service.description && (
-                    <p className="choice-card__note">{service.description}</p>
+                  {getShraddhaServiceDescription(service) && (
+                    <p className="choice-card__note">
+                      {getShraddhaServiceDescription(service)}
+                    </p>
                   )}
                   {service.detailsContent.trim() && (
                     <button
-                      aria-label={`Показать подробное пояснение: ${service.title}`}
+                      aria-label={`Показать подробное пояснение: ${getShraddhaServiceTitle(service)}`}
                       className="service-details-button"
                       onClick={(event) => {
                         event.stopPropagation();
@@ -2349,7 +2447,7 @@ export function SignupForm({
               {selectedService.shraddhaWarningText}
             </p>
           )}
-          <p className="form-note">{copy.placeholders.participants}</p>
+          <p className="form-note">{participantListCopy.placeholder}</p>
           {!isClientCabinetActive && (
             <div className="registration-nudge registration-nudge--soft">
               <strong>Сохраните участников для следующих записей</strong>
@@ -2399,7 +2497,7 @@ export function SignupForm({
             </div>
           )}
           <label className="field">
-            <span>{copy.fields.participantList}</span>
+            <span>{participantListCopy.listLabel}</span>
             <textarea
               aria-invalid={hasInvalidParticipants}
               className="participant-textarea"
@@ -2411,7 +2509,7 @@ export function SignupForm({
             />
           </label>
           <p className="form-note">
-            {copy.fields.participantCount}: {participantCount}
+            {participantListCopy.countLabel}: {participantCount}
           </p>
           {invalidParticipantLines.length > 0 && (
             <p className="form-warning">
@@ -2428,7 +2526,7 @@ export function SignupForm({
           )}
           {!hasWizardBillableEntry && (
             <p className="form-warning">
-              {copy.warnings.incompleteParticipants.replace("{{count}}", "0")}
+              {participantListCopy.incompleteWarning.replace("{{count}}", "0")}
             </p>
           )}
           {isShraddhaService && selectedService && (
@@ -2480,12 +2578,7 @@ export function SignupForm({
               <p>Проверяем вход через Telegram...</p>
             ) : telegramAuthState.status === "error" ? (
               <p>{telegramAuthState.message}</p>
-            ) : (
-              <p>
-                Если открыть форму из Telegram Mini App, мы автоматически
-                сохраним данные в личном кабинете.
-              </p>
-            )}
+            ) : null}
           </div>
           {!isClientCabinetActive && (
             <div className="registration-nudge">
@@ -2657,7 +2750,7 @@ export function SignupForm({
             <div>
               <dt>{copy.review.ceremony}</dt>
               <dd>
-                {selectedService!.title}
+                {getShraddhaServiceTitle(selectedService!)}
                 {selectedService!.isSubscription && (
                   <span className="subscription-summary-line">
                     {selectedService!.subscriptionStartsAtLabel &&
@@ -2681,7 +2774,7 @@ export function SignupForm({
               </dd>
             </div>
             <div>
-              <dt>{copy.review.participants}</dt>
+              <dt>{participantListCopy.reviewLabel}</dt>
               <dd>{participantCount}</dd>
             </div>
             {isShraddhaService && wizardUnbornUnits > 0 && (
