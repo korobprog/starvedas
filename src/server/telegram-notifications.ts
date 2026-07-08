@@ -872,9 +872,18 @@ async function postTelegramJson(
 ) {
   const url = `https://api.telegram.org/bot${botToken}/${method}`;
   const proxyUrl = getTelegramProxyUrl();
+  let proxyError: unknown = null;
 
   if (proxyUrl) {
-    return postJsonViaHttpProxy(url, payload, proxyUrl);
+    try {
+      return await postJsonViaHttpProxy(url, payload, proxyUrl);
+    } catch (error) {
+      proxyError = error;
+      console.warn(
+        `Telegram ${method} proxy request failed; trying direct connection`,
+        error instanceof Error ? error.message : error
+      );
+    }
   }
 
   try {
@@ -890,8 +899,20 @@ async function postTelegramJson(
       }
     }
 
+    if (proxyError) {
+      throw new Error(
+        `Telegram proxy failed (${formatTelegramErrorMessage(
+          proxyError
+        )}); direct fallback failed (${formatTelegramErrorMessage(lastError)})`
+      );
+    }
+
     throw lastError;
   }
+}
+
+function formatTelegramErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function getTelegramProxyUrl() {
