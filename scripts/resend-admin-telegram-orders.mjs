@@ -1,4 +1,5 @@
-﻿import { PrismaClient } from "@prisma/client";
+import https from "node:https";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 const orderMin = Number(process.argv[2] || 76);
@@ -21,9 +22,7 @@ function formatOptional(value) {
 
 function formatStatus(status) {
   if (status === "PAID") return "оплачен";
-  if (status === "WAITING_PAYMENT_VERIFICATION") {
-    return "ожидает проверки оплаты";
-  }
+  if (status === "WAITING_PAYMENT_VERIFICATION") return "ожидает проверки оплаты";
   if (status === "PENDING_PAYMENT") return "ожидает оплаты";
   return status;
 }
@@ -52,15 +51,12 @@ function getMessageParts(order) {
   return {
     childRecordLines,
     optionLines,
-    participantNames: participantNames.length
-      ? participantNames
-      : [order.customerName]
+    participantNames: participantNames.length ? participantNames : [order.customerName]
   };
 }
 
 function appendCommonLines(lines, order) {
-  const { childRecordLines, optionLines, participantNames } =
-    getMessageParts(order);
+  const { childRecordLines, optionLines, participantNames } = getMessageParts(order);
 
   lines.push(
     `Куратор: ${order.curator.name}`,
@@ -79,9 +75,7 @@ function appendCommonLines(lines, order) {
     lines.push(
       "",
       "Выбранные обряды:",
-      ...optionLines.map(
-        (option) => `- ${option.title}: ${formatPrice(option.priceRub)}`
-      )
+      ...optionLines.map((option) => `- ${option.title}: ${formatPrice(option.priceRub)}`)
     );
   }
 
@@ -136,6 +130,89 @@ function formatPaymentMessage(order) {
   return appendCommonLines(lines, order).join("\n");
 }
 
+function getTelegramApiIps() {
+  return (process.env.TELEGRAM_API_IPS || "149.154.167.220")
+    .split(",")
+    .map((ip) => ip.trim())
+    .filter(Boolean);
+}
+
+function postJsonViaHttps(targetUrl, payload, options) {
+  const target = new URL(targetUrl);
+  const body = JSON.stringify(payload);
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const settle = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      callback(value);
+    };
+    const request = https.request(
+      {
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {})
+        },
+        hostname: options.hostname,
+        method: "POST",
+        path: `${target.pathname}${target.search}`,
+        port: 443,
+        servername: options.servername,
+        timeout: telegramTimeoutMs
+      },
+      (response) => {
+        const chunks = [];
+        response.on("data", (chunk) => chunks.push(chunk));
+        response.once("aborted", () => settle(reject, new Error("Telegram response aborted")));
+        response.once("error", (error) => settle(reject, error));
+        response.once("end", () => {
+          const status = response.statusCode || 0;
+          settle(resolve, {
+            body: Buffer.concat(chunks).toString("utf8"),
+            ok: status >= 200 && status < 300,
+            status,
+            statusText: response.statusMessage || ""
+          });
+        });
+      }
+    );
+
+    request.once("timeout", () => request.destroy(new Error("Telegram request timed out")));
+    request.once("error", (error) => settle(reject, error));
+    request.write(body);
+    request.end();
+  });
+}
+
+async function postTelegramJson(botToken, method, payload) {
+  const url = `https://api.telegram.org/bot${botToken}/${method}`;
+  const target = new URL(url);
+
+  try {
+    return await postJsonViaHttps(url, payload, {
+      hostname: target.hostname,
+      servername: target.hostname
+    });
+  } catch (error) {
+    let lastError = error;
+
+    for (const ipAddress of getTelegramApiIps()) {
+      try {
+        return await postJsonViaHttps(url, payload, {
+          headers: { Host: target.hostname },
+          hostname: ipAddress,
+          servername: target.hostname
+        });
+      } catch (pinnedIpError) {
+        lastError = pinnedIpError;
+      }
+    }
+
+    throw lastError;
+  }
+}
+
 async function sendTelegramMessage(text) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
   const chatId = process.env.TELEGRAM_CHAT_ID?.trim();
@@ -144,100 +221,90 @@ async function sendTelegramMessage(text) {
     throw new Error("Telegram admin bot env is not configured");
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), telegramTimeoutMs);
+  const response = await postTelegramJson(botToken, "sendMessage", {
+    chat_id: chatId,
+    disable_web_page_preview: true,
+    text: text.slice(0, 4096)
+  });
 
-  try {
-    const response = await fetch(
-      `https://api.telegram.org/bot${botToken}/sendMessage`,
-      {
-        body: JSON.stringify({
-          chat_id: chatId,
-          disable_web_page_preview: true,
-          text: text.slice(0, 4096)
-        }),
-        headers: { "content-type": "application/json" },
-        method: "POST",
-        signal: controller.signal
-      }
-    );
-    const body = await response.text();
+  if (!response.ok) {
+    throw new Error(`Telegram sendMessage HTTP ${response.status}: ${response.body.slice(0, 200)}`);
+  }
 
-    if (!response.ok) {
-      throw new Error(
-        `Telegram sendMessage HTTP ${response.status}: ${body.slice(0, 200)}`
-      );
-    }
-
-    const parsed = JSON.parse(body || "{}");
-    if (!parsed.ok) {
-      throw new Error(`Telegram sendMessage ok=false: ${body.slice(0, 200)}`);
-    }
-  } finally {
-    clearTimeout(timer);
+  const parsed = JSON.parse(response.body || "{}");
+  if (!parsed.ok) {
+    throw new Error(`Telegram sendMessage ok=false: ${response.body.slice(0, 200)}`);
   }
 }
 
-const orders = await prisma.order.findMany({
-  orderBy: { orderNumber: "asc" },
-  select: {
-    amountRub: true,
-    childRecords: {
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-      select: { childCount: true, parentName: true, type: true }
+try {
+  const orders = await prisma.order.findMany({
+    orderBy: { orderNumber: "asc" },
+    select: {
+      amountRub: true,
+      childRecords: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: { childCount: true, parentName: true, type: true }
+      },
+      curator: { select: { name: true } },
+      customerComment: true,
+      customerEmail: true,
+      customerName: true,
+      customerPhone: true,
+      customerTelegram: true,
+      orderNumber: true,
+      participantCount: true,
+      participants: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: { fullName: true }
+      },
+      payment: { select: { paidAt: true, provider: true, status: true } },
+      service: {
+        select: {
+          shraddhaDeceasedChildLabel: true,
+          shraddhaUnbornLabel: true,
+          title: true
+        }
+      },
+      serviceOptions: {
+        orderBy: { sortOrder: "asc" },
+        select: { titleSnapshot: true, totalRubSnapshot: true }
+      },
+      status: true
     },
-    curator: { select: { name: true } },
-    customerComment: true,
-    customerEmail: true,
-    customerName: true,
-    customerPhone: true,
-    customerTelegram: true,
-    orderNumber: true,
-    participantCount: true,
-    participants: {
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-      select: { fullName: true }
-    },
-    payment: { select: { paidAt: true, provider: true, status: true } },
-    service: {
-      select: {
-        shraddhaDeceasedChildLabel: true,
-        shraddhaUnbornLabel: true,
-        title: true
-      }
-    },
-    serviceOptions: {
-      orderBy: { sortOrder: "asc" },
-      select: { titleSnapshot: true, totalRubSnapshot: true }
-    },
-    status: true
-  },
-  where: {
-    deletedAt: null,
-    orderNumber: { gte: orderMin, lte: orderMax }
-  }
-});
-
-if (!orders.length) {
-  console.log("codex-telegram-resend: no orders found");
-} else {
-  const sent = [];
-
-  for (const order of orders) {
-    await sendTelegramMessage(formatOrderMessage(order));
-    sent.push(`#${order.orderNumber}:order`);
-
-    if (
-      order.status === "PAID" ||
-      order.payment?.status === "SUCCEEDED" ||
-      order.payment?.paidAt
-    ) {
-      await sendTelegramMessage(formatPaymentMessage(order));
-      sent.push(`#${order.orderNumber}:payment`);
+    where: {
+      deletedAt: null,
+      orderNumber: { gte: orderMin, lte: orderMax }
     }
+  });
+
+  if (!orders.length) {
+    console.log("codex-telegram-resend: no orders found");
+  } else {
+    const sent = [];
+
+    for (const order of orders) {
+      await sendTelegramMessage(formatOrderMessage(order));
+      sent.push(`#${order.orderNumber}:order`);
+
+      if (
+        order.status === "PAID" ||
+        order.payment?.status === "SUCCEEDED" ||
+        order.payment?.paidAt
+      ) {
+        await sendTelegramMessage(formatPaymentMessage(order));
+        sent.push(`#${order.orderNumber}:payment`);
+      }
+    }
+
+    console.log(`codex-telegram-resend: sent ${sent.join(",")}`);
   }
-
-  console.log(`codex-telegram-resend: sent ${sent.join(",")}`);
+} catch (error) {
+  console.error(
+    "codex-telegram-resend failed",
+    error instanceof Error ? error.message : error
+  );
+  process.exitCode = 1;
+} finally {
+  await prisma.$disconnect();
 }
-
-await prisma.$disconnect();
