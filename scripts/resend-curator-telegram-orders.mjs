@@ -28,7 +28,16 @@ function trimTrailingSlash(value) {
 
 function cleanUrl(value) {
   const trimmed = value?.trim();
-  return trimmed ? trimTrailingSlash(trimmed) : null;
+
+  if (!trimmed) {
+    return null;
+  }
+
+  const withProtocol = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  return trimTrailingSlash(withProtocol);
 }
 
 function normalizeSourceDomain(sourceDomain) {
@@ -297,6 +306,8 @@ try {
     const sent = [];
     const skipped = [];
 
+    const failed = [];
+
     for (const order of orders) {
       if (!isPaidOrder(order)) {
         skipped.push(`#${order.orderNumber}:not_paid`);
@@ -313,18 +324,25 @@ try {
         continue;
       }
 
-      await sendTelegramMessage(
-        order.curator.telegramId,
-        formatSummaryMessage(order),
-        createSummaryKeyboard(order)
-      );
-      await sendTelegramMessage(order.curator.telegramId, formatNamesMessage(order));
-      sent.push(`#${order.orderNumber}:${order.curator.name}`);
+      try {
+        await sendTelegramMessage(
+          order.curator.telegramId,
+          formatSummaryMessage(order),
+          createSummaryKeyboard(order)
+        );
+        await sendTelegramMessage(order.curator.telegramId, formatNamesMessage(order));
+        sent.push(`#${order.orderNumber}:${order.curator.name}`);
+      } catch (error) {
+        failed.push(`#${order.orderNumber}:${error instanceof Error ? error.message : String(error)}`);
+      }
     }
 
     console.log(`codex-curator-telegram-resend: sent ${sent.length ? sent.join(",") : "none"}`);
     if (skipped.length) {
       console.log(`codex-curator-telegram-resend: skipped ${skipped.join(",")}`);
+    }
+    if (failed.length) {
+      console.error(`codex-curator-telegram-resend: failed ${failed.join(" | ")}`);
     }
   }
 } catch (error) {
