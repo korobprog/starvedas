@@ -36,6 +36,7 @@ export default async function AdminLayout({
     { href: "/admin/articles", label: "Статьи" },
     { href: "/admin/client-materials", label: "Видео материалы" },
     { href: "/admin/participants", label: "Участники" },
+    { href: "/admin/ceremony-lists", label: "Списки церемоний" },
     { href: "/admin/vedic-gifts", label: "Ведические разборы" },
     { href: "/admin/statisticians", label: "Статисты" },
     { href: "/admin/clients", label: "Клиенты" },

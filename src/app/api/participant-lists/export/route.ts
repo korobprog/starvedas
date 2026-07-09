@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 
 import {
+  buildBrahmanParticipantListPdf,
   buildParticipantListPdf,
   buildParticipantListXlsx,
   getParticipantListExportData
@@ -52,6 +53,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const listId = url.searchParams.get("listId")?.trim();
   const format = url.searchParams.get("format")?.trim().toLowerCase() ?? "xlsx";
+  const mode = url.searchParams.get("mode")?.trim().toLowerCase();
   const participantIds = parseParticipantIds(url.searchParams.get("participantIds"));
 
   if (!listId) {
@@ -68,12 +70,18 @@ export async function GET(request: Request) {
   }
 
   if (format === "pdf") {
-    const buffer = await buildParticipantListPdf(data);
+    const buffer =
+      mode === "brahman"
+        ? await buildBrahmanParticipantListPdf(data)
+        : await buildParticipantListPdf(data);
 
     return new Response(new Uint8Array(buffer), {
       headers: attachmentHeaders({
         contentType: "application/pdf",
-        filename: `${data.filenameBase}.pdf`
+        filename:
+          mode === "brahman"
+            ? `${data.filenameBase}-brahman.pdf`
+            : `${data.filenameBase}.pdf`
       })
     });
   }

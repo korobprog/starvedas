@@ -289,6 +289,34 @@ export function ParticipantListWorkTools({
     );
   }
 
+  function downloadBrahmanPdf(scope: "all" | "selected") {
+    setClientMessage("");
+
+    if (scope === "selected" && selectedIds.length === 0) {
+      setClientMessage("Выберите хотя бы одно имя для PDF");
+      return;
+    }
+
+    const params = new URLSearchParams({
+      format: "pdf",
+      listId,
+      mode: "brahman"
+    });
+
+    if (scope === "selected") {
+      params.set("participantIds", selectedIds.join(","));
+    }
+
+    window.location.assign(
+      `/api/participant-lists/export?${params.toString()}`
+    );
+    setClientMessage(
+      `PDF для Брахмана готовится к скачиванию, имён: ${
+        scope === "selected" ? selectedRows.length : participants.length
+      }`
+    );
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     setClientMessage("");
 
@@ -338,6 +366,20 @@ export function ParticipantListWorkTools({
           type="button"
         >
           TXT все
+        </button>
+        <button
+          className="button button--small"
+          onClick={() => downloadBrahmanPdf("selected")}
+          type="button"
+        >
+          PDF для Брахмана выбранные
+        </button>
+        <button
+          className="button button--small"
+          onClick={() => downloadBrahmanPdf("all")}
+          type="button"
+        >
+          PDF для Брахмана все
         </button>
         <button
           className="button button--small"

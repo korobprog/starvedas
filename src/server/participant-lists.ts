@@ -51,6 +51,16 @@ const rowUpdateSchema = z.object({
   statisticianComment: z.string().trim().max(1000).optional()
 });
 
+const rowAddSchema = z.object({
+  fullName: z.string().trim().min(2).max(240),
+  listId: z.string().trim().min(1)
+});
+
+const rowDeleteSchema = z.object({
+  listId: z.string().trim().min(1),
+  participantId: z.string().trim().min(1)
+});
+
 const messageSchema = z.object({
   body: z.string().trim().min(1).max(2000),
   listId: z.string().trim().min(1)
@@ -161,6 +171,7 @@ export const participantListSelect =
           select: {
             id: true,
             title: true,
+            shraddhaModeEnabled: true,
             shraddhaUnbornLabel: true,
             shraddhaDeceasedChildLabel: true
           }
@@ -168,7 +179,7 @@ export const participantListSelect =
         serviceOptions: {
           orderBy: { sortOrder: "asc" },
           select: {
-            option: { select: { eventStartsAt: true } },
+            option: { select: { eventStartsAt: true, id: true } },
             titleSnapshot: true
           }
         },
@@ -251,6 +262,25 @@ function formatFieldValue(value: unknown) {
   }
 
   return value == null ? null : String(value);
+}
+
+async function syncOrderParticipantsSnapshot(
+  tx: Prisma.TransactionClient,
+  orderId: string
+) {
+  const participants = await tx.orderParticipant.findMany({
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: { fullName: true },
+    where: { orderId }
+  });
+
+  await tx.order.update({
+    data: {
+      participantCount: participants.length,
+      participantsText: participants.map((item) => item.fullName).join("\n")
+    },
+    where: { id: orderId }
+  });
 }
 
 async function getListAccess(listId: string, user: SessionUser) {
@@ -693,6 +723,81 @@ export async function getStatisticianParticipantLists() {
         status: OrderStatus.PAID
       }
     }
+  });
+}
+
+export type CeremonyParticipantListFilters = {
+  dateFrom?: string;
+  dateTo?: string;
+  optionId?: string;
+  serviceId?: string;
+  showArchived?: boolean;
+  shraddhaOnly?: boolean;
+  status?: ParticipantListStatus;
+};
+
+function getParticipantListEventDate(list: ParticipantListRow) {
+  return (
+    list.eventStartsAt ??
+    list.order.serviceOptions
+      .map((option) => option.option?.eventStartsAt ?? null)
+      .find((date): date is Date => Boolean(date)) ??
+    null
+  );
+}
+
+function startOfNextDay(date: Date) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + 1);
+  return next;
+}
+
+export async function getCeremonyParticipantLists(
+  filters: CeremonyParticipantListFilters = {}
+) {
+  await ensureAllPaidParticipantLists();
+
+  const dateFrom = parseOptionalDate(filters.dateFrom);
+  const dateTo = filters.dateTo
+    ? startOfNextDay(parseOptionalDate(filters.dateTo)!)
+    : null;
+  const lists = await prisma.participantList.findMany({
+    orderBy: [
+      { bookmarked: "desc" },
+      { eventStartsAt: "asc" },
+      { updatedAt: "desc" }
+    ],
+    select: participantListSelect,
+    where: {
+      order: {
+        deletedAt: null,
+        serviceId: filters.serviceId || undefined,
+        status: OrderStatus.PAID
+      },
+      status:
+        filters.status ??
+        (filters.showArchived ? undefined : { not: ParticipantListStatus.ARCHIVED })
+    }
+  });
+
+  return lists.filter((list) => {
+    const eventDate = getParticipantListEventDate(list);
+    const optionMatches = filters.optionId
+      ? list.order.serviceOptions.some(
+          (option) => option.option?.id === filters.optionId
+        )
+      : true;
+    const shraddhaMatches = filters.shraddhaOnly
+      ? list.order.service.shraddhaModeEnabled
+      : true;
+    const dateFromMatches = dateFrom
+      ? Boolean(eventDate && eventDate >= dateFrom)
+      : true;
+    const dateToMatches = dateTo
+      ? Boolean(eventDate && eventDate < dateTo)
+      : true;
+
+    return optionMatches && shraddhaMatches && dateFromMatches && dateToMatches;
   });
 }
 
@@ -1554,19 +1659,7 @@ export async function updateParticipantListRowAction(formData: FormData) {
     });
 
     if (changedName) {
-      const participants = await tx.orderParticipant.findMany({
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-        select: { fullName: true },
-        where: { orderId: participant.orderId }
-      });
-
-      await tx.order.update({
-        data: {
-          participantCount: participants.length,
-          participantsText: participants.map((item) => item.fullName).join("\n")
-        },
-        where: { id: participant.orderId }
-      });
+      await syncOrderParticipantsSnapshot(tx, participant.orderId);
 
       await tx.participantChangeHistory.create({
         data: {
@@ -1640,6 +1733,147 @@ export async function updateParticipantListRowAction(formData: FormData) {
 
   revalidateParticipantListWorkspaces();
   await notifyClientAfterParticipantNamesProcessed(participant.orderId);
+}
+
+export async function addParticipantListRowAction(formData: FormData) {
+  "use server";
+  const user = await requireUser(
+    [UserRole.STATISTICIAN, UserRole.ADMIN, UserRole.SUPER_ADMIN],
+    "/statistician"
+  );
+  requireStatisticianLike(user);
+
+  const parsed = rowAddSchema.safeParse({
+    fullName: formData.get("fullName"),
+    listId: formData.get("listId")
+  });
+
+  if (!parsed.success) {
+    throw new Error("Некорректное имя участника");
+  }
+
+  await getListAccess(parsed.data.listId, user);
+
+  const list = await prisma.participantList.findUnique({
+    where: { id: parsed.data.listId },
+    select: { id: true, orderId: true }
+  });
+
+  if (!list) {
+    throw new Error("Список не найден");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const maxSortOrder = await tx.orderParticipant.aggregate({
+      _max: { sortOrder: true },
+      where: { orderId: list.orderId }
+    });
+    const participant = await tx.orderParticipant.create({
+      data: {
+        fullName: parsed.data.fullName,
+        orderId: list.orderId,
+        rowStatus: ParticipantRowStatus.UPDATED,
+        sortOrder: (maxSortOrder._max.sortOrder ?? 0) + 1
+      },
+      select: { id: true }
+    });
+
+    await captureOrderRevision(tx, {
+      actorUserId: user.id,
+      eventType: orderRevisionEventTypes.participantRowEdit,
+      note: "Имя добавлено вручную в рабочий список участников",
+      orderId: list.orderId
+    });
+
+    await syncOrderParticipantsSnapshot(tx, list.orderId);
+
+    await tx.participantListChange.create({
+      data: {
+        changedById: user.id,
+        fieldName: `participant:${participant.id}:created`,
+        fromValue: null,
+        listId: list.id,
+        note: "Ручное добавление имени в рабочий список",
+        toValue: parsed.data.fullName
+      }
+    });
+  });
+
+  revalidateParticipantListWorkspaces();
+  await notifyClientAfterParticipantNamesProcessed(list.orderId);
+}
+
+export async function deleteParticipantListRowAction(formData: FormData) {
+  "use server";
+  const user = await requireUser(
+    [UserRole.STATISTICIAN, UserRole.ADMIN, UserRole.SUPER_ADMIN],
+    "/statistician"
+  );
+  requireStatisticianLike(user);
+
+  const parsed = rowDeleteSchema.safeParse({
+    listId: formData.get("listId"),
+    participantId: formData.get("participantId")
+  });
+
+  if (!parsed.success) {
+    throw new Error("Некорректный участник");
+  }
+
+  await getListAccess(parsed.data.listId, user);
+
+  const list = await prisma.participantList.findUnique({
+    where: { id: parsed.data.listId },
+    select: { id: true, orderId: true }
+  });
+
+  if (!list) {
+    throw new Error("Список не найден");
+  }
+
+  const participant = await prisma.orderParticipant.findFirst({
+    where: {
+      id: parsed.data.participantId,
+      orderId: list.orderId
+    },
+    select: {
+      fullName: true,
+      id: true
+    }
+  });
+
+  if (!participant) {
+    throw new Error("Участник не найден в этом списке");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await captureOrderRevision(tx, {
+      actorUserId: user.id,
+      eventType: orderRevisionEventTypes.participantRowEdit,
+      note: "Имя удалено из рабочего списка участников",
+      orderId: list.orderId
+    });
+
+    await tx.participantListChange.create({
+      data: {
+        changedById: user.id,
+        fieldName: `participant:${participant.id}:deleted`,
+        fromValue: participant.fullName,
+        listId: list.id,
+        note: "Удаление имени из рабочего списка",
+        toValue: null
+      }
+    });
+
+    await tx.orderParticipant.delete({
+      where: { id: participant.id }
+    });
+
+    await syncOrderParticipantsSnapshot(tx, list.orderId);
+  });
+
+  revalidateParticipantListWorkspaces();
+  await notifyClientAfterParticipantNamesProcessed(list.orderId);
 }
 
 export async function sendParticipantListMessageAction(formData: FormData) {

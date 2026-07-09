@@ -359,6 +359,11 @@ export default async function AdminParticipantsPage({
 
       <section className="admin-card admin-card--wide">
         <h2>Участники</h2>
+        <div className="participant-tools">
+          <Link className="button button--primary" href="/admin/ceremony-lists">
+            Список для Брахмана: дата → обряд → имена → PDF
+          </Link>
+        </div>
         <form className="admin-form filter-form">
           <label className="field">
             <span>Дата с</span>
