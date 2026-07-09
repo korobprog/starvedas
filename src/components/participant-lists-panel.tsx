@@ -6,6 +6,8 @@ import {
 import { formatChildRecordLines } from "@/lib/shraddha";
 import { formatStatus } from "@/lib/status-labels";
 import {
+  addParticipantListRowAction,
+  deleteParticipantListRowAction,
   sendParticipantListMessageAction,
   updateParticipantListAction,
   updateParticipantListRowAction,
@@ -276,6 +278,26 @@ function getCuratorCopyParticipants(list: ParticipantListRow) {
   ];
 }
 
+function AddParticipantForm({ listId }: { listId: string }) {
+  return (
+    <form action={addParticipantListRowAction} className="admin-form">
+      <input name="listId" type="hidden" value={listId} />
+      <label className="field">
+        <span>Добавить имя вручную</span>
+        <input
+          name="fullName"
+          placeholder="ФИО или строка для Брахмана"
+          required
+          type="text"
+        />
+      </label>
+      <button className="button button--small" type="submit">
+        Добавить в список
+      </button>
+    </form>
+  );
+}
+
 function ParticipantRows({
   list,
   mode
@@ -291,6 +313,7 @@ function ParticipantRows({
 
   return (
     <>
+      {mode === "statistician" ? <AddParticipantForm listId={list.id} /> : null}
       {list.order.participants.length > 0 && (
         <div className="table-wrap">
           <table className="admin-table">
@@ -351,7 +374,25 @@ function ParticipantRows({
                       </td>
                       <td>{formatStatus(participant.rowStatus)}</td>
                       <td>{participant.statisticianComment || "—"}</td>
-                      <td>Правка сохраняется в истории</td>
+                      <td>
+                        <p className="admin-muted">
+                          Правка сохраняется в истории.
+                        </p>
+                        <form
+                          action={deleteParticipantListRowAction}
+                          className="admin-form admin-form--compact"
+                        >
+                          <input name="listId" type="hidden" value={list.id} />
+                          <input
+                            name="participantId"
+                            type="hidden"
+                            value={participant.id}
+                          />
+                          <button className="button button--small" type="submit">
+                            Удалить из списка
+                          </button>
+                        </form>
+                      </td>
                     </>
                   ) : (
                     <>

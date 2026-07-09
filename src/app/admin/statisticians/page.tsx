@@ -1,4 +1,5 @@
-﻿import { UserRole } from "@prisma/client";
+import { UserRole } from "@prisma/client";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { saveStatisticianAction } from "@/server/statistician-actions";
 import { acceptStatisticianRoleAction } from "@/server/statistician-role-actions";
@@ -27,6 +28,17 @@ export default async function AdminStatisticiansPage() {
           Статист получает списки участников через кабинет и может входить через
           Telegram Mini Apps после привязки Telegram ID.
         </p>
+        <div className="participant-tools">
+          <Link className="button button--primary" href="/admin/ceremony-lists">
+            Открыть списки для церемоний
+          </Link>
+          <Link className="button" href="/statistician">
+            Кабинет статиста
+          </Link>
+          <Link className="button" href="/admin/participants">
+            Админский список участников
+          </Link>
+        </div>
         <form action={acceptStatisticianRoleAction} className="admin-form">
           <button className="button button--primary" type="submit">
             Войти в кабинет и принять роль статиста
