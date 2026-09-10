@@ -130,6 +130,18 @@ function formatPaymentMessage(order) {
   return appendCommonLines(lines, order).join("\n");
 }
 
+function getTelegramApiBase() {
+  const configured = process.env.TELEGRAM_API_BASE?.trim();
+
+  return configured
+    ? configured.replace(/\/+$/, "")
+    : "https://api.telegram.org";
+}
+
+function getTelegramRelayToken() {
+  return process.env.TELEGRAM_RELAY_TOKEN?.trim() || "";
+}
+
 function getTelegramApiIps() {
   return (process.env.TELEGRAM_API_IPS || "149.154.167.220")
     .split(",")
@@ -186,18 +198,24 @@ function postJsonViaHttps(targetUrl, payload, options) {
 }
 
 async function postTelegramJson(botToken, method, payload) {
-  const url = `https://api.telegram.org/bot${botToken}/${method}`;
+  const apiBase = getTelegramApiBase();
+  const viaRelay = apiBase !== "https://api.telegram.org";
+  const url = `${apiBase}/bot${botToken}/${method}`;
   const target = new URL(url);
+  const relayToken = getTelegramRelayToken();
 
   try {
     return await postJsonViaHttps(url, payload, {
+      headers: relayToken ? { "x-relay-token": relayToken } : undefined,
       hostname: target.hostname,
       servername: target.hostname
     });
   } catch (error) {
     let lastError = error;
 
-    for (const ipAddress of getTelegramApiIps()) {
+    // Пиннинг IP осмыслен только для самого api.telegram.org: адреса релея
+    // мы не знаем и подменять их его же хостом нельзя.
+    for (const ipAddress of viaRelay ? [] : getTelegramApiIps()) {
       try {
         return await postJsonViaHttps(url, payload, {
           headers: { Host: target.hostname },

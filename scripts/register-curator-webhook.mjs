@@ -3,7 +3,10 @@ import https from "node:https";
 import tls from "node:tls";
 
 const telegramRequestTimeoutMs = 15000;
+const defaultTelegramProxyCooldownMs = 5 * 60 * 1000;
+const DEFAULT_TELEGRAM_API_BASE = "https://api.telegram.org";
 const defaultTelegramApiIps = ["149.154.167.220"];
+const telegramProxyCooldownUntilByUrl = new Map();
 
 function trimEnv(name) {
   return process.env[name]?.trim() || "";
@@ -19,6 +22,21 @@ function getTelegramProxyUrl() {
   );
 }
 
+function getTelegramApiBase() {
+  const configured =
+    trimEnv("CURATOR_TELEGRAM_API_BASE") || trimEnv("TELEGRAM_API_BASE");
+
+  return configured ? configured.replace(/\/+$/, "") : DEFAULT_TELEGRAM_API_BASE;
+}
+
+function getTelegramRelayToken() {
+  return (
+    trimEnv("CURATOR_TELEGRAM_RELAY_TOKEN") ||
+    trimEnv("TELEGRAM_RELAY_TOKEN") ||
+    ""
+  );
+}
+
 function getTelegramApiIps() {
   const raw = trimEnv("TELEGRAM_API_IPS");
 
@@ -28,6 +46,37 @@ function getTelegramApiIps() {
         .map((ip) => ip.trim())
         .filter(Boolean)
     : defaultTelegramApiIps;
+}
+
+function shouldUseTelegramProxy(proxyUrl) {
+  const cooldownUntil = telegramProxyCooldownUntilByUrl.get(proxyUrl) ?? 0;
+
+  return cooldownUntil <= Date.now();
+}
+
+function markTelegramProxyFailure(proxyUrl) {
+  const cooldownMs = getTelegramProxyCooldownMs();
+
+  telegramProxyCooldownUntilByUrl.set(proxyUrl, Date.now() + cooldownMs);
+
+  return cooldownMs;
+}
+
+function getTelegramProxyCooldownMs() {
+  const parsed = Number(
+    trimEnv("CURATOR_TELEGRAM_PROXY_COOLDOWN_MS") ||
+      trimEnv("TELEGRAM_PROXY_COOLDOWN_MS")
+  );
+
+  if (Number.isFinite(parsed) && parsed >= 0) {
+    return parsed;
+  }
+
+  return defaultTelegramProxyCooldownMs;
+}
+
+function formatTelegramErrorMessage(error) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function getWebhookUrl() {
@@ -188,10 +237,24 @@ async function postJsonViaTelegramIp(targetUrl, payload, ipAddress) {
 }
 
 async function postTelegramJson(url, payload) {
-  const proxyUrl = getTelegramProxyUrl();
+  const viaRelay = getTelegramApiBase() !== DEFAULT_TELEGRAM_API_BASE;
+  // Через релей прокси не нужен: он ведёт к api.telegram.org, а не к релею,
+  // и мёртвый прокси только съедал бы таймаут на каждом вызове.
+  const proxyUrl = viaRelay ? null : getTelegramProxyUrl();
 
-  if (proxyUrl) {
-    return postJsonViaHttpProxy(url, payload, proxyUrl);
+  let proxyError = null;
+
+  if (proxyUrl && shouldUseTelegramProxy(proxyUrl)) {
+    try {
+      return await postJsonViaHttpProxy(url, payload, proxyUrl);
+    } catch (error) {
+      proxyError = error;
+      const cooldownMs = markTelegramProxyFailure(proxyUrl);
+      console.warn(
+        `Curator Telegram webhook registration proxy request failed; trying direct connection and cooling down proxy for ${cooldownMs}ms`,
+        error instanceof Error ? error.message : error
+      );
+    }
   }
 
   const controller = new AbortController();
@@ -201,9 +264,13 @@ async function postTelegramJson(url, payload) {
   );
 
   try {
+    const relayToken = getTelegramRelayToken();
     const response = await fetch(url, {
       body: JSON.stringify(payload),
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(relayToken ? { "x-relay-token": relayToken } : {})
+      },
       method: "POST",
       signal: controller.signal
     });
@@ -218,12 +285,20 @@ async function postTelegramJson(url, payload) {
   } catch (error) {
     let lastError = error;
 
-    for (const ipAddress of getTelegramApiIps()) {
+    // Пиннинг IP осмыслен только для самого api.telegram.org: адреса релея
+    // мы не знаем и подменять их его же хостом нельзя.
+    for (const ipAddress of viaRelay ? [] : getTelegramApiIps()) {
       try {
         return await postJsonViaTelegramIp(url, payload, ipAddress);
       } catch (pinnedIpError) {
         lastError = pinnedIpError;
       }
+    }
+
+    if (proxyError) {
+      throw new Error(
+        `Telegram proxy failed (${formatTelegramErrorMessage(proxyError)}); direct fallback failed (${formatTelegramErrorMessage(lastError)})`
+      );
     }
 
     throw lastError;
@@ -263,7 +338,7 @@ async function main() {
 
   try {
     const response = await postTelegramJson(
-      `https://api.telegram.org/bot${botToken}/setWebhook`,
+      `${getTelegramApiBase()}/bot${botToken}/setWebhook`,
       payload
     );
 
