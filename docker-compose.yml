@@ -22,6 +22,10 @@ services:
       CURATOR_TELEGRAM_WEBHOOK_URL: ${CURATOR_TELEGRAM_WEBHOOK_URL:-https://chintamanidhama.ru/api/telegram/curator/webhook}
       CURATOR_LIST_REMINDER_SECRET: ${CURATOR_LIST_REMINDER_SECRET}
       TELEGRAM_PROXY_URL: ${TELEGRAM_PROXY_URL}
+      # Задан — значит идём через релей, и прокси с пиннингом IP отключаются
+      # сами. Форма ${VAR-default} (без двоеточия) уважает явно заданную пустоту.
+      TELEGRAM_API_BASE: ${TELEGRAM_API_BASE-}
+      TELEGRAM_RELAY_TOKEN: ${TELEGRAM_RELAY_TOKEN-}
       TELEGRAM_API_IPS: ${TELEGRAM_API_IPS:-149.154.167.220}
       PRODAMUS_MERCHANT_ID: ${PRODAMUS_MERCHANT_ID}
       PRODAMUS_SECRET_KEY: ${PRODAMUS_SECRET_KEY}
