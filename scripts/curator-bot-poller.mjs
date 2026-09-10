@@ -15,7 +15,10 @@ const defaultTelegramLongPollingTimeoutSeconds = 20;
 const telegramLongPollingTimeoutSeconds =
   getTelegramLongPollingTimeoutSeconds();
 const telegramRequestTimeoutMs = getTelegramRequestTimeoutMs();
+const defaultTelegramProxyCooldownMs = 5 * 60 * 1000;
+const DEFAULT_TELEGRAM_API_BASE = "https://api.telegram.org";
 const defaultTelegramApiIps = ["149.154.167.220"];
+const telegramProxyCooldownUntilByUrl = new Map();
 
 let updateOffset = 0;
 
@@ -67,6 +70,21 @@ function getTelegramProxyUrl() {
   );
 }
 
+function getTelegramApiBase() {
+  const configured =
+    trimEnv("CURATOR_TELEGRAM_API_BASE") || trimEnv("TELEGRAM_API_BASE");
+
+  return configured ? configured.replace(/\/+$/, "") : DEFAULT_TELEGRAM_API_BASE;
+}
+
+function getTelegramRelayToken() {
+  return (
+    trimEnv("CURATOR_TELEGRAM_RELAY_TOKEN") ||
+    trimEnv("TELEGRAM_RELAY_TOKEN") ||
+    ""
+  );
+}
+
 function getTelegramApiIps() {
   const raw = trimEnv("TELEGRAM_API_IPS");
 
@@ -76,6 +94,33 @@ function getTelegramApiIps() {
         .map((ip) => ip.trim())
         .filter(Boolean)
     : defaultTelegramApiIps;
+}
+
+function shouldUseTelegramProxy(proxyUrl) {
+  const cooldownUntil = telegramProxyCooldownUntilByUrl.get(proxyUrl) ?? 0;
+
+  return cooldownUntil <= Date.now();
+}
+
+function markTelegramProxyFailure(proxyUrl) {
+  const cooldownMs = getTelegramProxyCooldownMs();
+
+  telegramProxyCooldownUntilByUrl.set(proxyUrl, Date.now() + cooldownMs);
+
+  return cooldownMs;
+}
+
+function getTelegramProxyCooldownMs() {
+  const parsed = Number(
+    trimEnv("CURATOR_TELEGRAM_PROXY_COOLDOWN_MS") ||
+      trimEnv("TELEGRAM_PROXY_COOLDOWN_MS")
+  );
+
+  if (Number.isFinite(parsed) && parsed >= 0) {
+    return parsed;
+  }
+
+  return defaultTelegramProxyCooldownMs;
 }
 
 function getPublicOrigin() {
@@ -257,8 +302,10 @@ async function postJsonViaTelegramIp(targetUrl, payload, ipAddress) {
 
 async function postJsonViaTelegramHost(targetUrl, payload) {
   const target = new URL(targetUrl);
+  const relayToken = getTelegramRelayToken();
 
   return postJsonViaHttpsTarget(targetUrl, payload, {
+    headers: relayToken ? { "x-relay-token": relayToken } : undefined,
     hostname: target.hostname,
     servername: target.hostname
   });
@@ -331,17 +378,22 @@ async function postTelegramJson(method, payload = {}) {
     throw new Error("CURATOR_TELEGRAM_BOT_TOKEN is not configured");
   }
 
-  const url = `https://api.telegram.org/bot${botToken}/${method}`;
-  const proxyUrl = getTelegramProxyUrl();
+  const apiBase = getTelegramApiBase();
+  const viaRelay = apiBase !== DEFAULT_TELEGRAM_API_BASE;
+  const url = `${apiBase}/bot${botToken}/${method}`;
+  // Через релей прокси не нужен: он ведёт к api.telegram.org, а не к релею,
+  // и мёртвый прокси только съедал бы таймаут на каждом вызове.
+  const proxyUrl = viaRelay ? null : getTelegramProxyUrl();
   let proxyError = null;
 
-  if (proxyUrl) {
+  if (proxyUrl && shouldUseTelegramProxy(proxyUrl)) {
     try {
       return await postJsonViaHttpProxy(url, payload, proxyUrl);
     } catch (error) {
       proxyError = error;
+      const cooldownMs = markTelegramProxyFailure(proxyUrl);
       console.warn(
-        "Curator polling bot Telegram proxy request failed; trying direct connection",
+        `Curator polling bot Telegram proxy request failed; trying direct connection and cooling down proxy for ${cooldownMs}ms`,
         error instanceof Error ? error.message : error
       );
     }
@@ -352,7 +404,9 @@ async function postTelegramJson(method, payload = {}) {
   } catch (error) {
     let lastError = error;
 
-    for (const ipAddress of getTelegramApiIps()) {
+    // Пиннинг IP осмыслен только для самого api.telegram.org: адреса релея
+    // мы не знаем и подменять их его же хостом нельзя.
+    for (const ipAddress of viaRelay ? [] : getTelegramApiIps()) {
       try {
         return await postJsonViaTelegramIp(url, payload, ipAddress);
       } catch (pinnedIpError) {
