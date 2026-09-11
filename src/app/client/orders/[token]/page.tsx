@@ -3,6 +3,7 @@ import { OrderStatus, PaymentStatus } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClientAuthRequired } from "@/components/client-auth-required";
+import { PaymentProcessingStatus } from "@/components/payment-processing-status";
 import { VedicGiftForm } from "@/components/vedic-gift-form";
 import { formatMoney } from "@/i18n/pricing";
 import { prisma } from "@/lib/prisma";
@@ -128,13 +129,16 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ClientOrderDetailPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ payment?: string }>;
 }) {
-  const [client, { token }] = await Promise.all([
+  const [client, { token }, query] = await Promise.all([
     getCurrentClientProfile(),
-    params
+    params,
+    searchParams
   ]);
 
   if (!client) {
@@ -267,6 +271,13 @@ export default async function ClientOrderDetailPage({
     order.payment?.status === PaymentStatus.SUCCEEDED;
   const showVedicGift =
     isPaymentConfirmed && isOrderEligibleForVedicGift(order);
+  const showPaymentProcessing =
+    query.payment === "processing" &&
+    !isPaymentConfirmed &&
+    order.status !== OrderStatus.FAILED &&
+    order.status !== OrderStatus.CANCELLED &&
+    order.payment?.status !== PaymentStatus.FAILED &&
+    order.payment?.status !== PaymentStatus.CANCELLED;
   const hasPostPurchaseContent = Boolean(
     order.curator.postPurchaseTitle ||
     order.curator.postPurchaseText ||
@@ -436,6 +447,12 @@ export default async function ClientOrderDetailPage({
                 Открыть ссылку куратора
               </a>
             )}
+          </article>
+        )}
+
+        {showPaymentProcessing && (
+          <article className="client-order-card client-order-card--highlight">
+            <PaymentProcessingStatus orderToken={order.publicToken} />
           </article>
         )}
 
