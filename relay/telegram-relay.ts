@@ -24,16 +24,39 @@ const ALLOWED = /^\/(file\/)?bot\d+:[A-Za-z0-9_-]+\/.+/;
 // даже зная адрес. Задаётся в Settings → Environment Variables (production).
 const RELAY_TOKEN = Deno.env.get("RELAY_TOKEN") ?? "";
 
+// Второй рубеж, не требующий общего секрета: список адресов, с которых можно
+// ходить. Нужен, когда релей живёт на своём сервере за Traefik, а значение
+// общего секрета недоступно тому, кто настраивает релей.
+const ALLOWED_IPS = (Deno.env.get("ALLOWED_IPS") ?? "")
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
+
+function getClientIp(request: Request) {
+  // Traefik кладёт исходный адрес первым в цепочке.
+  const forwarded = request.headers.get("x-forwarded-for") ?? "";
+
+  return forwarded.split(",")[0]?.trim() ?? "";
+}
+
 Deno.serve(async (request: Request) => {
   const url = new URL(request.url);
 
   // Намеренно до проверки секрета: иначе нечем диагностировать доступность.
   if (url.pathname === "/health") {
     return Response.json({
+      allowedIps: ALLOWED_IPS.length,
       ok: true,
-      protected: RELAY_TOKEN !== "",
+      protected: RELAY_TOKEN !== "" || ALLOWED_IPS.length > 0,
       upstream: UPSTREAM
     });
+  }
+
+  if (ALLOWED_IPS.length > 0 && !ALLOWED_IPS.includes(getClientIp(request))) {
+    return Response.json(
+      { error: "ip not allowed", ok: false },
+      { status: 403 }
+    );
   }
 
   // Тело ответа отличается от чужого 401 — по статусу их не различить,
