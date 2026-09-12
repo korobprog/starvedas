@@ -1162,6 +1162,11 @@ async function getUpdates() {
 }
 
 async function deleteWebhookWithRetry() {
+  // Пауза растёт: при недоступном Telegram повтор раз в пять секунд сжигает
+  // квоту релея и заваливает логи. Потолок — пять минут.
+  let delayMs = 5000;
+  const maxDelayMs = 5 * 60 * 1000;
+
   while (true) {
     try {
       await callTelegramMethod("deleteWebhook", {
@@ -1169,8 +1174,12 @@ async function deleteWebhookWithRetry() {
       });
       return;
     } catch (error) {
-      console.error("Curator polling bot deleteWebhook failed", error);
-      await sleep(5000);
+      console.error(
+        `Curator polling bot deleteWebhook failed, retry in ${Math.round(delayMs / 1000)}s`,
+        error
+      );
+      await sleep(delayMs);
+      delayMs = Math.min(delayMs * 2, maxDelayMs);
     }
   }
 }
