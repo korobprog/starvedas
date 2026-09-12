@@ -5964,6 +5964,20 @@ a.button[aria-disabled="true"] {
   box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
 }
 
+/*
+ * На узком экране шапка переносит бургер на отдельную строку и прижимает к
+ * левому краю. Меню, прибитое к кнопке правым краем, расти вправо не может и
+ * уезжает за экран: виден крестик, а «Выйти» — нет. Поэтому на мобильном
+ * прижимаем меню левым краем и не даём ему вылезти за пределы окна.
+ */
+@media (max-width: 640px) {
+  .cabinet-burger-nav__menu {
+    right: auto;
+    left: 0;
+    max-width: calc(100vw - 16px);
+  }
+}
+
 .cabinet-burger-nav__menu .button {
   width: 100%;
   justify-content: center;
