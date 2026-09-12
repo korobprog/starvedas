@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { getPriceUnitLabel } from "@/components/service-form";
 import { requireAdminUser } from "@/server/auth";
-import {
-  archiveService,
-  setPitriPakshaModule
-} from "@/server/service-actions";
+import { archiveService, setPitriPakshaModule } from "@/server/service-actions";
 import { isPitriPakshaModuleEnabled } from "@/server/service-modules";
 import { getManagedServices, type ManagedService } from "@/server/services";
 
@@ -114,6 +111,14 @@ export default async function AdminProductsPage({
             </p>
           </div>
           <div className="admin-card__actions">
+            <Link
+              className={
+                pitriPakshaEnabled ? "button button--primary" : "button"
+              }
+              href="/admin/products/new?module=pitri-paksha"
+            >
+              Создать продукт модуля
+            </Link>
             <form action={setPitriPakshaModule}>
               <input
                 name="pitriPakshaEnabled"

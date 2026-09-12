@@ -117,9 +117,11 @@ function formatSubscriptionPeriod(service: ManagedService) {
 }
 
 export function ServiceFields({
+  defaultModuleKey,
   previewCode,
   service
 }: Readonly<{
+  defaultModuleKey?: string;
   previewCode?: string;
   service?: ManagedService;
 }>) {
@@ -270,7 +272,10 @@ export function ServiceFields({
         </label>
         <label className="field">
           <span>Модуль</span>
-          <select defaultValue={service?.moduleKey ?? ""} name="moduleKey">
+          <select
+            defaultValue={service?.moduleKey ?? defaultModuleKey ?? ""}
+            name="moduleKey"
+          >
             <option value="">Без модуля (обычный продукт)</option>
             {serviceModuleOptions.map((option) => (
               <option key={option.key} value={option.key}>
@@ -415,7 +420,11 @@ export function ServiceFields({
   );
 }
 
-export function CreateServiceForm() {
+export function CreateServiceForm({
+  defaultModuleKey
+}: Readonly<{
+  defaultModuleKey?: string;
+}>) {
   const previewCode = randomBytes(3).toString("hex");
 
   return (
@@ -424,7 +433,10 @@ export function CreateServiceForm() {
       className="admin-form"
       id="create-service-form"
     >
-      <ServiceFields previewCode={previewCode} />
+      <ServiceFields
+        defaultModuleKey={defaultModuleKey}
+        previewCode={previewCode}
+      />
       <AdminSubmitButton className="button button--primary">
         Создать продукт
       </AdminSubmitButton>
