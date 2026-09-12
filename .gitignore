@@ -9,6 +9,9 @@ coverage
 .env
 .env*.local
 
+# Настройки MCP-серверов: внутри ключи от панелей Dokploy и VedaMatch.
+.mcp.json
+
 *.log
 npm-debug.log*
 yarn-debug.log*
