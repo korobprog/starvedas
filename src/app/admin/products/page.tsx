@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { getPriceUnitLabel } from "@/components/service-form";
 import { requireAdminUser } from "@/server/auth";
-import { archiveService } from "@/server/service-actions";
+import {
+  archiveService,
+  setPitriPakshaModule
+} from "@/server/service-actions";
+import { isPitriPakshaModuleEnabled } from "@/server/service-modules";
 import { getManagedServices, type ManagedService } from "@/server/services";
 
 export const dynamic = "force-dynamic";
@@ -27,15 +31,24 @@ function formatServicePrices(service: ManagedService) {
 export default async function AdminProductsPage({
   searchParams
 }: {
-  searchParams: Promise<{ archived?: string; saved?: string }>;
+  searchParams: Promise<{
+    archived?: string;
+    module?: string;
+    restored?: string;
+    saved?: string;
+  }>;
 }) {
   await requireAdminUser("/admin/products");
 
   const params = await searchParams;
-  const [services, archivedServices] = await Promise.all([
+  const [services, archivedServices, pitriPakshaEnabled] = await Promise.all([
     getManagedServices(),
-    getManagedServices({ archived: true })
+    getManagedServices({ archived: true }),
+    isPitriPakshaModuleEnabled()
   ]);
+  const moduleServicesCount = services.filter(
+    (service) => service.moduleKey === "pitri-paksha"
+  ).length;
   const activeCount = services.filter((service) => service.active).length;
   const ordersCount = services.reduce(
     (total, service) => total + service._count.orders,
@@ -64,6 +77,70 @@ export default async function AdminProductsPage({
           </span>
         </section>
       )}
+
+      {params.restored && (
+        <section className="admin-card admin-card--wide admin-success">
+          <strong>Возвращено из архива: {params.restored}</strong>
+          <span>
+            Продукты вернулись в список скрытыми. Чтобы показать продукт на
+            сайте, откройте его карточку и нажмите «Активировать».
+          </span>
+        </section>
+      )}
+      {params.module && (
+        <section className="admin-card admin-card--wide admin-success">
+          <strong>
+            {params.module === "on"
+              ? "Модуль «Питри Пакша» включён"
+              : "Модуль «Питри Пакша» выключен"}
+          </strong>
+          <span>
+            {params.module === "on"
+              ? "Продукты модуля снова видны на сайте."
+              : "Продукты модуля скрыты с сайта, заказ по прямой ссылке тоже закрыт."}
+          </span>
+        </section>
+      )}
+
+      <section className="admin-card admin-card--wide">
+        <div className="admin-card__header">
+          <div>
+            <p className="eyebrow">Модуль</p>
+            <h2>Питри Пакша</h2>
+            <p className="admin-muted">
+              Сезонный модуль. Когда он выключен, продукты с модулем «Питри
+              Пакша» скрыты с сайта, даже если сами продукты активны. Сейчас в
+              модуле продуктов: {moduleServicesCount}.
+            </p>
+          </div>
+          <div className="admin-card__actions">
+            <form action={setPitriPakshaModule}>
+              <input
+                name="pitriPakshaEnabled"
+                type="hidden"
+                value={pitriPakshaEnabled ? "off" : "on"}
+              />
+              <button
+                className={
+                  pitriPakshaEnabled ? "button" : "button button--primary"
+                }
+                type="submit"
+              >
+                {pitriPakshaEnabled ? "Выключить модуль" : "Включить модуль"}
+              </button>
+            </form>
+            <span
+              className={
+                pitriPakshaEnabled
+                  ? "badge badge--success"
+                  : "badge badge--muted"
+              }
+            >
+              {pitriPakshaEnabled ? "Включён" : "Выключен"}
+            </span>
+          </div>
+        </div>
+      </section>
 
       <section className="admin-card admin-card--wide">
         <div className="admin-card__header">

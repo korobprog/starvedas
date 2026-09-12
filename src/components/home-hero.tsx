@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion, type Variants } from "motion/react";
 import { SupportCta } from "@/components/support-cta";
 
@@ -31,6 +31,84 @@ type Spark = {
 };
 
 const sparkCount = 18;
+
+/**
+ * Видеофон героя. Пока файл грузится, виден обычный фон с огнями костра;
+ * когда видео готово играть, оно проявляется, а огни гаснут — переход плавный.
+ * Если файла нет или он не проигрывается, всё остаётся как было.
+ */
+function HeroVideo({ onReady }: { onReady: (ready: boolean) => void }) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+
+    if (!video) {
+      return;
+    }
+
+    function handleReady() {
+      setReady(true);
+      onReady(true);
+    }
+
+    function handleError() {
+      setReady(false);
+      onReady(false);
+    }
+
+    if (video.readyState >= 3) {
+      handleReady();
+    }
+
+    video.addEventListener("canplay", handleReady);
+    video.addEventListener("error", handleError);
+
+    // За кадром видео не проигрываем: экономим батарею на телефонах.
+    const observer =
+      typeof IntersectionObserver === "function"
+        ? new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+              if (entry.isIntersecting) {
+                void video.play().catch(() => undefined);
+              } else {
+                video.pause();
+              }
+            }
+          })
+        : null;
+
+    observer?.observe(video);
+
+    return () => {
+      video.removeEventListener("canplay", handleReady);
+      video.removeEventListener("error", handleError);
+      observer?.disconnect();
+    };
+  }, [onReady]);
+
+  return (
+    <div
+      aria-hidden="true"
+      className={ready ? "hero__video is-ready" : "hero__video"}
+    >
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        ref={videoRef}
+        tabIndex={-1}
+      >
+        <source src="/videos/hero.webm" type="video/webm" />
+        <source src="/videos/hero.mp4" type="video/mp4" />
+      </video>
+      <span className="hero__video-shade" />
+    </div>
+  );
+}
 
 const containerVariants: Variants = {
   hidden: {},
@@ -90,9 +168,16 @@ export function HomeHero({
   const contentVariants = shouldReduceMotion
     ? reducedItemVariants
     : itemVariants;
+  const [videoReady, setVideoReady] = useState(false);
 
   return (
-    <section className="hero hero--ritual" id="top">
+    <section
+      className={
+        videoReady ? "hero hero--ritual has-video-ready" : "hero hero--ritual"
+      }
+      id="top"
+    >
+      {!shouldReduceMotion && <HeroVideo onReady={setVideoReady} />}
       <div className="hero__effects" aria-hidden="true">
         {!shouldReduceMotion &&
           sparks.map((spark, index) => (

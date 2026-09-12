@@ -11,6 +11,18 @@ type SignupCopy = {
     contacts: string;
     removeParticipant: string;
   };
+  /** Что нужно сделать, чтобы кнопка перехода разблокировалась. */
+  blockers: {
+    chooseDay: string;
+    chooseRite: string;
+    chooseService: string;
+    childRows: string;
+    contact: string;
+    names: string;
+    namesFormat: string;
+    payment: string;
+    selection: string;
+  };
   contactWarning: string;
   documentsAria: string;
   error: string;
@@ -85,6 +97,17 @@ const copies: Record<Locale, SignupCopy> = {
       pay: "Оплатить заказ",
       contacts: "Контакты",
       removeParticipant: "Удалить"
+    },
+    blockers: {
+      chooseDay: "Выберите день",
+      chooseRite: "Выберите обряд",
+      chooseService: "Выберите церемонию",
+      childRows: "Заполните строки с детьми",
+      contact: "Укажите контакт",
+      names: "Добавьте имена участников",
+      namesFormat: "Исправьте имена: имя и фамилия",
+      payment: "Нет доступных способов оплаты",
+      selection: "Отметьте услуги и заполните списки"
     },
     contactWarning:
       "Укажите хотя бы один контакт: Telegram, телефон или email.",
@@ -166,6 +189,17 @@ const copies: Record<Locale, SignupCopy> = {
       contacts: "Contacts",
       removeParticipant: "Remove"
     },
+    blockers: {
+      chooseDay: "Choose a day",
+      chooseRite: "Choose a rite",
+      chooseService: "Choose a ceremony",
+      childRows: "Complete the children rows",
+      contact: "Add a contact",
+      names: "Add participant names",
+      namesFormat: "Fix names: first and last name",
+      payment: "No payment methods available",
+      selection: "Select services and fill the lists"
+    },
     contactWarning: "Provide at least one contact: Telegram, phone or email.",
     documentsAria: "Documents before payment",
     error: "Could not create the order. Check the details or try again later.",
@@ -244,6 +278,17 @@ const copies: Record<Locale, SignupCopy> = {
       pay: "ऑर्डर का भुगतान करें",
       contacts: "संपर्क",
       removeParticipant: "हटाएँ"
+    },
+    blockers: {
+      chooseDay: "दिन चुनें",
+      chooseRite: "अनुष्ठान चुनें",
+      chooseService: "समारोह चुनें",
+      childRows: "बच्चों की पंक्तियाँ भरें",
+      contact: "संपर्क जोड़ें",
+      names: "प्रतिभागियों के नाम जोड़ें",
+      namesFormat: "नाम सुधारें: नाम और उपनाम",
+      payment: "भुगतान का कोई तरीका उपलब्ध नहीं",
+      selection: "सेवाएँ चुनें और सूची भरें"
     },
     contactWarning: "कम से कम एक संपर्क दें: Telegram, फोन या email.",
     documentsAria: "भुगतान से पहले दस्तावेज़",

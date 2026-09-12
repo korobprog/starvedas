@@ -6,6 +6,7 @@ import { DigitsOnlyInput } from "@/components/digits-only-input";
 import { ProductSubscriptionAndRitesFields } from "@/components/product-subscription-and-rites-fields";
 import { ServiceTitleSlugFields } from "@/components/service-title-slug-fields";
 import { ValidatedForm } from "@/components/validated-form";
+import { serviceModuleOptions } from "@/lib/service-modules";
 import {
   DEFAULT_SHRADDHA_CHILD_HELP_TEXT,
   DEFAULT_SHRADDHA_DECEASED_CHILD_LABEL,
@@ -266,6 +267,21 @@ export function ServiceFields({
               </option>
             ))}
           </select>
+        </label>
+        <label className="field">
+          <span>Модуль</span>
+          <select defaultValue={service?.moduleKey ?? ""} name="moduleKey">
+            <option value="">Без модуля (обычный продукт)</option>
+            {serviceModuleOptions.map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.title}
+              </option>
+            ))}
+          </select>
+          <small className="admin-muted">
+            Продукт модуля виден на сайте только когда модуль включён на
+            странице продуктов.
+          </small>
         </label>
         <label className="field">
           <span>НДС для чека</span>

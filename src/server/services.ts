@@ -14,8 +14,13 @@ import {
   DEFAULT_SHRADDHA_WARNING_TEXT
 } from "@/lib/shraddha";
 import { type SiteService } from "@/lib/site-data";
+import {
+  buildModuleVisibilityWhere,
+  getHiddenServiceModuleKeys
+} from "@/server/service-modules";
 
 const publicServiceSelect = {
+  moduleKey: true,
   description: true,
   descriptionEn: true,
   descriptionHi: true,
@@ -86,6 +91,7 @@ const managedServiceSelect = {
   },
   active: true,
   archivedAt: true,
+  moduleKey: true,
   description: true,
   descriptionEn: true,
   descriptionHi: true,
@@ -323,6 +329,7 @@ function toSiteService(
     description: getLocalizedDescription(service, locale),
     detailsContent: getLocalizedDetailsContent(service, locale),
     isSubscription: service.isSubscription,
+    moduleKey: service.moduleKey ?? null,
     options: sortedOptions.map((option) => {
       const optionPriceAmount = getLocalizedOptionPrice(option, currency);
 
@@ -438,10 +445,12 @@ export async function getPublicServices(
   locale?: string | null
 ): Promise<SiteService[]> {
   try {
+    const hiddenModuleKeys = await getHiddenServiceModuleKeys();
     const services = await prisma.service.findMany({
       where: {
         active: true,
-        archivedAt: null
+        archivedAt: null,
+        ...buildModuleVisibilityWhere(hiddenModuleKeys)
       },
       orderBy: [
         {
@@ -509,11 +518,13 @@ export async function getServiceForOrder(
     return null;
   }
 
+  const hiddenModuleKeys = await getHiddenServiceModuleKeys();
   const service = await prisma.service.findFirst({
     where: {
       active: true,
       archivedAt: null,
-      slug: normalizedSlug
+      slug: normalizedSlug,
+      ...buildModuleVisibilityWhere(hiddenModuleKeys)
     },
     select: orderServiceSelect
   });

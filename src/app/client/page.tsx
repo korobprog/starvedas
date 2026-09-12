@@ -120,7 +120,11 @@ export default async function ClientCabinetPage() {
             border-radius: 30px !important;
             padding: clamp(24px, 5vw, 44px) !important;
             background:
-              linear-gradient(135deg, rgb(255 255 255 / 88%), rgb(255 244 223 / 82%)),
+              linear-gradient(
+                135deg,
+                color-mix(in srgb, var(--surface) 88%, transparent),
+                color-mix(in srgb, var(--surface-warm) 82%, transparent)
+              ),
               var(--surface) !important;
             box-shadow: var(--shadow) !important;
           }

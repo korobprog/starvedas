@@ -3,7 +3,8 @@ import { getPriceUnitLabel } from "@/components/service-form";
 import { requireAdminUser } from "@/server/auth";
 import {
   permanentlyDeleteAllArchivedServices,
-  permanentlyDeleteSelectedArchivedServices
+  permanentlyDeleteSelectedArchivedServices,
+  restoreArchivedServices
 } from "@/server/service-actions";
 import { getManagedServices, type ManagedService } from "@/server/services";
 
@@ -97,9 +98,10 @@ export default async function AdminProductsArchivePage({
             <p className="eyebrow">Архив</p>
             <h2>Архив продуктов</h2>
             <p className="admin-muted">
-              Здесь находятся продукты, удалённые из основного списка. Они скрыты
-              с сайта. Можно выбрать продукты и удалить их навсегда или удалить
-              весь архив одним действием.
+              Здесь находятся продукты, удалённые из основного списка. Они
+              скрыты с сайта. Отмеченные продукты можно вернуть в список — они
+              вернутся скрытыми, включить их можно потом. Также можно удалить
+              выбранные навсегда или очистить весь архив.
             </p>
           </div>
           <div className="admin-card__actions">
@@ -194,6 +196,13 @@ export default async function AdminProductsArchivePage({
             </div>
 
             <div className="admin-card__actions">
+              <button
+                className="button"
+                formAction={restoreArchivedServices}
+                type="submit"
+              >
+                Вернуть выбранные из архива
+              </button>
               <button className="button button--danger" type="submit">
                 Удалить выбранные навсегда
               </button>

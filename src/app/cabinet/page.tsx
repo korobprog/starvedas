@@ -1,4 +1,10 @@
 import {
+  MarkSalesSeen,
+  SalesCountBadge,
+  SalesNotificationsProvider
+} from "@/components/sales-notifications";
+import { getUnseenSalesState } from "@/server/sales-notifications";
+import {
   ClientFunnelStatus,
   OrderStatus,
   ParticipantListClaimRole,
@@ -869,6 +875,7 @@ export default async function CabinetPage({
   )
     ? (requestedSection ?? defaultCabinetSection)
     : defaultCabinetSection;
+  const unseenSales = await getUnseenSalesState();
   const participantFilters = parseParticipantFilters(rawSearchParams);
   const participantListFilters = parseParticipantListFilters(rawSearchParams);
   const clientFilters = parseClientFilters(rawSearchParams);
@@ -993,6 +1000,7 @@ export default async function CabinetPage({
     curator.partnerApplication?.status === "APPROVED";
 
   return (
+    <SalesNotificationsProvider initialCount={unseenSales.count}>
     <main
       className={
         user.role === UserRole.CURATOR
@@ -1060,6 +1068,7 @@ export default async function CabinetPage({
           )}
         </header>
 
+        {activeSection === "overview" && <MarkSalesSeen />}
         <nav className="cabinet-section-menu" aria-label="Разделы кабинета">
           {availableCabinetSections.map((section) => {
             const meta = cabinetSectionMeta[section];
@@ -1075,7 +1084,10 @@ export default async function CabinetPage({
                 href={`/cabinet?section=${section}`}
                 key={section}
               >
-                <span>{meta.label}</span>
+                <span>
+                  {meta.label}
+                  {section === "overview" && <SalesCountBadge />}
+                </span>
                 <small>{meta.description}</small>
               </Link>
             );
@@ -2078,5 +2090,6 @@ export default async function CabinetPage({
         </div>
       </div>
     </main>
+    </SalesNotificationsProvider>
   );
 }

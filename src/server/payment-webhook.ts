@@ -12,6 +12,7 @@ import { type PayformData, verifyPayformSignature } from "@/server/payform";
 import { ensurePaidOrderParticipantList } from "@/server/participant-lists";
 import {
   sendCuratorParticipantListTelegramNotification,
+  sendCuratorSaleTelegramNotification,
   sendPaymentSucceededTelegramNotification,
   sendStatisticianParticipantWorkTelegramNotification
 } from "@/server/telegram-notifications";
@@ -639,6 +640,13 @@ export async function handlePaymentWebhook({
 
   if (paymentStatus === PaymentStatus.SUCCEEDED) {
     await ensurePaidOrderParticipantList(order.id);
+
+    try {
+      // Куратору — личным сообщением, чтобы у него появилась цифра в Telegram.
+      await sendCuratorSaleTelegramNotification(order.id);
+    } catch (error) {
+      console.error("curator sale telegram notification failed", error);
+    }
 
     try {
       await sendPaymentSucceededTelegramNotification({
