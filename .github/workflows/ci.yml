@@ -1,0 +1,38 @@
+# Проверки, которые до этого прогонялись только вручную на машине разработчика.
+# Прод собирается на Node 24 (см. Dockerfile), поэтому и здесь та же версия:
+# иначе зелёная сборка тут ничего не говорит о сборке там.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          cache: npm
+          node-version: 24
+
+      - run: npm ci
+
+      # Клиент Prisma не лежит в репозитории, а без него не пройдёт ни проверка
+      # типов, ни сборка. Базы здесь нет и не нужно: prisma.config.ts
+      # подставляет запасной адрес, а generate к базе не подключается.
+      - run: npx prisma generate
+
+      - run: npm run typecheck
+
+      - run: npm run lint
+
+      - run: npm test
+
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
