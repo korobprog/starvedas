@@ -104,6 +104,10 @@ function HeroVideo({ onReady }: { onReady: (ready: boolean) => void }) {
       >
         <source src="/videos/hero.webm" type="video/webm" />
         <source src="/videos/hero.mp4" type="video/mp4" />
+        {/* Своё видео для шапки кладут в /videos/hero.*; пока его нет,
+            браузер сам перейдёт к запасному. Без этого шапка остаётся без
+            фона молча: ненайденный файл ничем себя не выдаёт. */}
+        <source src="/videos/brahman.webm" type="video/webm" />
       </video>
       <span className="hero__video-shade" />
     </div>
