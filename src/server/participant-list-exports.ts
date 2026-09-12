@@ -435,25 +435,28 @@ export async function buildParticipantListPdf(data: ExportData) {
 
 export async function buildBrahmanParticipantListPdf(data: ExportData) {
   const document = new PDFDocument({
+    ...pdfFontOption(),
     margin: 42,
     size: "A4"
   });
   const bufferPromise = collectPdfBuffer(document);
 
-  if (fs.existsSync(pdfFontPath)) {
-    document.font(pdfFontPath);
-  }
-
   const firstRow = data.rows[0];
   const ceremonyTitle = firstRow
-    ? [firstRow.serviceTitle, firstRow.selectedOptions].filter(Boolean).join(" — ")
+    ? [firstRow.serviceTitle, firstRow.selectedOptions]
+        .filter(Boolean)
+        .join(" — ")
     : data.title;
 
   document.fillColor("#2f2418").fontSize(20).text("Список для Брахмана", {
     align: "left"
   });
   document.moveDown(0.5);
-  addPdfMetaLine(document, "Дата проведения", formatDate(firstRow?.eventDate ?? null));
+  addPdfMetaLine(
+    document,
+    "Дата проведения",
+    formatDate(firstRow?.eventDate ?? null)
+  );
   addPdfMetaLine(document, "Обряд", ceremonyTitle);
   document.moveDown();
 
