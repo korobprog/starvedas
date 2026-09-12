@@ -6,8 +6,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { serviceModuleKeys } from "@/lib/service-modules";
 import { slugifyReferralValue } from "@/lib/slugs";
 import { requireServiceManager } from "@/server/auth";
+import { setPitriPakshaModuleEnabled } from "@/server/service-modules";
 
 const optionalText = z
   .string()
@@ -91,6 +93,11 @@ function validateSubscriptionPeriod(
 
 const serviceCoreSchema = z.object({
   active: z.boolean(),
+  moduleKey: z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() ? value.trim() : null,
+    z.enum(serviceModuleKeys).nullable()
+  ),
   description: optionalText,
   descriptionEn: optionalText,
   descriptionHi: optionalText,
@@ -232,6 +239,7 @@ function parseServiceFormData(formData: FormData) {
   const isSubscription = formData.get("isSubscription") === "on";
   const parsed = serviceCreateSchema.safeParse({
     active: formData.get("active") === "on",
+    moduleKey: formData.get("moduleKey"),
     description: formData.get("description") ?? "",
     descriptionEn: formData.get("descriptionEn") ?? "",
     descriptionHi: formData.get("descriptionHi") ?? "",
@@ -296,6 +304,7 @@ function parseServiceUpdateFormData(formData: FormData) {
   const isSubscription = formData.get("isSubscription") === "on";
   const parsed = serviceUpdateSchema.safeParse({
     active: formData.get("active") === "on",
+    moduleKey: formData.get("moduleKey"),
     description: formData.get("description") ?? "",
     descriptionEn: formData.get("descriptionEn") ?? "",
     descriptionHi: formData.get("descriptionHi") ?? "",
@@ -745,6 +754,7 @@ export async function updateService(formData: FormData) {
         where: { id: data.id },
         data: {
           active: data.active,
+          moduleKey: data.moduleKey,
           description: data.description,
           descriptionEn: data.descriptionEn,
           descriptionHi: data.descriptionHi,
@@ -807,6 +817,39 @@ export async function toggleServiceActive(formData: FormData) {
 
   revalidateServicePages();
   redirect(`/admin/products/${parsed.data.id}?saved=1`);
+}
+
+export async function restoreArchivedServices(formData: FormData) {
+  await requireServiceManager();
+
+  const ids = formData
+    .getAll("serviceId")
+    .map((value) => value.toString().trim())
+    .filter(Boolean);
+
+  if (ids.length === 0) {
+    redirect("/admin/products/archive?error=empty-selection");
+  }
+
+  // Возвращаем скрытым: продукт не должен появиться на сайте внезапно.
+  const result = await prisma.service.updateMany({
+    where: { id: { in: ids }, archivedAt: { not: null } },
+    data: { active: false, archivedAt: null }
+  });
+
+  revalidateServicePages();
+  redirect(`/admin/products?restored=${result.count}`);
+}
+
+export async function setPitriPakshaModule(formData: FormData) {
+  await requireServiceManager();
+
+  const enabled = formData.get("pitriPakshaEnabled") === "on";
+
+  await setPitriPakshaModuleEnabled(enabled);
+
+  revalidateServicePages();
+  redirect(`/admin/products?module=${enabled ? "on" : "off"}`);
 }
 
 export async function archiveService(formData: FormData) {

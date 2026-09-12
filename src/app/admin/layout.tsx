@@ -2,6 +2,9 @@ import { cookies } from "next/headers";
 import { UserRole } from "@prisma/client";
 import type { ReactNode } from "react";
 import { AdminNav } from "@/components/admin-nav";
+import { AdminNavPanel } from "@/components/admin-nav-panel";
+import { SalesNotificationsProvider } from "@/components/sales-notifications";
+import { getUnseenSalesState } from "@/server/sales-notifications";
 import { getAdminCopy } from "@/i18n/admin-copy";
 import { localeCookieName } from "@/i18n/config";
 import { requireUser } from "@/server/auth";
@@ -26,64 +29,68 @@ export default async function AdminLayout({
   const cookieStore = await cookies();
   const copy = getAdminCopy(cookieStore.get(localeCookieName)?.value);
   const canManageCriticalSettings = user.role === UserRole.SUPER_ADMIN;
+  const unseenSales = await getUnseenSalesState();
+  const adminNavItems = [
+    { href: "/admin/curators", label: "Кураторы" },
+    { href: "/admin/products", label: "Продукты" },
+    { href: "/admin/articles", label: "Статьи" },
+    { href: "/admin/client-materials", label: "Видео материалы" },
+    { href: "/admin/participants", label: "Участники" },
+    { href: "/admin/vedic-gifts", label: "Ведические разборы" },
+    { href: "/admin/statisticians", label: "Статисты" },
+    { href: "/admin/clients", label: "Клиенты" },
+    { href: "/admin/curator-sales", label: "Продажи" },
+    { href: "/admin/recovery", label: "Восстановление" },
+    { href: "/admin/schedule", label: copy.layout.schedule },
+    { href: "/admin/settings", label: "Настройки" },
+    ...(canManageCriticalSettings
+      ? [
+          {
+            href: "/admin/organization",
+            label: copy.layout.organization
+          },
+          {
+            href: "/admin/payments",
+            label: copy.layout.payments
+          },
+          {
+            href: "/admin/accounting",
+            label: "Бухгалтерия"
+          }
+        ]
+      : []),
+    { href: "/", label: copy.layout.site },
+    { href: "/cabinet", label: "Кабинет" }
+  ];
 
   return (
-    <main className="admin-page">
-      <div className="container admin-shell">
-        <header className="admin-header">
-          <div>
-            <p className="eyebrow">{copy.layout.eyebrow}</p>
-            <h1>{copy.layout.title}</h1>
-          </div>
-          <nav className="admin-nav" aria-label={copy.layout.title}>
-            <AdminNav
-              items={[
-                { href: "/admin/curators", label: "Кураторы" },
-                { href: "/admin/products", label: "Продукты" },
-                { href: "/admin/articles", label: "Статьи" },
-                { href: "/admin/client-materials", label: "Видео материалы" },
-                { href: "/admin/participants", label: "Участники" },
-                { href: "/admin/vedic-gifts", label: "Ведические разборы" },
-                { href: "/admin/statisticians", label: "Статисты" },
-                { href: "/admin/clients", label: "Клиенты" },
-                { href: "/admin/curator-sales", label: "Продажи" },
-                { href: "/admin/recovery", label: "Восстановление" },
-                { href: "/admin/schedule", label: copy.layout.schedule },
-                { href: "/admin/settings", label: "Настройки" },
-                ...(canManageCriticalSettings
-                  ? [
-                      {
-                        href: "/admin/organization",
-                        label: copy.layout.organization
-                      },
-                      {
-                        href: "/admin/payments",
-                        label: copy.layout.payments
-                      },
-                      {
-                        href: "/admin/accounting",
-                        label: "Бухгалтерия"
-                      }
-                    ]
-                  : []),
-                { href: "/", label: copy.layout.site },
-                { href: "/cabinet", label: "Кабинет" }
-              ]}
-            />
-            <form action={acceptStatisticianRoleAction}>
-              <button className="button button--primary" type="submit">
-                Войти как статист
-              </button>
-            </form>
-            <form action={logoutAction}>
-              <button className="button" type="submit">
-                Выйти, {user.name}
-              </button>
-            </form>
-          </nav>
-        </header>
-        {children}
-      </div>
-    </main>
+    <SalesNotificationsProvider initialCount={unseenSales.count}>
+      <main className="admin-page">
+        <div className="container admin-shell">
+          <header className="admin-header">
+            <div>
+              <p className="eyebrow">{copy.layout.eyebrow}</p>
+              <h1>{copy.layout.title}</h1>
+            </div>
+            <nav className="admin-nav" aria-label={copy.layout.title}>
+              <AdminNavPanel items={adminNavItems}>
+                <AdminNav items={adminNavItems} />
+                <form action={acceptStatisticianRoleAction}>
+                  <button className="button button--primary" type="submit">
+                    Войти как статист
+                  </button>
+                </form>
+                <form action={logoutAction}>
+                  <button className="button" type="submit">
+                    Выйти, {user.name}
+                  </button>
+                </form>
+              </AdminNavPanel>
+            </nav>
+          </header>
+          {children}
+        </div>
+      </main>
+    </SalesNotificationsProvider>
   );
 }

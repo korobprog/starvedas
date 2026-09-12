@@ -34,8 +34,17 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   const locale = normalizeLocale(cookieStore.get(localeCookieName)?.value);
 
   return (
-    <html lang={locale}>
+    // data-theme ставит скрипт ниже, до гидратации: расхождение ожидаемо
+    <html lang={locale} suppressHydrationWarning>
       <body>
+        <script
+          // Ставит выбранную тему до первой отрисовки, иначе при загрузке
+          // мигает светлая тема.
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('starvedas-theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t)}}catch(e){}"
+          }}
+        />
         <Script
           id="yandex-metrika"
           strategy="afterInteractive"

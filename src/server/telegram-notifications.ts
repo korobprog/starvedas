@@ -669,6 +669,44 @@ export async function sendPaymentSucceededTelegramNotification(
   return sendTelegramMessage(formatPaymentSucceededMessage(input));
 }
 
+/**
+ * Личное сообщение куратору о его продаже. Общий чат получает уведомление как
+ * и раньше, а куратор видит цифру непрочитанного прямо в Telegram.
+ */
+export async function sendCuratorSaleTelegramNotification(orderId: string) {
+  const order = await prisma.order.findFirst({
+    select: {
+      amountRub: true,
+      curator: { select: { name: true, telegramId: true } },
+      customerName: true,
+      orderNumber: true,
+      service: { select: { title: true } },
+      sourceDomain: true
+    },
+    where: { id: orderId }
+  });
+
+  if (!order?.curator.telegramId) {
+    return false;
+  }
+
+  const siteUrl = getSiteUrlForSourceDomain(order.sourceDomain);
+  const lines = [
+    "Новая продажа",
+    `Заказ №${order.orderNumber}`,
+    `Услуга: ${order.service.title}`,
+    `Клиент: ${order.customerName}`,
+    `Сумма: ${order.amountRub.toLocaleString("ru-RU")} ₽`,
+    "",
+    `${siteUrl}/cabinet`
+  ];
+
+  return sendTelegramMessageToChat(
+    order.curator.telegramId,
+    lines.join("\n")
+  );
+}
+
 export async function sendClientParticipantNamesProcessedTelegramNotification(
   input: ClientParticipantNamesProcessedNotificationInput
 ) {

@@ -147,7 +147,7 @@
   border: 1.5px solid rgb(163 82 25 / 30%);
   border-radius: 999px;
   padding: 10px 22px;
-  background: linear-gradient(135deg, var(--surface-warm), #fff);
+  background: linear-gradient(135deg, var(--surface-warm), var(--surface));
   color: var(--primary-dark);
   font-size: 0.92rem;
   font-weight: 800;
@@ -166,7 +166,7 @@
 .schedule-content__toggle:hover {
   transform: translateY(-2px);
   border-color: var(--primary);
-  background: linear-gradient(135deg, #fff, var(--surface-warm));
+  background: linear-gradient(135deg, var(--surface), var(--surface-warm));
   box-shadow: 0 8px 24px rgb(163 82 25 / 16%);
 }
 

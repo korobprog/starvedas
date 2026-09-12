@@ -1,3 +1,4 @@
+import { MarkSalesSeen } from "@/components/sales-notifications";
 import Link from "next/link";
 import {
   curatorSalesStatusOptions,
@@ -69,6 +70,8 @@ export default async function AdminCuratorSalesPage({
   );
 
   return (
+    <>
+      <MarkSalesSeen />
     <div className="admin-grid">
       <section className="admin-card admin-card--wide">
         <div className="admin-card__header">
@@ -524,5 +527,6 @@ export default async function AdminCuratorSalesPage({
         </div>
       </section>
     </div>
+    </>
   );
 }

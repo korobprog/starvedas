@@ -106,11 +106,21 @@ function createResultUrl(baseUrl: string, path: string, publicToken: string) {
   return url.toString();
 }
 
-function createClientOrderUrl(baseUrl: string, publicToken: string) {
-  return new URL(
+function createClientOrderUrl(
+  baseUrl: string,
+  publicToken: string,
+  searchParams?: Record<string, string>
+) {
+  const url = new URL(
     `/client/orders/${encodeURIComponent(publicToken)}`,
     baseUrl
-  ).toString();
+  );
+
+  for (const [key, value] of Object.entries(searchParams ?? {})) {
+    url.searchParams.set(key, value);
+  }
+
+  return url.toString();
 }
 
 function formatPaidContent({
@@ -726,7 +736,9 @@ export async function POST(request: Request) {
       order.publicToken
     );
     const successUrl = currentClient?.telegramId
-      ? clientOrderUrl
+      ? createClientOrderUrl(resultBaseUrl, order.publicToken, {
+          payment: "processing"
+        })
       : createResultUrl(resultBaseUrl, "/payment/success", order.publicToken);
     const paymentUrl = isCustomPayment
       ? undefined

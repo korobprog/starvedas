@@ -12,6 +12,10 @@ import {
 } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { MarkdownContent } from "@/components/markdown-content";
+import {
+  PitriDayCard,
+  PitriPakshaBand
+} from "@/components/pitri-paksha-band";
 import { SupportCta } from "@/components/support-cta";
 import { formatMoney } from "@/i18n/pricing";
 import { getSignupCopy } from "@/i18n/signup-copy";
@@ -99,7 +103,7 @@ const signupAuthButtonInlineStyle: CSSProperties = {
 
 const signupAuthLoginButtonInlineStyle: CSSProperties = {
   ...signupAuthButtonInlineStyle,
-  background: "rgba(255, 255, 255, 0.96)",
+  background: "color-mix(in srgb, var(--surface) 96%, transparent)",
   border: "1px solid rgba(216, 154, 43, 0.38)",
   boxShadow: "0 8px 18px rgba(86, 48, 13, 0.08)",
   color: "var(--primary-dark)"
@@ -111,7 +115,7 @@ const signupAuthRegisterButtonInlineStyle: CSSProperties = {
     "linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)",
   border: "1px solid rgba(129, 64, 15, 0.18)",
   boxShadow: "0 12px 24px rgba(178, 91, 24, 0.22)",
-  color: "#fff"
+  color: "var(--on-primary)"
 };
 
 function CeremonyIcon(props: SVGProps<SVGSVGElement>) {
@@ -1044,6 +1048,11 @@ export function SignupForm({
       services.find((service) => service.slug === detailsServiceSlug) ?? null,
     [detailsServiceSlug, services]
   );
+  const pitriPakshaServices = useMemo(
+    () => services.filter((service) => service.moduleKey === "pitri-paksha"),
+    [services]
+  );
+  const isPitriPakshaService = selectedService?.moduleKey === "pitri-paksha";
 
   const selectedServiceOptions = useMemo(() => {
     if (!selectedService || selectedService.isSubscription) {
@@ -1308,8 +1317,79 @@ export function SignupForm({
             !hasWizardBillableEntry)) ||
         (step === 2 && (!hasContact || !isCustomerPhoneValid)) ||
         (step === 4 && paymentProviders.length === 0);
-  const submitButtonLabel =
-    mode === "multi" || step === formSteps.length - 1
+  // Пока шаг не заполнен, кнопка говорит, что именно нужно сделать.
+  const blockerLabel = (() => {
+    if (submitState.status === "loading") {
+      return null;
+    }
+
+    if (mode === "multi") {
+      if (!isMultiSelectionValid) {
+        return copy.blockers.selection;
+      }
+
+      if (!hasContact) {
+        return copy.blockers.contact;
+      }
+
+      if (!isCustomerPhoneValid) {
+        return copy.fields.phone;
+      }
+
+      if (paymentProviders.length === 0) {
+        return copy.blockers.payment;
+      }
+
+      return null;
+    }
+
+    if (!selectedService) {
+      return copy.blockers.chooseService;
+    }
+
+    if (
+      step === 0 &&
+      mustSelectServiceOptions &&
+      selectedServiceOptions.length < 1
+    ) {
+      return isPitriPakshaService
+        ? copy.blockers.chooseDay
+        : copy.blockers.chooseRite;
+    }
+
+    if (step === 1) {
+      if (hasInvalidParticipants) {
+        return copy.blockers.namesFormat;
+      }
+
+      if (wizardChildHasIssues) {
+        return copy.blockers.childRows;
+      }
+
+      if (!hasWizardBillableEntry) {
+        return copy.blockers.names;
+      }
+    }
+
+    if (step === 2) {
+      if (!hasContact) {
+        return copy.blockers.contact;
+      }
+
+      if (!isCustomerPhoneValid) {
+        return copy.fields.phone;
+      }
+    }
+
+    if (step === 4 && paymentProviders.length === 0) {
+      return copy.blockers.payment;
+    }
+
+    return null;
+  })();
+  const submitButtonLabel = blockerLabel
+    ? blockerLabel
+    : mode === "multi" || step === formSteps.length - 1
       ? submitState.status === "loading"
         ? copy.actions.creating
         : copy.actions.pay
@@ -2095,6 +2175,7 @@ export function SignupForm({
             услуг с участниками укажите список, для услуг с обрядами выберите
             нужные.
           </p>
+          <PitriPakshaBand services={pitriPakshaServices} />
           <div className="option-grid">
             {services.map((service) => {
               const selection = multiSelections[service.slug];
@@ -2282,6 +2363,7 @@ export function SignupForm({
       {mode === "wizard" && step === 0 && (
         <fieldset className="form-step">
           <legend>{copy.legend.ceremony}</legend>
+          <PitriPakshaBand services={pitriPakshaServices} />
           <div className="option-grid">
             {services.map((service) => {
               const showVedicGift = service.vedicGiftEnabled;
@@ -2397,35 +2479,59 @@ export function SignupForm({
 
           {mustSelectServiceOptions && selectedService && (
             <div
-              className="rite-choice-list"
+              className={
+                isPitriPakshaService
+                  ? "rite-choice-list rite-choice-list--days"
+                  : "rite-choice-list"
+              }
               aria-label="Обряды внутри раздела"
             >
-              <strong>Выберите один или несколько обрядов</strong>
+              <strong>
+                {isPitriPakshaService
+                  ? "Выберите один или несколько дней"
+                  : "Выберите один или несколько обрядов"}
+              </strong>
               {selectedService.options.length > 0 ? (
-                selectedService.options.map((option) => (
-                  <label
-                    className="choice-card rite-choice-card"
-                    key={option.id}
-                  >
-                    <input
+                selectedService.options.map((option, index) =>
+                  isPitriPakshaService ? (
+                    <PitriDayCard
                       checked={selectedServiceOptionIds.includes(option.id)}
-                      onChange={() => toggleServiceOption(option.id)}
-                      type="checkbox"
+                      key={option.id}
+                      onToggle={() => toggleServiceOption(option.id)}
+                      option={option}
+                      phase={
+                        selectedService.options.length > 1
+                          ? index / (selectedService.options.length - 1)
+                          : 0
+                      }
                     />
-                    {option.eventStartsAtLabel && (
-                      <span className="rite-choice-card__date">
-                        {option.eventStartsAtLabel} МСК
+                  ) : (
+                    <label
+                      className="choice-card rite-choice-card"
+                      key={option.id}
+                    >
+                      <input
+                        checked={selectedServiceOptionIds.includes(option.id)}
+                        onChange={() => toggleServiceOption(option.id)}
+                        type="checkbox"
+                      />
+                      {option.eventStartsAtLabel && (
+                        <span className="rite-choice-card__date">
+                          {option.eventStartsAtLabel} МСК
+                        </span>
+                      )}
+                      <span className="rite-choice-card__title">
+                        {option.title}
                       </span>
-                    )}
-                    <span className="rite-choice-card__title">
-                      {option.title}
-                    </span>
-                    {option.description && <small>{option.description}</small>}
-                    <small className="rite-choice-card__price">
-                      {option.priceLabel}
-                    </small>
-                  </label>
-                ))
+                      {option.description && (
+                        <small>{option.description}</small>
+                      )}
+                      <small className="rite-choice-card__price">
+                        {option.priceLabel}
+                      </small>
+                    </label>
+                  )
+                )
               ) : (
                 <p className="form-warning">
                   Обряды пока не добавлены администратором.

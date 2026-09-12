@@ -29,6 +29,7 @@ export type SiteServiceOption = {
 
 export type SiteService = {
   currency: "RUB" | "USD" | "INR";
+  moduleKey: string | null;
   description: string;
   detailsContent: string;
   isSubscription: boolean;
@@ -74,7 +75,8 @@ const noShraddhaMode = {
   shraddhaWarningText: "",
   shraddhaUnbornLabel: "",
   shraddhaDeceasedChildLabel: "",
-  shraddhaChildHelpText: ""
+  shraddhaChildHelpText: "",
+  moduleKey: null
 } as const;
 
 export const services = [
