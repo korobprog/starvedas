@@ -3718,7 +3718,9 @@ select {
   .admin-nav__overlay {
     position: fixed;
     inset: 0;
-    z-index: 40;
+    /* Панель лежит в конце body, так что слой считается от корня страницы:
+       берём с запасом над всем остальным, включая переключатель языка. */
+    z-index: 1000;
     background: rgb(12 6 3 / 55%);
     opacity: 0;
     visibility: hidden;
@@ -3736,7 +3738,7 @@ select {
   .admin-nav__drawer {
     position: fixed;
     inset: 0 auto 0 0;
-    z-index: 41;
+    z-index: 1001;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     width: min(86vw, 320px);

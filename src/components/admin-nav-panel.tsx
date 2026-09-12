@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode
 } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { isActivePath, type AdminNavItem } from "@/components/admin-nav";
 
@@ -33,6 +34,7 @@ export function AdminNavPanel({
   const currentLabel =
     items.find((item) => isActivePath(pathname, item.href))?.label ?? "";
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const drawerRef = useRef<HTMLElement | null>(null);
 
   const setIsOpen = useCallback(
     (open: boolean) => {
@@ -71,9 +73,14 @@ export function AdminNavPanel({
     }
 
     function handlePointer(event: PointerEvent) {
-      const wrapper = wrapperRef.current;
+      const target = event.target as Node;
+      // Панель живёт в портале и в обёртку кнопки больше не входит, поэтому
+      // «клик снаружи» проверяем по обоим узлам, иначе выбор раздела внутри
+      // панели закрывал бы её до перехода.
+      const insideToggle = wrapperRef.current?.contains(target) ?? false;
+      const insideDrawer = drawerRef.current?.contains(target) ?? false;
 
-      if (wrapper && !wrapper.contains(event.target as Node)) {
+      if (!insideToggle && !insideDrawer) {
         setIsOpen(false);
       }
     }
@@ -116,29 +123,45 @@ export function AdminNavPanel({
           <strong>{currentLabel || "Выберите раздел"}</strong>
         </span>
       </button>
-      <div
-        aria-hidden="true"
-        className={isOpen ? "admin-nav__overlay is-open" : "admin-nav__overlay"}
-        onClick={() => setIsOpen(false)}
-      />
-      <aside
-        aria-label="Разделы админки"
-        className={isOpen ? "admin-nav__drawer is-open" : "admin-nav__drawer"}
-        id="admin-nav-drawer"
-      >
-        <div className="admin-nav__drawer-head">
-          <strong>Разделы</strong>
-          <button
-            aria-label="Закрыть меню"
-            className="admin-nav__drawer-close"
+      {/*
+       * Панель и затемнение выносим в конец body. Внутри шапки они лежали в её
+       * слое (шапка липкая и со своим z-index), и любой блок страницы со слоем
+       * выше перекрывал меню: оставался виден только край. В портале слой у
+       * панели собственный, и перекрыть её нечем.
+       */}
+      {createPortal(
+        <>
+          <div
+            aria-hidden="true"
+            className={
+              isOpen ? "admin-nav__overlay is-open" : "admin-nav__overlay"
+            }
             onClick={() => setIsOpen(false)}
-            type="button"
+          />
+          <aside
+            aria-label="Разделы админки"
+            className={
+              isOpen ? "admin-nav__drawer is-open" : "admin-nav__drawer"
+            }
+            id="admin-nav-drawer"
+            ref={drawerRef}
           >
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div className="admin-nav__list">{children}</div>
-      </aside>
+            <div className="admin-nav__drawer-head">
+              <strong>Разделы</strong>
+              <button
+                aria-label="Закрыть меню"
+                className="admin-nav__drawer-close"
+                onClick={() => setIsOpen(false)}
+                type="button"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+            <div className="admin-nav__list">{children}</div>
+          </aside>
+        </>,
+        document.body
+      )}
     </div>
   );
 }
