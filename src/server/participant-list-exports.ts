@@ -14,6 +14,16 @@ const pdfFontPath = path.join(
   "NotoSans-Regular.ttf"
 );
 
+/**
+ * Шрифт задаём сразу в конструкторе, а не вызовом document.font() после него.
+ * Иначе pdfkit успевает подтянуть встроенную Helvetica из своих .afm-файлов, а
+ * после сборки Next их по этому пути нет — документ падает ещё до первой буквы.
+ * Кириллицу Helvetica всё равно не показывает, так что свой шрифт нужен всегда.
+ */
+function pdfFontOption() {
+  return fs.existsSync(pdfFontPath) ? { font: pdfFontPath } : {};
+}
+
 type ExportRow = {
   createdAt: Date;
   curatorName: string;
@@ -65,7 +75,9 @@ function cleanFilenamePart(value: string | number) {
 
 function getEventDate(list: {
   eventStartsAt: Date | null;
-  order: { serviceOptions: Array<{ option: { eventStartsAt: Date | null } | null }> };
+  order: {
+    serviceOptions: Array<{ option: { eventStartsAt: Date | null } | null }>;
+  };
 }) {
   return (
     list.eventStartsAt ??
@@ -139,9 +151,7 @@ export async function getParticipantListExportData({
     return null;
   }
 
-  const selectedIdSet = participantIds?.length
-    ? new Set(participantIds)
-    : null;
+  const selectedIdSet = participantIds?.length ? new Set(participantIds) : null;
   const participants = selectedIdSet
     ? list.order.participants.filter((participant) =>
         selectedIdSet.has(participant.id)
@@ -271,12 +281,19 @@ function collectPdfBuffer(document: PDFKit.PDFDocument) {
 }
 
 function ensurePdfSpace(document: PDFKit.PDFDocument, height: number) {
-  if (document.y + height > document.page.height - document.page.margins.bottom) {
+  if (
+    document.y + height >
+    document.page.height - document.page.margins.bottom
+  ) {
     document.addPage();
   }
 }
 
-function addPdfMetaLine(document: PDFKit.PDFDocument, label: string, value: string) {
+function addPdfMetaLine(
+  document: PDFKit.PDFDocument,
+  label: string,
+  value: string
+) {
   document.fontSize(10).fillColor("#6f5940").text(`${label}: `, {
     continued: true
   });
@@ -285,14 +302,11 @@ function addPdfMetaLine(document: PDFKit.PDFDocument, label: string, value: stri
 
 export async function buildParticipantListPdf(data: ExportData) {
   const document = new PDFDocument({
+    ...pdfFontOption(),
     margin: 42,
     size: "A4"
   });
   const bufferPromise = collectPdfBuffer(document);
-
-  if (fs.existsSync(pdfFontPath)) {
-    document.font(pdfFontPath);
-  }
 
   document.fillColor("#2f2418").fontSize(20).text(data.title, {
     align: "left"
@@ -335,18 +349,23 @@ export async function buildParticipantListPdf(data: ExportData) {
   function drawHeader() {
     ensurePdfSpace(document, headerHeight);
     const y = document.y;
-    document.rect(x, y, widths.reduce((sum, width) => sum + width, 0), headerHeight).fill("#9f6b2d");
+    document
+      .rect(
+        x,
+        y,
+        widths.reduce((sum, width) => sum + width, 0),
+        headerHeight
+      )
+      .fill("#9f6b2d");
     document.fillColor("#fffaf3").fontSize(9);
-    ["#", "Имя", "Статус", "Комментарий статиста"].forEach(
-      (header, index) => {
-        document.text(
-          header,
-          x + widths.slice(0, index).reduce((sum, width) => sum + width, 0) + 5,
-          y + 7,
-          { width: widths[index] - 10 }
-        );
-      }
-    );
+    ["#", "Имя", "Статус", "Комментарий статиста"].forEach((header, index) => {
+      document.text(
+        header,
+        x + widths.slice(0, index).reduce((sum, width) => sum + width, 0) + 5,
+        y + 7,
+        { width: widths[index] - 10 }
+      );
+    });
     document.y = y + headerHeight;
   }
 
@@ -374,7 +393,12 @@ export async function buildParticipantListPdf(data: ExportData) {
     const fill = index % 2 === 0 ? "#fffaf3" : "#f6f0e8";
 
     document
-      .rect(x, y, widths.reduce((sum, width) => sum + width, 0), rowHeight)
+      .rect(
+        x,
+        y,
+        widths.reduce((sum, width) => sum + width, 0),
+        rowHeight
+      )
       .fill(fill);
     document.fillColor("#2f2418").fontSize(9);
 
