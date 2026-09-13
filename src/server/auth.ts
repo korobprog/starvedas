@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { organizationSettingsId } from "@/server/organization-settings";
+import { isSessionRevokedByPasswordChange } from "@/server/password-reset-token";
 
 export const authSessionCookieName = "starvedas_session";
 
@@ -11,6 +12,7 @@ const sessionMaxAgeSeconds = 60 * 60 * 24 * 14;
 
 type SessionPayload = {
   exp: number;
+  iat?: number;
   userId: string;
 };
 
@@ -64,8 +66,10 @@ function parseSessionToken(token: string | undefined) {
 
 export async function setAuthSession(userId: string) {
   const cookieStore = await cookies();
+  const now = Date.now();
   const token = createSessionToken({
-    exp: Date.now() + sessionMaxAgeSeconds * 1000,
+    exp: now + sessionMaxAgeSeconds * 1000,
+    iat: now,
     userId
   });
 
@@ -94,7 +98,7 @@ export async function getCurrentUser() {
     return null;
   }
 
-  return prisma.user.findFirst({
+  const user = await prisma.user.findFirst({
     where: {
       active: true,
       id: payload.userId
@@ -110,9 +114,25 @@ export async function getCurrentUser() {
       email: true,
       id: true,
       name: true,
+      passwordChangedAt: true,
       role: true
     }
   });
+
+  if (
+    !user ||
+    isSessionRevokedByPasswordChange(payload.iat, user.passwordChangedAt)
+  ) {
+    return null;
+  }
+
+  return {
+    curator: user.curator,
+    email: user.email,
+    id: user.id,
+    name: user.name,
+    role: user.role
+  };
 }
 
 export type SessionUser = NonNullable<

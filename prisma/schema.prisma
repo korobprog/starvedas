@@ -125,16 +125,17 @@ enum PartnerApplicationStatus {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  role         UserRole @default(CLIENT)
-  active       Boolean  @default(true)
-  telegramId   String?  @unique
-  salesSeenAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  name              String
+  role              UserRole  @default(CLIENT)
+  active            Boolean   @default(true)
+  telegramId        String?   @unique
+  salesSeenAt       DateTime?
+  passwordChangedAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   curator                     Curator?
   clientProfile               ClientProfile?
@@ -146,6 +147,7 @@ model User {
   participantListChanges      ParticipantListChange[]
   participantListMessages     ParticipantListMessage[]
   claimedParticipantLists     ParticipantList[]           @relation("ParticipantListClaimedByUser")
+  passwordResetTokens         PasswordResetToken[]
 }
 
 model Curator {
@@ -869,4 +871,17 @@ model VedicGiftData {
   @@index([orderId])
   @@index([processed])
   @@index([createdAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

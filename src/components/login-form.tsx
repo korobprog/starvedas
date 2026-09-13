@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { loginAction, type LoginActionState } from "@/server/auth-actions";
 
@@ -44,6 +45,9 @@ export function LoginForm({
       >
         {pending ? "Входим..." : submitLabel}
       </button>
+      <p className="form-note">
+        <Link href={`/forgot-password?scope=${scope}`}>Забыли пароль?</Link>
+      </p>
     </form>
   );
 }
