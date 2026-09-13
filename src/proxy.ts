@@ -7,6 +7,8 @@ function isMaintenanceAllowedPath(pathname: string) {
   return (
     pathname === "/maintenance" ||
     pathname === "/login" ||
+    pathname === "/forgot-password" ||
+    pathname === "/reset-password" ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/api") ||
     pathname.startsWith("/_next") ||

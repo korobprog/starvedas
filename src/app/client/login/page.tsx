@@ -35,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ClientLoginPage({
   searchParams
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; reset?: string }>;
 }) {
   const [client, user, params, brand] = await Promise.all([
     getCurrentClientProfile(),
@@ -75,6 +75,11 @@ export default async function ClientLoginPage({
                 Перейти в админку
               </Link>
             </div>
+          </div>
+        ) : null}
+        {params.reset === "1" ? (
+          <div className="form-success" role="status">
+            Пароль изменён. Войдите с новым паролем.
           </div>
         ) : null}
         <LoginForm

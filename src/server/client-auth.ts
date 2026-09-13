@@ -2,6 +2,7 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/server/auth";
+import { isSessionRevokedByPasswordChange } from "@/server/password-reset-token";
 
 export const clientSessionCookieName = "starvedas_client_session";
 
@@ -10,6 +11,7 @@ const sessionMaxAgeSeconds = 60 * 60 * 24 * 90;
 type ClientSessionPayload = {
   clientId: string;
   exp: number;
+  iat?: number;
 };
 
 function getSessionSecret() {
@@ -62,9 +64,11 @@ function parseClientSessionToken(token: string | undefined) {
 
 export async function setClientSession(clientId: string) {
   const cookieStore = await cookies();
+  const now = Date.now();
   const token = createClientSessionToken({
     clientId,
-    exp: Date.now() + sessionMaxAgeSeconds * 1000
+    exp: now + sessionMaxAgeSeconds * 1000,
+    iat: now
   });
 
   cookieStore.set(clientSessionCookieName, token, {
@@ -91,8 +95,14 @@ export async function getCurrentClientProfile() {
   if (payload) {
     const client = await findClientProfile({ id: payload.clientId });
 
-    if (client) {
-      return client;
+    if (
+      client &&
+      !isSessionRevokedByPasswordChange(
+        payload.iat,
+        client.user?.passwordChangedAt ?? null
+      )
+    ) {
+      return omitUser(client);
     }
   }
 
@@ -102,7 +112,17 @@ export async function getCurrentClientProfile() {
     return null;
   }
 
-  return findClientProfile({ userId: user.id });
+  const client = await findClientProfile({ userId: user.id });
+
+  return client ? omitUser(client) : null;
+}
+
+function omitUser<T extends { user: unknown }>(client: T): Omit<T, "user"> {
+  const profile: Partial<T> = { ...client };
+
+  delete profile.user;
+
+  return profile as Omit<T, "user">;
 }
 
 function findClientProfile(where: { id: string } | { userId: string }) {
@@ -130,7 +150,12 @@ function findClientProfile(where: { id: string } | { userId: string }) {
       telegramFirstName: true,
       telegramId: true,
       telegramLastName: true,
-      telegramPhotoUrl: true
+      telegramPhotoUrl: true,
+      user: {
+        select: {
+          passwordChangedAt: true
+        }
+      }
     }
   });
 }

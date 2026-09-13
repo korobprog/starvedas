@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AdminLoginPage({
   searchParams
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; reset?: string }>;
 }) {
   const [user, params, brand] = await Promise.all([
     getCurrentUser(),
@@ -42,6 +42,11 @@ export default async function AdminLoginPage({
           Эта страница только для администраторов, кураторов и статистов. После
           входа вы попадёте в рабочую панель, а не в личный кабинет клиента.
         </p>
+        {params.reset === "1" ? (
+          <div className="form-success" role="status">
+            Пароль изменён. Войдите с новым паролем.
+          </div>
+        ) : null}
         <LoginForm
           next={params.next}
           scope="staff"
